@@ -78,6 +78,13 @@ p, li, span, td, .form-control {
     border-radius: 8px;
     color: var(--text-bright) !important;
     backdrop-filter: blur(5px);
+    transition: all 0.3s ease !important;
+}
+
+.card:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3) !important;
+    border-color: var(--primary-yellow) !important;
 }
 
 .card-header {
@@ -121,6 +128,7 @@ p, li, span, td, .form-control {
 
 .table-hover tbody tr:hover {
     background: rgba(50, 205, 50, 0.1) !important;
+    transform: scale(1.01) !important;
 }
 
 /* ============================================================
@@ -157,9 +165,13 @@ p, li, span, td, .form-control {
     border: none;
     font-weight: 600;
     border-radius: 6px;
-    transition: all 0.2s ease;
+    transition: all 0.2s ease !important;
     position: relative;
     z-index: 10;
+}
+
+.btn:hover {
+    transform: translateY(-1px) !important;
 }
 
 .btn-warning {
@@ -278,6 +290,125 @@ p, li, span, td, .form-control {
 }
 
 /* ============================================================
+   FIX: Bootstrap List Groups - REMOVE WHITE BACKGROUNDS
+   ============================================================ */
+.list-group {
+    background: transparent !important;
+    border: none !important;
+}
+
+.list-group-item {
+    background: rgba(255, 255, 255, 0.08) !important;
+    border: 1px solid rgba(255, 215, 0, 0.3) !important;
+    color: var(--text-bright) !important;
+    border-radius: 8px !important;
+    margin-bottom: 0.5rem !important;
+    transition: all 0.3s ease !important;
+}
+
+.list-group-item:last-child {
+    margin-bottom: 0 !important;
+}
+
+.list-group-item:hover {
+    background: rgba(50, 205, 50, 0.1) !important;
+    border-color: var(--primary-green) !important;
+    transform: translateX(5px) !important;
+}
+
+.list-group-item .fw-bold {
+    color: var(--primary-yellow) !important;
+}
+
+.list-group-item .badge {
+    background: linear-gradient(45deg, var(--primary-green), var(--primary-yellow)) !important;
+    color: #000 !important;
+}
+
+.list-group-numbered {
+    background: transparent !important;
+}
+
+.list-group-numbered .list-group-item {
+    background: rgba(255, 255, 255, 0.08) !important;
+    border: 1px solid rgba(255, 215, 0, 0.3) !important;
+    color: var(--text-bright) !important;
+}
+
+/* ============================================================
+   Top Performers Custom Styles
+   ============================================================ */
+.top-performers-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.performer-item {
+    display: flex;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 215, 0, 0.3);
+    border-radius: 10px;
+    padding: 1rem;
+    transition: all 0.3s ease;
+}
+
+.performer-item:hover {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: var(--primary-yellow);
+    transform: translateX(5px);
+}
+
+.performer-item.gold {
+    border-color: #FFD700;
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(255, 215, 0, 0.05));
+}
+
+.performer-item.silver {
+    border-color: #C0C0C0;
+    background: linear-gradient(135deg, rgba(192, 192, 192, 0.1), rgba(192, 192, 192, 0.05));
+}
+
+.performer-item.bronze {
+    border-color: #CD7F32;
+    background: linear-gradient(135deg, rgba(205, 127, 50, 0.1), rgba(205, 127, 50, 0.05));
+}
+
+.performer-rank {
+    font-size: 1.5rem;
+    margin-right: 1rem;
+    width: 40px;
+    text-align: center;
+}
+
+.performer-info {
+    flex: 1;
+}
+
+.performer-name {
+    color: var(--primary-yellow);
+    font-weight: 600;
+    font-size: 1.1rem;
+}
+
+.performer-details {
+    color: var(--text-soft);
+    font-size: 0.9rem;
+    margin-top: 0.25rem;
+}
+
+.performer-score {
+    color: var(--primary-green);
+    font-weight: bold;
+    font-size: 1.2rem;
+    background: rgba(50, 205, 50, 0.1);
+    padding: 0.5rem 0.75rem;
+    border-radius: 8px;
+    border: 1px solid rgba(50, 205, 50, 0.3);
+}
+
+/* ============================================================
    Footer
    ============================================================ */
 footer {
@@ -287,17 +418,8 @@ footer {
 }
 
 /* ============================================================
-   CRITICAL FIX: Remove ALL problematic animations and effects
+   Ensure all clickable elements work perfectly
    ============================================================ */
-
-/* Remove transforms that break layouts */
-.card:hover,
-.btn:hover,
-.table-hover tbody tr:hover {
-    transform: none !important;
-}
-
-/* Ensure all clickable elements work perfectly */
 .btn, a, .nav-link, [onclick], [href] {
     cursor: pointer !important;
     position: relative;
@@ -324,6 +446,24 @@ footer {
     
     .table {
         font-size: 0.9rem;
+    }
+    
+    .performer-item {
+        padding: 0.75rem;
+    }
+    
+    .performer-rank {
+        font-size: 1.2rem;
+        width: 35px;
+    }
+    
+    .performer-name {
+        font-size: 1rem;
+    }
+    
+    .performer-score {
+        font-size: 1rem;
+        padding: 0.4rem 0.6rem;
     }
 }
 
