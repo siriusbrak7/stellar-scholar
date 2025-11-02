@@ -266,17 +266,20 @@
                     <h5 class="mb-0">🏅 Top Performers</h5>
                 </div>
                 <div class="card-body">
-                    <ol class="list-group list-group-numbered">
+                    <div class="top-performers-list">
                         {% for student in leaderboard[:3] %}
-                        <li class="list-group-item d-flex justify-content-between align-items-start">
-                            <div class="ms-2 me-auto">
-                                <div class="fw-bold">{{ student.username }}</div>
-                                Grade {{ student.grade_level }} • {{ student.num_submissions }} submissions
+                        <div class="performer-item {% if loop.index == 1 %}gold{% elif loop.index == 2 %}silver{% else %}bronze{% endif %}">
+                            <div class="performer-rank">
+                                {% if loop.index == 1 %}🥇{% elif loop.index == 2 %}🥈{% else %}🥉{% endif %}
                             </div>
-                            <span class="badge bg-primary rounded-pill">{{ student.avg_score }}</span>
-                        </li>
+                            <div class="performer-info">
+                                <div class="performer-name">{{ student.username }}</div>
+                                <div class="performer-details">Grade {{ student.grade_level }} • {{ student.num_submissions }} submissions</div>
+                            </div>
+                            <div class="performer-score">{{ student.avg_score }}</div>
+                        </div>
                         {% endfor %}
-                    </ol>
+                    </div>
                 </div>
             </div>
         </div>
@@ -309,6 +312,78 @@
     </div>
     {% endif %}
 </div>
+
+<style>
+/* Top Performers Styling */
+.top-performers-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.performer-item {
+    display: flex;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 215, 0, 0.3);
+    border-radius: 10px;
+    padding: 1rem;
+    transition: all 0.3s ease;
+}
+
+.performer-item:hover {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: var(--primary-yellow);
+}
+
+.performer-item.gold {
+    border-color: #FFD700;
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(255, 215, 0, 0.05));
+}
+
+.performer-item.silver {
+    border-color: #C0C0C0;
+    background: linear-gradient(135deg, rgba(192, 192, 192, 0.1), rgba(192, 192, 192, 0.05));
+}
+
+.performer-item.bronze {
+    border-color: #CD7F32;
+    background: linear-gradient(135deg, rgba(205, 127, 50, 0.1), rgba(205, 127, 50, 0.05));
+}
+
+.performer-rank {
+    font-size: 1.5rem;
+    margin-right: 1rem;
+    width: 40px;
+    text-align: center;
+}
+
+.performer-info {
+    flex: 1;
+}
+
+.performer-name {
+    color: var(--primary-yellow);
+    font-weight: 600;
+    font-size: 1.1rem;
+}
+
+.performer-details {
+    color: var(--text-soft);
+    font-size: 0.9rem;
+    margin-top: 0.25rem;
+}
+
+.performer-score {
+    color: var(--primary-green);
+    font-weight: bold;
+    font-size: 1.2rem;
+    background: rgba(50, 205, 50, 0.1);
+    padding: 0.5rem 0.75rem;
+    border-radius: 8px;
+    border: 1px solid rgba(50, 205, 50, 0.3);
+}
+</style>
 
 <script>
 function filterByGrade(grade, btn) {
