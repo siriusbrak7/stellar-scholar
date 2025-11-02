@@ -1,0 +1,232 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-12">
+            <div class="card p-4 mb-4">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h2>📚 My Submission History</h2>
+                        <p class="text-muted mb-0">Track your progress and review feedback</p>
+                    </div>
+                    <a href="{{ url_for('student_dashboard') }}" class="btn btn-outline-secondary">Back to Dashboard</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Overview -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-center bg-primary text-white">
+                <div class="card-body">
+                    <h3>{{ stats.total }}</h3>
+                    <p>Total Submissions</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card text-center bg-success text-white">
+                <div class="card-body">
+                    <h3>{{ stats.graded }}</h3>
+                    <p>Graded</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card text-center bg-warning text-dark">
+                <div class="card-body">
+                    <h3>{{ stats.pending }}</h3>
+                    <p>Pending</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card text-center bg-info text-white">
+                <div class="card-body">
+                    <h3>{% if stats.average %}{{ stats.average }}%{% else %}N/A{% endif %}</h3>
+                    <p>Average Grade</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Submission History -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card p-4">
+                <h3 class="mb-4">All Submissions</h3>
+                
+                {% if submissions %}
+                <div class="timeline">
+                    {% for submission in submissions %}
+                    <div class="timeline-item {% if submission.grade is not none %}graded{% else %}pending{% endif %}">
+                        <div class="timeline-marker">
+                            {% if submission.grade is not none %}
+                            <span class="badge bg-success">✓</span>
+                            {% else %}
+                            <span class="badge bg-warning">⏳</span>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="timeline-content card {% if submission.grade is not none %}border-success{% else %}border-warning{% endif %}">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start mb-3">
+                                    <h5 class="card-title">{{ submission.prompt_title }}</h5>
+                                    <div class="text-end">
+                                        {% if submission.grade is not none %}
+                                        <span class="badge bg-success fs-6">{{ submission.grade }}/100</span>
+                                        <br>
+                                        <small class="text-muted">Graded: {{ submission.graded_at[:10] if submission.graded_at else 'N/A' }}</small>
+                                        {% else %}
+                                        <span class="badge bg-warning">Awaiting Grade</span>
+                                        <br>
+                                        <small class="text-muted">Submitted: {{ submission.submitted_at[:10] }}</small>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <h6>Prompt Description:</h6>
+                                    <div class="card bg-light">
+                                        <div class="card-body">
+                                            <p class="mb-0">{{ submission.prompt_description }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <h6>Your Response:</h6>
+                                    <div class="card">
+                                        <div class="card-body">
+                                            <p class="mb-0">{{ submission.response }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                {% if submission.grade is not none and submission.feedback %}
+                                <div class="feedback-section">
+                                    <h6>Teacher Feedback:</h6>
+                                    <div class="card border-info">
+                                        <div class="card-body bg-info bg-opacity-10">
+                                            <p class="mb-0">{{ submission.feedback }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% elif submission.grade is not none %}
+                                <div class="alert alert-info">
+                                    <small>No written feedback provided for this submission.</small>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <div class="alert alert-info">
+                        <h4>No Submissions Yet</h4>
+                        <p class="mb-3">You haven't made any submissions yet. Start your learning journey by completing assignments!</p>
+                        <a href="{{ url_for('student_dashboard') }}" class="btn btn-primary">View Available Assignments</a>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Performance Summary -->
+    {% if stats.graded > 0 %}
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">📈 Performance Summary</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Average Grade:</strong> {{ stats.average }}%</p>
+                            <p><strong>Completion Rate:</strong> {{ "%.1f"|format((stats.graded / stats.total * 100) if stats.total > 0 else 0) }}%</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Total Submissions:</strong> {{ stats.total }}</p>
+                            <p><strong>Graded Assignments:</strong> {{ stats.graded }}</p>
+                        </div>
+                    </div>
+                    {% if stats.average >= 90 %}
+                    <div class="alert alert-success mt-3">
+                        <strong>Excellent work!</strong> You're performing at an outstanding level. Keep it up! 🌟
+                    </div>
+                    {% elif stats.average >= 70 %}
+                    <div class="alert alert-primary mt-3">
+                        <strong>Great job!</strong> You're doing well. Continue striving for excellence! 💪
+                    </div>
+                    {% elif stats.average >= 50 %}
+                    <div class="alert alert-warning mt-3">
+                        <strong>Good progress!</strong> You're on the right track. Keep practicing and improving! 📚
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info mt-3">
+                        <strong>Learning journey!</strong> Every submission is progress. Review feedback and keep going! 🎯
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+.timeline {
+    position: relative;
+    padding-left: 30px;
+}
+
+.timeline-item {
+    position: relative;
+    margin-bottom: 2rem;
+}
+
+.timeline-marker {
+    position: absolute;
+    left: -45px;
+    top: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.timeline-content {
+    position: relative;
+}
+
+.timeline-content::before {
+    content: '';
+    position: absolute;
+    left: -20px;
+    top: 15px;
+    width: 20px;
+    height: 2px;
+    background: #dee2e6;
+}
+
+.timeline-item:last-child {
+    margin-bottom: 0;
+}
+
+.feedback-section {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px dashed #dee2e6;
+}
+</style>
+{% endblock %}

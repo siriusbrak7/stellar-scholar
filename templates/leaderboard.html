@@ -1,0 +1,363 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-12">
+            <div class="card p-4 mb-4">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h2>🏆 Stellar Scholar Leaderboard</h2>
+                        <p class="text-muted mb-0">See how you rank among fellow scholars</p>
+                    </div>
+                    <div>
+                        {% if session.role == 'teacher' %}
+                        <a href="{{ url_for('teacher_dashboard') }}" class="btn btn-outline-secondary">Teacher Dashboard</a>
+                        {% else %}
+                        <a href="{{ url_for('student_dashboard') }}" class="btn btn-outline-secondary">My Dashboard</a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leaderboard Stats -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-center bg-warning text-dark">
+                <div class="card-body">
+                    <h3>{{ leaderboard|length }}</h3>
+                    <p>Ranked Students</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center bg-success text-white">
+                <div class="card-body">
+                    <h3>
+                        {% if leaderboard %}
+                            {{ leaderboard[0].username }}
+                        {% else %}
+                            --
+                        {% endif %}
+                    </h3>
+                    <p>Top Scholar</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center bg-info text-white">
+                <div class="card-body">
+                    <h3>
+                        {% if leaderboard %}
+                            {{ (leaderboard|sum(attribute='avg_score') / leaderboard|length)|round(1) }}
+                        {% else %}
+                            0
+                        {% endif %}
+                    </h3>
+                    <p>Class Average</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center bg-primary text-white">
+                <div class="card-body">
+                    <h3>
+                        {% if leaderboard %}
+                            {{ leaderboard|sum(attribute='num_submissions') }}
+                        {% else %}
+                            0
+                        {% endif %}
+                    </h3>
+                    <p>Total Submissions</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Current User Highlight -->
+    {% if session.role == 'student' and leaderboard %}
+    {% set current_user_rank = none %}
+    {% set user_identifier = session.get('username') if session.get('username') is not none else session.get('user_id') %}
+    {% for student in leaderboard %}
+        {% if student.username == user_identifier %}
+            {% set current_user_rank = student %}
+        {% endif %}
+    {% endfor %}
+    
+    {% if current_user_rank %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-success">
+                <div class="card-body bg-success bg-opacity-10">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h4 class="text-success">🎯 Your Position</h4>
+                            <p class="mb-0">
+                                You're ranked <strong>#{{ current_user_rank.rank }}</strong> 
+                                with an average of <strong>{{ current_user_rank.avg_score }}/100</strong>
+                                across {{ current_user_rank.num_submissions }} submission(s).
+                            </p>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <div class="display-4 text-success">#{{ current_user_rank.rank }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-warning">
+                <div class="card-body bg-warning bg-opacity-10">
+                    <div class="text-center">
+                        <h4 class="text-warning">📊 Start Your Journey!</h4>
+                        <p class="mb-0">
+                            You haven't been graded on any submissions yet. Complete assessments to appear on the leaderboard!
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    {% endif %}
+
+    <!-- Leaderboard Table -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card p-4">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h3 class="mb-0">Student Rankings</h3>
+                    <div class="btn-group">
+                        <button class="btn btn-outline-primary active" onclick="showAllGrades(this)">All Grades</button>
+                        {% if session.role == 'student' %}
+                        {% set user_identifier = session.get('username') if session.get('username') is not none else session.get('user_id') %}
+                        {% set user_grade = (leaderboard|selectattr('username', 'equalto', user_identifier)|map(attribute='grade_level')|first) if user_identifier else None %}
+                        <button class="btn btn-outline-success" onclick="filterByGrade('{{ user_grade }}', this)">My Grade</button>
+                        {% endif %}
+                    </div>
+                </div>
+
+                {% if leaderboard %}
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped" id="leaderboardTable">
+                        <thead class="table-dark">
+                            <tr>
+                                <th width="80">Rank</th>
+                                <th>Student</th>
+                                <th width="100">Grade</th>
+                                <th width="120">Average Score</th>
+                                <th width="120">Submissions</th>
+                                <th width="100">Performance</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for student in leaderboard %}
+                            <tr class="{% if session.role == 'student' and (session.get('username') if session.get('username') is not none else session.get('user_id')) == student.username %}table-success{% endif %} student-row" 
+                                data-grade="{{ student.grade_level }}">
+                                <td>
+                                    {% if student.rank == 1 %}
+                                    <span class="badge bg-warning text-dark fs-6">🥇 {{ student.rank }}</span>
+                                    {% elif student.rank == 2 %}
+                                    <span class="badge bg-secondary fs-6">🥈 {{ student.rank }}</span>
+                                    {% elif student.rank == 3 %}
+                                    <span class="badge bg-danger fs-6">🥉 {{ student.rank }}</span>
+                                    {% else %}
+                                    <span class="badge bg-light text-dark">#{{ student.rank }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="avatar-circle me-3">
+                                            <span class="avatar-text">{{ student.username[0]|upper }}</span>
+                                        </div>
+                                        <div>
+                                            <strong>{{ student.username }}</strong>
+                                            {% if session.role == 'student' and (session.get('username') if session.get('username') is not none else session.get('user_id')) == student.username %}
+                                            <span class="badge bg-success ms-2">You</span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge bg-info">Grade {{ student.grade_level }}</span>
+                                </td>
+                                <td>
+                                    <div class="progress" style="height: 20px;">
+                                        <div class="progress-bar 
+                                            {% if student.avg_score >= 90 %}bg-success
+                                            {% elif student.avg_score >= 70 %}bg-primary
+                                            {% elif student.avg_score >= 50 %}bg-warning
+                                            {% else %}bg-danger{% endif %}" 
+                                            data-score="{{ student.avg_score }}" role="progressbar" aria-valuenow="{{ student.avg_score }}" aria-valuemin="0" aria-valuemax="100">
+                                            <strong>{{ '%.0f'|format(student.avg_score) }}</strong>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge bg-dark fs-6">{{ student.num_submissions }}</span>
+                                </td>
+                                <td>
+                                    {% if student.avg_score >= 90 %}
+                                    <span class="badge bg-success">Excellent</span>
+                                    {% elif student.avg_score >= 70 %}
+                                    <span class="badge bg-primary">Good</span>
+                                    {% elif student.avg_score >= 50 %}
+                                    <span class="badge bg-warning">Average</span>
+                                    {% else %}
+                                    <span class="badge bg-danger">Needs Work</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Grade Level Filters -->
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-body text-center">
+                                <h5>Filter by Grade Level</h5>
+                                <div class="btn-group">
+                                    <button class="btn btn-outline-primary" onclick="showAllGrades(this)">All</button>
+                                    <button class="btn btn-outline-success" onclick="filterByGrade('8', this)">Grade 8</button>
+                                    <button class="btn btn-outline-success" onclick="filterByGrade('9', this)">Grade 9</button>
+                                    <button class="btn btn-outline-success" onclick="filterByGrade('10', this)">Grade 10</button>
+                                    <button class="btn btn-outline-success" onclick="filterByGrade('11', this)">Grade 11</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {% else %}
+                <div class="text-center py-5">
+                    <div class="alert alert-info">
+                        <h4>📊 No Rankings Yet</h4>
+                        <p class="mb-3">The leaderboard will appear once students start receiving grades on their submissions.</p>
+                        {% if session.role == 'teacher' %}
+                        {% if prompts %}
+                        <a href="{{ url_for('grade_submissions', prompt_id=prompts[0].id) }}" class="btn btn-primary">Start Grading Submissions</a>
+                        {% else %}
+                        <a href="#" class="btn btn-primary disabled">Start Grading Submissions</a>
+                        {% endif %}
+                        {% else %}
+                        <p>Complete assessments and wait for your teacher to grade them!</p>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Performance Insights -->
+    {% if leaderboard %}
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">🏅 Top Performers</h5>
+                </div>
+                <div class="card-body">
+                    <ol class="list-group list-group-numbered">
+                        {% for student in leaderboard[:3] %}
+                        <li class="list-group-item d-flex justify-content-between align-items-start">
+                            <div class="ms-2 me-auto">
+                                <div class="fw-bold">{{ student.username }}</div>
+                                Grade {{ student.grade_level }} • {{ student.num_submissions }} submissions
+                            </div>
+                            <span class="badge bg-primary rounded-pill">{{ student.avg_score }}</span>
+                        </li>
+                        {% endfor %}
+                    </ol>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">📈 Grade Distribution</h5>
+                </div>
+                <div class="card-body">
+                    {% set excellent = leaderboard|selectattr('avg_score', '>=', 90)|list|length %}
+                    {% set good = leaderboard|selectattr('avg_score', '>=', 70)|selectattr('avg_score', '<', 90)|list|length %}
+                    {% set average = leaderboard|selectattr('avg_score', '>=', 50)|selectattr('avg_score', '<', 70)|list|length %}
+                    {% set needs_work = leaderboard|selectattr('avg_score', '<', 50)|list|length %}
+                    
+                    <div class="mb-2">
+                        <span class="badge bg-success">Excellent (90-100):</span> {{ excellent }} students
+                    </div>
+                    <div class="mb-2">
+                        <span class="badge bg-primary">Good (70-89):</span> {{ good }} students
+                    </div>
+                    <div class="mb-2">
+                        <span class="badge bg-warning">Average (50-69):</span> {{ average }} students
+                    </div>
+                    <div class="mb-2">
+                        <span class="badge bg-danger">Needs Work (0-49):</span> {{ needs_work }} students
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function filterByGrade(grade, btn) {
+    const rows = document.querySelectorAll('.student-row');
+    rows.forEach(row => {
+        if (row.getAttribute('data-grade') === grade) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+    
+    // Update active button state
+    document.querySelectorAll('.btn-group .btn').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+}
+
+function showAllGrades(btn) {
+    const rows = document.querySelectorAll('.student-row');
+    rows.forEach(row => row.style.display = '');
+    
+    // Update active button state
+    document.querySelectorAll('.btn-group .btn').forEach(b => b.classList.remove('active'));
+    if (btn) {
+        btn.classList.add('active');
+    } else {
+        const first = document.querySelector('.btn-group .btn:first-child');
+        if (first) first.classList.add('active');
+    }
+}
+
+// Auto-refresh leaderboard every 30 seconds if on the page
+setTimeout(() => {
+    if (window.location.pathname === '/leaderboard') {
+        window.location.reload();
+    }
+}, 30000);
+
+// Set progress bar widths from data-score attributes to avoid inline template CSS
+document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.progress-bar[data-score]').forEach(el => {
+        const score = el.getAttribute('data-score');
+        if (score !== null) {
+            // clamp and set width
+            const n = Math.max(0, Math.min(100, Number(score) || 0));
+            el.style.width = n + '%';
+            el.setAttribute('aria-valuenow', String(n));
+        }
+    });
+});
+</script>
+{% endblock %}

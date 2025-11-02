@@ -1,0 +1,458 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="cosmic-homepage">
+    <!-- Animated Stars Background -->
+    <div class="stars-container">
+        <div class="star star-1"></div>
+        <div class="star star-2"></div>
+        <div class="star star-3"></div>
+        <div class="star star-4"></div>
+        <div class="star star-5"></div>
+        <div class="star star-6"></div>
+        <div class="star star-7"></div>
+    </div>
+    
+    <!-- Floating Planets -->
+    <div class="planet planet-1"></div>
+    <div class="planet planet-2"></div>
+    <div class="planet planet-3"></div>
+
+    <div class="cosmic-content">
+        <!-- Animated Title -->
+        <h1 class="stellar-main-title">Stellar Scholar</h1>
+        <p class="hero-subtitle">Where Learning Reaches for the Stars! ✨</p>
+        
+        <div class="feature-grid">
+            <div class="feature-card teacher-card">
+                <div class="feature-icon">👨‍🏫</div>
+                <h3>For Teachers</h3>
+                <p>Create engaging assessments, track progress, and inspire young minds</p>
+                <a href="{{ url_for('register') }}?role=teacher" class="btn btn-teacher">Launch Teaching</a>
+            </div>
+            
+            <div class="feature-card student-card">
+                <div class="feature-icon">👨‍🎓</div>
+                <h3>For Students</h3>
+                <p>Complete challenges, earn stars, and climb the cosmic leaderboard</p>
+                <a href="{{ url_for('register') }}?role=student" class="btn btn-student">Start Learning</a>
+            </div>
+        </div>
+
+        <!-- Quick Stats -->
+        <div class="cosmic-stats">
+            <div class="stat-item">
+                <div class="stat-number" data-count="1000">0</div>
+                <div class="stat-label">Active Scholars</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" data-count="500">0</div>
+                <div class="stat-label">Cosmic Challenges</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" data-count="95">0</div>
+                <div class="stat-label">Success Rate</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" data-count="4.8">0</div>
+                <div class="stat-label">Star Rating</div>
+            </div>
+        </div>
+
+        <div class="cta-section">
+            <p class="cta-text">Ready to explore the universe of knowledge?</p>
+            <div class="cta-buttons">
+                <a href="{{ url_for('register') }}" class="btn btn-primary-cta">Join the Mission</a>
+                <a href="{{ url_for('login') }}" class="btn btn-secondary-cta">Returning Astronaut</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Cosmic Background */
+.cosmic-homepage {
+    background: linear-gradient(135deg, #0a0e27 0%, #16213e 50%, #1a1a2e 100%);
+    min-height: 100vh;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+}
+
+.cosmic-content {
+    text-align: center;
+    max-width: 900px;
+    width: 100%;
+    position: relative;
+    z-index: 2;
+}
+
+/* Animated Stars */
+.stars-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+.star {
+    position: absolute;
+    background: white;
+    border-radius: 50%;
+    animation: twinkle 3s infinite;
+}
+
+.star-1 { top: 15%; left: 10%; width: 2px; height: 2px; animation-delay: 0s; }
+.star-2 { top: 25%; left: 85%; width: 3px; height: 3px; animation-delay: 1s; }
+.star-3 { top: 60%; left: 15%; width: 2px; height: 2px; animation-delay: 2s; }
+.star-4 { top: 75%; left: 70%; width: 4px; height: 4px; animation-delay: 1.5s; }
+.star-5 { top: 40%; left: 50%; width: 2px; height: 2px; animation-delay: 0.5s; }
+.star-6 { top: 85%; left: 40%; width: 3px; height: 3px; animation-delay: 2.5s; }
+.star-7 { top: 30%; left: 25%; width: 2px; height: 2px; animation-delay: 1.2s; }
+
+@keyframes twinkle {
+    0%, 100% { opacity: 0.3; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.3); }
+}
+
+/* Floating Planets */
+.planet {
+    position: absolute;
+    border-radius: 50%;
+    animation: float 8s ease-in-out infinite;
+    z-index: 1;
+}
+
+.planet-1 {
+    width: 120px;
+    height: 120px;
+    background: radial-gradient(circle at 30% 30%, #32CD32, #228B22);
+    top: 10%;
+    right: 10%;
+    animation-delay: 0s;
+}
+
+.planet-2 {
+    width: 80px;
+    height: 80px;
+    background: radial-gradient(circle at 30% 30%, #FFD700, #FF8C00);
+    bottom: 15%;
+    left: 8%;
+    animation-delay: 2s;
+}
+
+.planet-3 {
+    width: 60px;
+    height: 60px;
+    background: radial-gradient(circle at 30% 30%, #6a11cb, #2575fc);
+    top: 70%;
+    right: 20%;
+    animation-delay: 4s;
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0px) rotate(0deg); }
+    50% { transform: translateY(-25px) rotate(5deg); }
+}
+
+/* Main Title */
+.stellar-main-title {
+    font-family: 'Dancing Script', cursive;
+    font-size: 5rem;
+    background: linear-gradient(45deg, #FFD700, #32CD32, #FFD700);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-shadow: 0 0 40px rgba(255, 215, 0, 0.5);
+    margin-bottom: 1rem;
+    animation: glow 3s ease-in-out infinite alternate;
+}
+
+@keyframes glow {
+    from { 
+        text-shadow: 0 0 20px rgba(255, 215, 0, 0.5),
+                     0 0 30px rgba(50, 205, 50, 0.3);
+    }
+    to { 
+        text-shadow: 0 0 30px rgba(255, 215, 0, 0.8),
+                     0 0 40px rgba(50, 205, 50, 0.6),
+                     0 0 50px rgba(255, 215, 0, 0.4);
+    }
+}
+
+.hero-subtitle {
+    font-size: 1.5rem;
+    color: #FFD700;
+    margin-bottom: 3rem;
+    text-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+    font-weight: 300;
+}
+
+/* Feature Grid */
+.feature-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+    margin: 3rem auto;
+    max-width: 700px;
+}
+
+.feature-card {
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 20px;
+    padding: 2.5rem 2rem;
+    text-align: center;
+    transition: all 0.4s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.feature-card::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+    transform: rotate(45deg);
+    transition: all 0.6s ease;
+}
+
+.feature-card:hover::before {
+    transform: rotate(45deg) translate(50%, 50%);
+}
+
+.feature-card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+}
+
+.teacher-card:hover {
+    border-color: rgba(50, 205, 50, 0.6);
+    box-shadow: 0 20px 40px rgba(50, 205, 50, 0.3);
+}
+
+.student-card:hover {
+    border-color: rgba(255, 215, 0, 0.6);
+    box-shadow: 0 20px 40px rgba(255, 215, 0, 0.3);
+}
+
+.feature-icon {
+    font-size: 3.5rem;
+    margin-bottom: 1.5rem;
+    filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.3));
+}
+
+.feature-card h3 {
+    color: white;
+    margin-bottom: 1rem;
+    font-weight: 600;
+    font-size: 1.5rem;
+}
+
+.feature-card p {
+    color: #b0b8c9;
+    margin-bottom: 2rem;
+    line-height: 1.6;
+    font-size: 1rem;
+}
+
+/* Buttons */
+.btn {
+    padding: 1rem 2rem;
+    border-radius: 50px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    border: none;
+    font-size: 1rem;
+    display: inline-block;
+    min-width: 180px;
+}
+
+.btn-teacher {
+    background: linear-gradient(45deg, #32CD32, #228B22);
+    color: white;
+    box-shadow: 0 4px 15px rgba(50, 205, 50, 0.3);
+}
+
+.btn-student {
+    background: linear-gradient(45deg, #FFD700, #FFA500);
+    color: black;
+    box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
+}
+
+.btn-teacher:hover, .btn-student:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+}
+
+/* Stats */
+.cosmic-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 2rem;
+    margin: 3rem auto;
+    max-width: 700px;
+    padding: 2rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 20px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.stat-item {
+    text-align: center;
+}
+
+.stat-number {
+    font-size: 2.5rem;
+    font-weight: bold;
+    background: linear-gradient(45deg, #FFD700, #32CD32);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 0.5rem;
+    text-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+}
+
+.stat-label {
+    color: #b0b8c9;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 500;
+}
+
+/* CTA Section */
+.cta-section {
+    margin-top: 3rem;
+    padding-top: 2rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.cta-text {
+    color: #FFD700;
+    font-size: 1.3rem;
+    margin-bottom: 2rem;
+    font-weight: 500;
+}
+
+.cta-buttons {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.btn-primary-cta {
+    background: linear-gradient(45deg, #FFD700, #32CD32);
+    color: black;
+    box-shadow: 0 4px 15px rgba(255, 215, 0, 0.4);
+}
+
+.btn-secondary-cta {
+    background: transparent;
+    color: #FFD700;
+    border: 2px solid #FFD700;
+    box-shadow: 0 4px 15px rgba(255, 215, 0, 0.2);
+}
+
+.btn-primary-cta:hover, .btn-secondary-cta:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(255, 215, 0, 0.4);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .cosmic-homepage {
+        padding: 1rem;
+    }
+    
+    .stellar-main-title {
+        font-size: 3rem;
+    }
+    
+    .hero-subtitle {
+        font-size: 1.2rem;
+    }
+    
+    .feature-grid {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+    
+    .feature-card {
+        padding: 2rem 1.5rem;
+    }
+    
+    .cosmic-stats {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1.5rem;
+        padding: 1.5rem;
+    }
+    
+    .stat-number {
+        font-size: 2rem;
+    }
+    
+    .cta-buttons {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .btn {
+        min-width: 200px;
+    }
+    
+    .planet {
+        display: none;
+    }
+}
+
+@media (max-width: 480px) {
+    .stellar-main-title {
+        font-size: 2.5rem;
+    }
+    
+    .cosmic-stats {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+
+<script>
+// Animated counter for stats
+document.addEventListener('DOMContentLoaded', function() {
+    const counters = document.querySelectorAll('.stat-number');
+    const speed = 200;
+    
+    counters.forEach(counter => {
+        const target = +counter.getAttribute('data-count');
+        const count = +counter.innerText;
+        const increment = target / speed;
+        
+        if(count < target) {
+            const updateCount = () => {
+                const current = +counter.innerText;
+                if(current < target) {
+                    counter.innerText = Math.ceil(current + increment);
+                    setTimeout(updateCount, 1);
+                } else {
+                    counter.innerText = target;
+                }
+            }
+            updateCount();
+        }
+    });
+});
+</script>
+{% endblock %}

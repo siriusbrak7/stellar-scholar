@@ -1,0 +1,537 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="cosmic-dashboard">
+    <!-- Animated Stars Background -->
+    <div class="stars-container">
+        <div class="star star-1"></div>
+        <div class="star star-2"></div>
+        <div class="star star-3"></div>
+        <div class="star star-4"></div>
+        <div class="star star-5"></div>
+    </div>
+    
+    <!-- Floating Planets -->
+    <div class="planet planet-1"></div>
+    <div class="planet planet-2"></div>
+
+    <div class="dashboard-content">
+        <!-- Header -->
+        <div class="dashboard-header">
+            <h1 class="cosmic-title">Teacher Mission Control</h1>
+            <p class="cosmic-subtitle">Guiding young minds through the cosmos of knowledge</p>
+            <a href="{{ url_for('create_prompt') }}" class="btn btn-teacher-action">+ Create New Mission</a>
+        </div>
+
+        <!-- Quick Stats -->
+        <div class="cosmic-stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon">📚</div>
+                <div class="stat-info">
+                    <div class="stat-number">{{ prompts|length }}</div>
+                    <div class="stat-label">Active Missions</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">📝</div>
+                <div class="stat-info">
+                    <div class="stat-number">{{ prompt_stats.values()|sum(attribute='total') }}</div>
+                    <div class="stat-label">Total Submissions</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">✅</div>
+                <div class="stat-info">
+                    <div class="stat-number">{{ prompt_stats.values()|sum(attribute='graded') }}</div>
+                    <div class="stat-label">Graded</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">⏳</div>
+                <div class="stat-info">
+                    <div class="stat-number">{{ prompt_stats.values()|sum(attribute='total') - prompt_stats.values()|sum(attribute='graded') }}</div>
+                    <div class="stat-label">Awaiting Review</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Missions Section -->
+        <div class="missions-section">
+            <h2 class="section-title">Your Cosmic Missions</h2>
+            
+            {% if prompts %}
+            <div class="missions-grid">
+                {% for prompt_id, prompt in prompts.items() %}
+                <div class="mission-card">
+                    <div class="mission-header">
+                        <h3 class="mission-title">{{ prompt.title }}</h3>
+                        <span class="mission-grade">Grade {{ prompt.grade_level }}</span>
+                    </div>
+                    
+                    <p class="mission-description">{{ prompt.description[:120] }}{% if prompt.description|length > 120 %}...{% endif %}</p>
+                    
+                    <div class="mission-stats">
+                        <div class="mission-stat">
+                            <span class="stat-value">{{ prompt_stats[prompt_id].total }}</span>
+                            <span class="stat-label">Submissions</span>
+                        </div>
+                        <div class="mission-stat">
+                            <span class="stat-value">{{ prompt_stats[prompt_id].graded }}</span>
+                            <span class="stat-label">Graded</span>
+                        </div>
+                    </div>
+                    
+                    <div class="mission-actions">
+                        {% if prompt_stats[prompt_id].total > 0 %}
+                        <a href="{{ url_for('grade_submissions', prompt_id=prompt_id) }}" class="btn btn-grade">
+                            Review Submissions
+                        </a>
+                        {% else %}
+                        <span class="no-submissions">Awaiting Astronauts</span>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mission-footer">
+                        <small>Launched: {{ prompt.created_at[:10] }}</small>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <div class="empty-icon">🚀</div>
+                <h3>No Missions Created Yet</h3>
+                <p>Launch your first learning mission to guide young scholars!</p>
+                <a href="{{ url_for('create_prompt') }}" class="btn btn-teacher-action">Create First Mission</a>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="quick-actions">
+            <h2 class="section-title">Mission Control</h2>
+            <div class="actions-grid">
+                <a href="{{ url_for('leaderboard') }}" class="action-card">
+                    <div class="action-icon">🏆</div>
+                    <h4>Scholar Rankings</h4>
+                    <p>View student leaderboard and performance analytics</p>
+                </a>
+                <a href="{{ url_for('create_prompt') }}" class="action-card">
+                    <div class="action-icon">🎯</div>
+                    <h4>New Mission</h4>
+                    <p>Create a new learning challenge for your scholars</p>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Cosmic Background */
+.cosmic-dashboard {
+    background: linear-gradient(135deg, #0a0e27 0%, #16213e 50%, #1a1a2e 100%);
+    min-height: 100vh;
+    position: relative;
+    overflow-x: hidden;
+    padding: 2rem;
+}
+
+.dashboard-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    position: relative;
+    z-index: 2;
+}
+
+/* Animated Stars */
+.stars-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+.star {
+    position: absolute;
+    background: white;
+    border-radius: 50%;
+    animation: twinkle 4s infinite;
+}
+
+.star-1 { top: 15%; left: 5%; width: 2px; height: 2px; animation-delay: 0s; }
+.star-2 { top: 25%; left: 90%; width: 3px; height: 3px; animation-delay: 1s; }
+.star-3 { top: 60%; left: 10%; width: 2px; height: 2px; animation-delay: 2s; }
+.star-4 { top: 80%; left: 80%; width: 4px; height: 4px; animation-delay: 1.5s; }
+.star-5 { top: 40%; left: 60%; width: 2px; height: 2px; animation-delay: 0.5s; }
+
+@keyframes twinkle {
+    0%, 100% { opacity: 0.3; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.3); }
+}
+
+/* Floating Planets */
+.planet {
+    position: absolute;
+    border-radius: 50%;
+    animation: float 10s ease-in-out infinite;
+    z-index: 1;
+}
+
+.planet-1 {
+    width: 80px;
+    height: 80px;
+    background: radial-gradient(circle at 30% 30%, #32CD32, #228B22);
+    top: 10%;
+    right: 5%;
+    animation-delay: 0s;
+}
+
+.planet-2 {
+    width: 60px;
+    height: 60px;
+    background: radial-gradient(circle at 30% 30%, #6a11cb, #2575fc);
+    bottom: 10%;
+    left: 5%;
+    animation-delay: 5s;
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0px) rotate(0deg); }
+    50% { transform: translateY(-20px) rotate(5deg); }
+}
+
+/* Header */
+.dashboard-header {
+    text-align: center;
+    margin-bottom: 3rem;
+}
+
+.cosmic-title {
+    font-family: 'Dancing Script', cursive;
+    font-size: 3.5rem;
+    background: linear-gradient(45deg, #FFD700, #32CD32);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-shadow: 0 0 30px rgba(255, 215, 0, 0.3);
+    margin-bottom: 0.5rem;
+}
+
+.cosmic-subtitle {
+    color: #b0b8c9;
+    font-size: 1.2rem;
+    margin-bottom: 2rem;
+}
+
+.btn-teacher-action {
+    background: linear-gradient(45deg, #32CD32, #228B22);
+    color: white;
+    padding: 1rem 2rem;
+    border-radius: 50px;
+    text-decoration: none;
+    font-weight: 600;
+    border: none;
+    transition: all 0.3s ease;
+    display: inline-block;
+}
+
+.btn-teacher-action:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(50, 205, 50, 0.4);
+}
+
+/* Stats Grid */
+.cosmic-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 3rem;
+}
+
+.stat-card {
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 15px;
+    padding: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    transition: all 0.3s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+    border-color: rgba(255, 255, 255, 0.3);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.stat-icon {
+    font-size: 2rem;
+    filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.3));
+}
+
+.stat-info {
+    flex: 1;
+}
+
+.stat-number {
+    font-size: 2rem;
+    font-weight: bold;
+    background: linear-gradient(45deg, #FFD700, #32CD32);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1;
+}
+
+.stat-label {
+    color: #b0b8c9;
+    font-size: 0.9rem;
+    margin-top: 0.25rem;
+}
+
+/* Missions Section */
+.section-title {
+    color: #FFD700;
+    font-size: 1.8rem;
+    margin-bottom: 1.5rem;
+    text-align: center;
+}
+
+.missions-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 3rem;
+}
+
+.mission-card {
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 15px;
+    padding: 1.5rem;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.mission-card::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+    transform: rotate(45deg);
+    transition: all 0.6s ease;
+}
+
+.mission-card:hover::before {
+    transform: rotate(45deg) translate(50%, 50%);
+}
+
+.mission-card:hover {
+    transform: translateY(-5px);
+    border-color: rgba(255, 215, 0, 0.3);
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+}
+
+.mission-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: start;
+    margin-bottom: 1rem;
+}
+
+.mission-title {
+    color: white;
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin: 0;
+    flex: 1;
+}
+
+.mission-grade {
+    background: linear-gradient(45deg, #6a11cb, #2575fc);
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 15px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.mission-description {
+    color: #b0b8c9;
+    margin-bottom: 1.5rem;
+    line-height: 1.5;
+}
+
+.mission-stats {
+    display: flex;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.mission-stat {
+    text-align: center;
+}
+
+.stat-value {
+    display: block;
+    font-size: 1.5rem;
+    font-weight: bold;
+    background: linear-gradient(45deg, #FFD700, #32CD32);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.stat-label {
+    color: #b0b8c9;
+    font-size: 0.8rem;
+    margin-top: 0.25rem;
+}
+
+.mission-actions {
+    margin-bottom: 1rem;
+}
+
+.btn-grade {
+    background: linear-gradient(45deg, #FFD700, #FFA500);
+    color: black;
+    padding: 0.75rem 1.5rem;
+    border-radius: 25px;
+    text-decoration: none;
+    font-weight: 600;
+    border: none;
+    transition: all 0.3s ease;
+    display: block;
+    text-align: center;
+}
+
+.btn-grade:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(255, 215, 0, 0.3);
+}
+
+.no-submissions {
+    color: #b0b8c9;
+    font-style: italic;
+    text-align: center;
+    display: block;
+}
+
+.mission-footer {
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding-top: 1rem;
+}
+
+.mission-footer small {
+    color: #888;
+}
+
+/* Empty State */
+.empty-state {
+    text-align: center;
+    padding: 3rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 15px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.empty-icon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+}
+
+.empty-state h3 {
+    color: #FFD700;
+    margin-bottom: 1rem;
+}
+
+.empty-state p {
+    color: #b0b8c9;
+    margin-bottom: 2rem;
+}
+
+/* Quick Actions */
+.actions-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+}
+
+.action-card {
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 15px;
+    padding: 2rem;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    text-align: center;
+}
+
+.action-card:hover {
+    transform: translateY(-5px);
+    border-color: rgba(255, 215, 0, 0.3);
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+    text-decoration: none;
+}
+
+.action-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.3));
+}
+
+.action-card h4 {
+    color: white;
+    margin-bottom: 1rem;
+    font-weight: 600;
+}
+
+.action-card p {
+    color: #b0b8c9;
+    margin: 0;
+    line-height: 1.5;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .cosmic-dashboard {
+        padding: 1rem;
+    }
+    
+    .cosmic-title {
+        font-size: 2.5rem;
+    }
+    
+    .cosmic-stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .missions-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .mission-header {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .actions-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .planet {
+        display: none;
+    }
+}
+</style>
+{% endblock %}

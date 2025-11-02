@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card p-4">
+            <h2 class="text-center mb-4">Create New Assessment Prompt</h2>
+            
+            <form method="POST">
+                <div class="mb-3">
+                    <label for="title" class="form-label">Prompt Title</label>
+                    <input type="text" class="form-control" id="title" name="title" 
+                           placeholder="Enter a descriptive title" required>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="description" class="form-label">Prompt Description</label>
+                    <textarea class="form-control" id="description" name="description" 
+                              rows="5" placeholder="Describe the assessment task, questions, or requirements..." 
+                              required></textarea>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="grade_level" class="form-label">Grade Level</label>
+                    <select class="form-control" id="grade_level" name="grade_level" required>
+                        <option value="">Select Grade Level</option>
+                        <option value="8">Grade 8</option>
+                        <option value="9">Grade 9</option>
+                        <option value="10">Grade 10</option>
+                        <option value="11">Grade 11</option>
+                    </select>
+                </div>
+                
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-success btn-lg">Create Prompt</button>
+                    <a href="{{ url_for('teacher_dashboard') }}" class="btn btn-outline-secondary">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

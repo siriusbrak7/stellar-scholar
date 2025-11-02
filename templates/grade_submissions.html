@@ -1,0 +1,306 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-12">
+            <div class="card p-4 mb-4">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h2>Grade Submissions</h2>
+                        <h4 class="text-primary">{{ prompt.title }}</h4>
+                        <p class="text-muted mb-0">Grade Level: {{ prompt.grade_level }} | Created: {{ prompt.created_at[:10] }}</p>
+                    </div>
+                    <a href="{{ url_for('teacher_dashboard') }}" class="btn btn-outline-secondary">Back to Dashboard</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Prompt Details -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">Prompt Description</h5>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">{{ prompt.description }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Submission Statistics -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-center bg-primary text-white">
+                <div class="card-body">
+                    <h3>{{ submissions|length }}</h3>
+                    <p>Total Submissions</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center bg-success text-white">
+                <div class="card-body">
+                    <h3>{{ submissions|selectattr('grade')|list|length }}</h3>
+                    <p>Graded</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center bg-warning text-dark">
+                <div class="card-body">
+                    <h3>{{ submissions|rejectattr('grade')|list|length }}</h3>
+                    <p>Pending</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center bg-info text-white">
+                <div class="card-body">
+                    <h3>
+                        {% set graded_subs = submissions|selectattr('grade')|list %}
+                        {% if graded_subs %}
+                            {{ (graded_subs|sum(attribute='grade') / graded_subs|length)|round(1) }}
+                        {% else %}
+                            0
+                        {% endif %}
+                    </h3>
+                    <p>Average Grade</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Submissions List -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card p-4">
+                <h3 class="mb-4">Student Submissions</h3>
+                
+                {% if submissions %}
+                <div class="accordion" id="submissionsAccordion">
+                    {% for submission in submissions %}
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="heading{{ loop.index }}">
+                            <button class="accordion-button {% if not loop.first %}collapsed{% endif %}" 
+                                    type="button" data-bs-toggle="collapse" 
+                                    data-bs-target="#collapse{{ loop.index }}" 
+                                    aria-expanded="{% if loop.first %}true{% else %}false{% endif %}" 
+                                    aria-controls="collapse{{ loop.index }}">
+                                <div class="d-flex justify-content-between align-items-center w-100 me-3">
+                                    <div>
+                                        <strong>{{ submission.student_username }}</strong>
+                                        <span class="badge bg-secondary ms-2">Grade {{ submission.student_grade }}</span>
+                                        {% if submission.grade is not none %}
+                                        <span class="badge bg-success ms-2">{{ submission.grade }}/100</span>
+                                        {% else %}
+                                        <span class="badge bg-warning ms-2">Pending</span>
+                                        {% endif %}
+                                    </div>
+                                    <small class="text-muted">Submitted: {{ submission.submitted_at[:16] }}</small>
+                                </div>
+                            </button>
+                        </h2>
+                        <div id="collapse{{ loop.index }}" 
+                             class="accordion-collapse collapse {% if loop.first %}show{% endif %}" 
+                             aria-labelledby="heading{{ loop.index }}" 
+                             data-bs-parent="#submissionsAccordion">
+                            <div class="accordion-body">
+                                <!-- Student Response -->
+                                <div class="mb-4">
+                                    <h6>Student's Response:</h6>
+                                    <div class="card bg-light">
+                                        <div class="card-body">
+                                            <p class="mb-0">{{ submission.response }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Grading Form -->
+                                <form method="POST" class="grading-form">
+                                    <input type="hidden" name="submission_id" value="{{ submission.id }}">
+                                    
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label for="grade_{{ submission.id }}" class="form-label">
+                                                    <strong>Grade (0-100)</strong>
+                                                </label>
+                                                <input type="number" 
+                                                       class="form-control" 
+                                                       id="grade_{{ submission.id }}" 
+                                                       name="grade" 
+                                                       min="0" 
+                                                       max="100" 
+                                                       step="0.5"
+                                                       value="{{ submission.grade if submission.grade is not none else '' }}"
+                                                       required>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label class="form-label">
+                                                    <strong>Status</strong>
+                                                </label>
+                                                <div>
+                                                    {% if submission.grade is not none %}
+                                                    <span class="badge bg-success">Graded</span>
+                                                    <small class="text-muted ms-2">
+                                                        {% if submission.graded_at %}
+                                                        on {{ submission.graded_at[:16] }}
+                                                        {% endif %}
+                                                    </small>
+                                                    {% else %}
+                                                    <span class="badge bg-warning">Awaiting Grade</span>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label for="feedback_{{ submission.id }}" class="form-label">
+                                            <strong>Feedback</strong>
+                                        </label>
+                                        <textarea class="form-control" 
+                                                  id="feedback_{{ submission.id }}" 
+                                                  name="feedback" 
+                                                  rows="4"
+                                                  placeholder="Provide constructive feedback to help the student improve...">{{ submission.feedback if submission.feedback }}</textarea>
+                                        <div class="form-text">
+                                            Your feedback will be visible to the student.
+                                        </div>
+                                    </div>
+
+                                    <div class="d-flex gap-2">
+                                        <button type="submit" class="btn btn-success">
+                                            {% if submission.grade is not none %}
+                                            Update Grade
+                                            {% else %}
+                                            Submit Grade
+                                            {% endif %}
+                                        </button>
+                                        
+                                        {% if submission.grade is not none %}
+                                        <button type="button" class="btn btn-outline-info" 
+                                                onclick="previewGrade('{{ submission.student_username }}', $('#grade_{{ submission.id }}').val(), $('#feedback_{{ submission.id }}').val())">
+                                            Preview
+                                        </button>
+                                        {% endif %}
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <div class="alert alert-info">
+                        <h4>No submissions yet</h4>
+                        <p class="mb-0">Students haven't submitted any responses to this prompt yet.</p>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Bulk Actions -->
+    {% if submissions %}
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h5>Quick Actions</h5>
+                    <p class="text-muted">Manage all submissions at once</p>
+                    <div class="btn-group">
+                        <a href="{{ url_for('teacher_dashboard') }}" class="btn btn-outline-secondary">
+                            Back to Dashboard
+                        </a>
+                        <button type="button" class="btn btn-outline-primary" onclick="expandAll()">
+                            Expand All
+                        </button>
+                        <button type="button" class="btn btn-outline-primary" onclick="collapseAll()">
+                            Collapse All
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Grade Preview Modal -->
+<div class="modal fade" id="previewModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Grade Preview</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p><strong>Student:</strong> <span id="previewStudent"></span></p>
+                <p><strong>Grade:</strong> <span id="previewGrade"></span>/100</p>
+                <p><strong>Feedback:</strong></p>
+                <div class="card bg-light">
+                    <div class="card-body">
+                        <p id="previewFeedback" class="mb-0"></p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function previewGrade(student, grade, feedback) {
+    $('#previewStudent').text(student);
+    $('#previewGrade').text(grade);
+    $('#previewFeedback').text(feedback || 'No feedback provided');
+    $('#previewModal').modal('show');
+}
+
+function expandAll() {
+    $('.accordion-collapse').addClass('show');
+}
+
+function collapseAll() {
+    $('.accordion-collapse').removeClass('show');
+}
+
+// Auto-save draft functionality
+$(document).ready(function() {
+    $('.grading-form').on('input', function() {
+        const form = $(this);
+        const submissionId = form.find('input[name="submission_id"]').val();
+        const grade = form.find('input[name="grade"]').val();
+        const feedback = form.find('textarea[name="feedback"]').val();
+        
+        // You could add auto-save functionality here if needed
+        // localStorage.setItem(`draft_${submissionId}`, JSON.stringify({grade, feedback}));
+    });
+});
+</script>
+
+<style>
+.accordion-button:not(.collapsed) {
+    background-color: #e7f1ff;
+    color: #0c63e4;
+}
+
+.grading-form {
+    background: #f8f9fa;
+    padding: 1.5rem;
+    border-radius: 0.5rem;
+    border-left: 4px solid #0d6efd;
+}
+</style>
+{% endblock %}

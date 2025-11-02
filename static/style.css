@@ -1,0 +1,336 @@
+/* ============================================================
+   static/style.css — FIXED Cosmic Theme
+   No white backgrounds, perfect readability, reliable interactions
+   ============================================================ */
+
+:root {
+    --primary-yellow: #FFD700;
+    --primary-green: #32CD32;
+    --cosmic-dark: #0a0a14;
+    --cosmic-deep: #1a1a2e;
+    --cosmic-darker: #050510;
+    --text-bright: #f0fff0;
+    --text-soft: #d0e0d0;
+    --card-bg: rgba(25, 25, 40, 0.9);
+    --input-bg: rgba(35, 35, 55, 0.8);
+}
+
+/* ============================================================
+   Base Reset - CRITICAL FIXES
+   ============================================================ */
+* {
+    box-sizing: border-box;
+}
+
+/* REMOVE ALL WHITE BACKGROUNDS */
+body.stellar-bg {
+    background: linear-gradient(135deg, var(--cosmic-dark) 0%, var(--cosmic-deep) 100%);
+    color: var(--text-bright);
+    min-height: 100vh;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    line-height: 1.5;
+}
+
+/* FIX: Remove problematic pseudo-elements that cause white issues */
+body.stellar-bg::before,
+body.stellar-bg::after {
+    display: none !important;
+}
+
+/* ============================================================
+   Typography - PERFECT READABILITY
+   ============================================================ */
+h1, h2, h3, h4, h5, h6 {
+    color: var(--primary-yellow);
+    font-weight: 600;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+    margin-bottom: 1rem;
+}
+
+h1 { 
+    font-size: 2.5rem;
+    background: linear-gradient(45deg, var(--primary-yellow), var(--primary-green));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+h2 { font-size: 2rem; }
+h3 { font-size: 1.75rem; }
+h4 { font-size: 1.5rem; }
+
+p, li, span, td, .form-control {
+    color: var(--text-bright) !important;
+    line-height: 1.6;
+}
+
+.text-muted {
+    color: var(--text-soft) !important;
+    opacity: 0.8;
+}
+
+/* ============================================================
+   Cards - DARK & READABLE
+   ============================================================ */
+.card {
+    background: var(--card-bg) !important;
+    border: 1px solid rgba(255, 215, 0, 0.3) !important;
+    border-radius: 8px;
+    color: var(--text-bright) !important;
+    backdrop-filter: blur(5px);
+}
+
+.card-header {
+    background: rgba(255, 215, 0, 0.1) !important;
+    border-bottom: 1px solid rgba(255, 215, 0, 0.3) !important;
+    color: var(--primary-yellow) !important;
+    font-weight: 600;
+}
+
+.card-body {
+    background: transparent !important;
+    color: var(--text-bright) !important;
+}
+
+/* ============================================================
+   Tables - DARK & CLEAR
+   ============================================================ */
+.table {
+    background: var(--card-bg) !important;
+    color: var(--text-bright) !important;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.table-dark {
+    background: var(--card-bg) !important;
+}
+
+.table-dark th {
+    background: rgba(255, 215, 0, 0.2) !important;
+    color: var(--primary-yellow) !important;
+    border: none;
+    font-weight: 600;
+}
+
+.table-dark td {
+    background: transparent !important;
+    color: var(--text-bright) !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.table-hover tbody tr:hover {
+    background: rgba(50, 205, 50, 0.1) !important;
+}
+
+/* ============================================================
+   Forms - DARK & USABLE
+   ============================================================ */
+.form-control {
+    background: var(--input-bg) !important;
+    border: 1px solid rgba(255, 255, 255, 0.3) !important;
+    color: var(--text-bright) !important;
+    border-radius: 6px;
+}
+
+.form-control:focus {
+    background: var(--input-bg) !important;
+    border-color: var(--primary-yellow) !important;
+    color: var(--text-bright) !important;
+    box-shadow: 0 0 0 0.2rem rgba(255, 215, 0, 0.1) !important;
+}
+
+.form-control::placeholder {
+    color: var(--text-soft) !important;
+    opacity: 0.6;
+}
+
+.form-label {
+    color: var(--primary-yellow) !important;
+    font-weight: 500;
+}
+
+/* ============================================================
+   Buttons - RELIABLE & CLICKABLE
+   ============================================================ */
+.btn {
+    border: none;
+    font-weight: 600;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    position: relative;
+    z-index: 10;
+}
+
+.btn-warning {
+    background-color: var(--primary-yellow) !important;
+    color: #000 !important;
+}
+
+.btn-warning:hover {
+    background-color: #e6c200 !important;
+    color: #000 !important;
+}
+
+.btn-success {
+    background-color: var(--primary-green) !important;
+    color: #fff !important;
+}
+
+.btn-success:hover {
+    background-color: #28a745 !important;
+    color: #fff !important;
+}
+
+.btn-outline-warning {
+    border: 2px solid var(--primary-yellow) !important;
+    color: var(--primary-yellow) !important;
+    background: transparent !important;
+}
+
+.btn-outline-warning:hover {
+    background: var(--primary-yellow) !important;
+    color: #000 !important;
+}
+
+/* ============================================================
+   Navbar - DARK & FUNCTIONAL
+   ============================================================ */
+.navbar-dark {
+    background: rgba(10, 10, 20, 0.95) !important;
+    border-bottom: 2px solid var(--primary-yellow);
+}
+
+.navbar-dark .nav-link {
+    color: var(--primary-yellow) !important;
+}
+
+.navbar-dark .nav-link:hover {
+    color: var(--primary-green) !important;
+}
+
+.stellar-brand {
+    font-family: 'Dancing Script', cursive;
+    font-size: 2rem;
+    color: var(--primary-yellow) !important;
+    font-weight: bold;
+}
+
+/* ============================================================
+   Progress Bars
+   ============================================================ */
+.progress {
+    background: rgba(255, 255, 255, 0.1) !important;
+    border-radius: 10px;
+}
+
+.progress-bar {
+    background: linear-gradient(45deg, var(--primary-green), var(--primary-yellow)) !important;
+    color: #000;
+    font-weight: 600;
+}
+
+/* ============================================================
+   Badges & Avatars
+   ============================================================ */
+.badge {
+    font-weight: 500;
+}
+
+.badge-success {
+    background-color: var(--primary-green) !important;
+}
+
+.badge-warning {
+    background-color: var(--primary-yellow) !important;
+    color: #000 !important;
+}
+
+.avatar-circle {
+    background: linear-gradient(45deg, var(--primary-yellow), var(--primary-green));
+    color: #fff;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+}
+
+/* ============================================================
+   Alerts
+   ============================================================ */
+.alert {
+    border: none;
+    border-radius: 8px;
+    border-left: 4px solid;
+}
+
+.alert-success {
+    background: rgba(50, 205, 50, 0.1) !important;
+    color: var(--text-bright) !important;
+    border-left-color: var(--primary-green);
+}
+
+.alert-warning {
+    background: rgba(255, 215, 0, 0.1) !important;
+    color: var(--text-bright) !important;
+    border-left-color: var(--primary-yellow);
+}
+
+/* ============================================================
+   Footer
+   ============================================================ */
+footer {
+    background: rgba(10, 10, 20, 0.95) !important;
+    color: var(--primary-yellow) !important;
+    border-top: 2px solid var(--primary-green);
+}
+
+/* ============================================================
+   CRITICAL FIX: Remove ALL problematic animations and effects
+   ============================================================ */
+
+/* Remove transforms that break layouts */
+.card:hover,
+.btn:hover,
+.table-hover tbody tr:hover {
+    transform: none !important;
+}
+
+/* Ensure all clickable elements work perfectly */
+.btn, a, .nav-link, [onclick], [href] {
+    cursor: pointer !important;
+    position: relative;
+    z-index: 10;
+}
+
+/* Remove any remaining white backgrounds */
+.container, .modal-content, .popover, .tooltip {
+    background: var(--card-bg) !important;
+    color: var(--text-bright) !important;
+}
+
+/* ============================================================
+   Responsive fixes
+   ============================================================ */
+@media (max-width: 768px) {
+    .stellar-brand {
+        font-size: 1.6rem;
+    }
+    
+    .card {
+        margin-bottom: 1rem;
+    }
+    
+    .table {
+        font-size: 0.9rem;
+    }
+}
+
+/* ============================================================
+   Utility classes for cosmic theme
+   ============================================================ */
+.text-cosmic-yellow { color: var(--primary-yellow) !important; }
+.text-cosmic-green { color: var(--primary-green) !important; }
+.bg-cosmic-dark { background: var(--cosmic-dark) !important; }
+.border-cosmic-yellow { border-color: var(--primary-yellow) !important; }

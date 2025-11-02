@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card p-4 mb-4">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h2>Student Dashboard</h2>
+                        <p class="text-muted mb-0">Welcome, {{ user.username }}! (Grade {{ user.grade }})</p>
+                    </div>
+                    <div>
+                        <a href="{{ url_for('student_history') }}" class="btn btn-outline-primary me-2">View My History</a>
+                        <a href="{{ url_for('leaderboard') }}" class="btn btn-outline-success">View Leaderboard</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-center bg-primary text-white">
+                <div class="card-body">
+                    <h3>{{ prompts|length }}</h3>
+                    <p>Available Prompts</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center bg-success text-white">
+                <div class="card-body">
+                    <h3>{{ prompts|selectattr('has_submitted')|list|length }}</h3>
+                    <p>Completed</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center bg-warning text-dark">
+                <div class="card-body">
+                    <h3>{{ prompts|rejectattr('has_submitted')|list|length }}</h3>
+                    <p>Pending</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center bg-info text-white">
+                <div class="card-body">
+                    <a href="{{ url_for('leaderboard') }}" class="text-white text-decoration-none">
+                        <h3>View Rank</h3>
+                        <p>Leaderboard</p>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Available Prompts -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card p-4">
+                <h3 class="mb-4">Available Prompts (Grade {{ user.grade }})</h3>
+                
+                {% if prompts %}
+                <div class="row">
+                    {% for prompt in prompts %}
+                    <div class="col-md-6 mb-4">
+                        <div class="card h-100 {% if prompt.has_submitted %}border-success{% else %}border-warning{% endif %}">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start mb-3">
+                                    <h5 class="card-title">{{ prompt.title }}</h5>
+                                    {% if prompt.has_submitted %}
+                                        <span class="badge bg-success">Submitted</span>
+                                    {% else %}
+                                        <span class="badge bg-warning">Pending</span>
+                                    {% endif %}
+                                </div>
+                                
+                                <p class="card-text text-muted">{{ prompt.description }}</p>
+                                
+                                {% if prompt.has_submitted %}
+                                <div class="alert alert-success">
+                                    <strong>Submitted!</strong>
+                                    {% if prompt.submission.grade is not none %}
+                                    <br>Grade: <strong>{{ prompt.submission.grade }}/100</strong>
+                                    {% if prompt.submission.feedback %}
+                                    <br>Feedback: {{ prompt.submission.feedback }}
+                                    {% endif %}
+                                    {% else %}
+                                    <br>Awaiting grading
+                                    {% endif %}
+                                </div>
+                                {% else %}
+                                <form method="POST" action="{{ url_for('submit_response', prompt_id=prompt.id) }}">
+                                    <div class="mb-3">
+                                        <label for="response_{{ prompt.id }}" class="form-label">Your Response:</label>
+                                        <textarea class="form-control" id="response_{{ prompt.id }}" 
+                                                  name="response" rows="4" required 
+                                                  placeholder="Type your response here..."></textarea>
+                                    </div>
+                                    <button type="submit" class="btn btn-success w-100">Submit Response</button>
+                                </form>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <h4>No prompts available</h4>
+                    <p class="text-muted">Your teacher hasn't created any prompts for Grade {{ user.grade }} yet.</p>
+                    <div class="alert alert-info">
+                        Check back later for new assignments!
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Links -->
+    <div class="row mt-4">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h5>Submission History</h5>
+                    <p>View all your past submissions and grades</p>
+                    <a href="{{ url_for('student_history') }}" class="btn btn-outline-primary">View History</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h5>Leaderboard</h5>
+                    <p>See how you rank among other students</p>
+                    <a href="{{ url_for('leaderboard') }}" class="btn btn-outline-success">View Rankings</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h5>Your Performance</h5>
+                    <p>Track your progress and improvements</p>
+                    <a href="{{ url_for('student_history') }}" class="btn btn-outline-warning">View Progress</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
