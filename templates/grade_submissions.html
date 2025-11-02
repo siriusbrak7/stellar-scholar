@@ -4,14 +4,14 @@
 <div class="container">
     <div class="row">
         <div class="col-12">
-            <div class="card p-4 mb-4">
+            <div class="card p-4 mb-4 cosmic-card">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <h2>Grade Submissions</h2>
-                        <h4 class="text-primary">{{ prompt.title }}</h4>
-                        <p class="text-muted mb-0">Grade Level: {{ prompt.grade_level }} | Created: {{ prompt.created_at[:10] }}</p>
+                        <h2 class="text-yellow">Grade Submissions</h2>
+                        <h4 class="text-green">{{ prompt.title }}</h4>
+                        <p class="text-light mb-0">Grade Level: {{ prompt.grade_level }} | Created: {{ prompt.created_at[:10] }}</p>
                     </div>
-                    <a href="{{ url_for('teacher_dashboard') }}" class="btn btn-outline-secondary">Back to Dashboard</a>
+                    <a href="{{ url_for('teacher_dashboard') }}" class="btn btn-cosmic">Back to Dashboard</a>
                 </div>
             </div>
         </div>
@@ -20,12 +20,12 @@
     <!-- Prompt Details -->
     <div class="row mb-4">
         <div class="col-12">
-            <div class="card">
-                <div class="card-header bg-light">
-                    <h5 class="mb-0">Prompt Description</h5>
+            <div class="card cosmic-card">
+                <div class="card-header cosmic-header">
+                    <h5 class="mb-0 text-yellow">Prompt Description</h5>
                 </div>
                 <div class="card-body">
-                    <p class="card-text">{{ prompt.description }}</p>
+                    <p class="card-text text-light">{{ prompt.description }}</p>
                 </div>
             </div>
         </div>
@@ -34,33 +34,33 @@
     <!-- Submission Statistics -->
     <div class="row mb-4">
         <div class="col-md-3">
-            <div class="card text-center bg-primary text-white">
+            <div class="card text-center cosmic-card-primary">
                 <div class="card-body">
-                    <h3>{{ submissions|length }}</h3>
-                    <p>Total Submissions</p>
+                    <h3 class="text-yellow">{{ submissions|length }}</h3>
+                    <p class="text-light">Total Submissions</p>
                 </div>
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card text-center bg-success text-white">
+            <div class="card text-center cosmic-card-success">
                 <div class="card-body">
-                    <h3>{{ submissions|selectattr('grade')|list|length }}</h3>
-                    <p>Graded</p>
+                    <h3 class="text-yellow">{{ submissions|selectattr('grade')|list|length }}</h3>
+                    <p class="text-light">Graded</p>
                 </div>
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card text-center bg-warning text-dark">
+            <div class="card text-center cosmic-card-warning">
                 <div class="card-body">
-                    <h3>{{ submissions|rejectattr('grade')|list|length }}</h3>
-                    <p>Pending</p>
+                    <h3 class="text-dark">{{ submissions|rejectattr('grade')|list|length }}</h3>
+                    <p class="text-dark">Pending</p>
                 </div>
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card text-center bg-info text-white">
+            <div class="card text-center cosmic-card-info">
                 <div class="card-body">
-                    <h3>
+                    <h3 class="text-yellow">
                         {% set graded_subs = submissions|selectattr('grade')|list %}
                         {% if graded_subs %}
                             {{ (graded_subs|sum(attribute='grade') / graded_subs|length)|round(1) }}
@@ -68,7 +68,7 @@
                             0
                         {% endif %}
                     </h3>
-                    <p>Average Grade</p>
+                    <p class="text-light">Average Grade</p>
                 </div>
             </div>
         </div>
@@ -77,30 +77,30 @@
     <!-- Submissions List -->
     <div class="row">
         <div class="col-12">
-            <div class="card p-4">
-                <h3 class="mb-4">Student Submissions</h3>
+            <div class="card p-4 cosmic-card">
+                <h3 class="mb-4 text-yellow">Student Submissions</h3>
                 
                 {% if submissions %}
                 <div class="accordion" id="submissionsAccordion">
                     {% for submission in submissions %}
-                    <div class="accordion-item">
+                    <div class="accordion-item cosmic-accordion">
                         <h2 class="accordion-header" id="heading{{ loop.index }}">
-                            <button class="accordion-button {% if not loop.first %}collapsed{% endif %}" 
+                            <button class="accordion-button cosmic-accordion-btn {% if not loop.first %}collapsed{% endif %}" 
                                     type="button" data-bs-toggle="collapse" 
                                     data-bs-target="#collapse{{ loop.index }}" 
                                     aria-expanded="{% if loop.first %}true{% else %}false{% endif %}" 
                                     aria-controls="collapse{{ loop.index }}">
                                 <div class="d-flex justify-content-between align-items-center w-100 me-3">
                                     <div>
-                                        <strong>{{ submission.student_username }}</strong>
-                                        <span class="badge bg-secondary ms-2">Grade {{ submission.student_grade }}</span>
+                                        <strong class="text-yellow">{{ submission.student_username }}</strong>
+                                        <span class="badge cosmic-badge-secondary ms-2">Grade {{ submission.student_grade }}</span>
                                         {% if submission.grade is not none %}
-                                        <span class="badge bg-success ms-2">{{ submission.grade }}/100</span>
+                                        <span class="badge cosmic-badge-success ms-2">{{ submission.grade }}/100</span>
                                         {% else %}
-                                        <span class="badge bg-warning ms-2">Pending</span>
+                                        <span class="badge cosmic-badge-warning ms-2">Pending</span>
                                         {% endif %}
                                     </div>
-                                    <small class="text-muted">Submitted: {{ submission.submitted_at[:16] }}</small>
+                                    <small class="text-light">Submitted: {{ submission.submitted_at[:16] }}</small>
                                 </div>
                             </button>
                         </h2>
@@ -108,13 +108,13 @@
                              class="accordion-collapse collapse {% if loop.first %}show{% endif %}" 
                              aria-labelledby="heading{{ loop.index }}" 
                              data-bs-parent="#submissionsAccordion">
-                            <div class="accordion-body">
+                            <div class="accordion-body cosmic-accordion-body">
                                 <!-- Student Response -->
                                 <div class="mb-4">
-                                    <h6>Student's Response:</h6>
-                                    <div class="card bg-light">
+                                    <h6 class="text-green">Student's Response:</h6>
+                                    <div class="card cosmic-response-card">
                                         <div class="card-body">
-                                            <p class="mb-0">{{ submission.response }}</p>
+                                            <p class="mb-0 text-light">{{ submission.response }}</p>
                                         </div>
                                     </div>
                                 </div>
@@ -126,11 +126,11 @@
                                     <div class="row">
                                         <div class="col-md-6">
                                             <div class="mb-3">
-                                                <label for="grade_{{ submission.id }}" class="form-label">
+                                                <label for="grade_{{ submission.id }}" class="form-label text-yellow">
                                                     <strong>Grade (0-100)</strong>
                                                 </label>
                                                 <input type="number" 
-                                                       class="form-control" 
+                                                       class="form-control cosmic-input" 
                                                        id="grade_{{ submission.id }}" 
                                                        name="grade" 
                                                        min="0" 
@@ -142,19 +142,19 @@
                                         </div>
                                         <div class="col-md-6">
                                             <div class="mb-3">
-                                                <label class="form-label">
+                                                <label class="form-label text-yellow">
                                                     <strong>Status</strong>
                                                 </label>
                                                 <div>
                                                     {% if submission.grade is not none %}
-                                                    <span class="badge bg-success">Graded</span>
-                                                    <small class="text-muted ms-2">
+                                                    <span class="badge cosmic-badge-success">Graded</span>
+                                                    <small class="text-light ms-2">
                                                         {% if submission.graded_at %}
                                                         on {{ submission.graded_at[:16] }}
                                                         {% endif %}
                                                     </small>
                                                     {% else %}
-                                                    <span class="badge bg-warning">Awaiting Grade</span>
+                                                    <span class="badge cosmic-badge-warning">Awaiting Grade</span>
                                                     {% endif %}
                                                 </div>
                                             </div>
@@ -162,21 +162,21 @@
                                     </div>
 
                                     <div class="mb-3">
-                                        <label for="feedback_{{ submission.id }}" class="form-label">
+                                        <label for="feedback_{{ submission.id }}" class="form-label text-yellow">
                                             <strong>Feedback</strong>
                                         </label>
-                                        <textarea class="form-control" 
+                                        <textarea class="form-control cosmic-input" 
                                                   id="feedback_{{ submission.id }}" 
                                                   name="feedback" 
                                                   rows="4"
                                                   placeholder="Provide constructive feedback to help the student improve...">{{ submission.feedback if submission.feedback }}</textarea>
-                                        <div class="form-text">
+                                        <div class="form-text text-light">
                                             Your feedback will be visible to the student.
                                         </div>
                                     </div>
 
                                     <div class="d-flex gap-2">
-                                        <button type="submit" class="btn btn-success">
+                                        <button type="submit" class="btn btn-cosmic-success">
                                             {% if submission.grade is not none %}
                                             Update Grade
                                             {% else %}
@@ -185,7 +185,7 @@
                                         </button>
                                         
                                         {% if submission.grade is not none %}
-                                        <button type="button" class="btn btn-outline-info" 
+                                        <button type="button" class="btn btn-cosmic-info" 
                                                 onclick="previewGrade('{{ submission.student_username }}', $('#grade_{{ submission.id }}').val(), $('#feedback_{{ submission.id }}').val())">
                                             Preview
                                         </button>
@@ -199,9 +199,9 @@
                 </div>
                 {% else %}
                 <div class="text-center py-5">
-                    <div class="alert alert-info">
-                        <h4>No submissions yet</h4>
-                        <p class="mb-0">Students haven't submitted any responses to this prompt yet.</p>
+                    <div class="alert cosmic-alert-info">
+                        <h4 class="text-yellow">No submissions yet</h4>
+                        <p class="mb-0 text-light">Students haven't submitted any responses to this prompt yet.</p>
                     </div>
                 </div>
                 {% endif %}
@@ -213,18 +213,18 @@
     {% if submissions %}
     <div class="row mt-4">
         <div class="col-12">
-            <div class="card">
+            <div class="card cosmic-card">
                 <div class="card-body text-center">
-                    <h5>Quick Actions</h5>
-                    <p class="text-muted">Manage all submissions at once</p>
+                    <h5 class="text-yellow">Quick Actions</h5>
+                    <p class="text-light">Manage all submissions at once</p>
                     <div class="btn-group">
-                        <a href="{{ url_for('teacher_dashboard') }}" class="btn btn-outline-secondary">
+                        <a href="{{ url_for('teacher_dashboard') }}" class="btn btn-cosmic">
                             Back to Dashboard
                         </a>
-                        <button type="button" class="btn btn-outline-primary" onclick="expandAll()">
+                        <button type="button" class="btn btn-cosmic-info" onclick="expandAll()">
                             Expand All
                         </button>
-                        <button type="button" class="btn btn-outline-primary" onclick="collapseAll()">
+                        <button type="button" class="btn btn-cosmic-info" onclick="collapseAll()">
                             Collapse All
                         </button>
                     </div>
@@ -238,23 +238,23 @@
 <!-- Grade Preview Modal -->
 <div class="modal fade" id="previewModal" tabindex="-1">
     <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Grade Preview</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        <div class="modal-content cosmic-modal">
+            <div class="modal-header cosmic-modal-header">
+                <h5 class="modal-title text-yellow">Grade Preview</h5>
+                <button type="button" class="btn-close cosmic-close" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body">
-                <p><strong>Student:</strong> <span id="previewStudent"></span></p>
-                <p><strong>Grade:</strong> <span id="previewGrade"></span>/100</p>
-                <p><strong>Feedback:</strong></p>
-                <div class="card bg-light">
+            <div class="modal-body cosmic-modal-body">
+                <p class="text-light"><strong>Student:</strong> <span id="previewStudent" class="text-yellow"></span></p>
+                <p class="text-light"><strong>Grade:</strong> <span id="previewGrade" class="text-green"></span>/100</p>
+                <p class="text-light"><strong>Feedback:</strong></p>
+                <div class="card cosmic-response-card">
                     <div class="card-body">
-                        <p id="previewFeedback" class="mb-0"></p>
+                        <p id="previewFeedback" class="mb-0 text-light"></p>
                     </div>
                 </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            <div class="modal-footer cosmic-modal-footer">
+                <button type="button" class="btn btn-cosmic" data-bs-dismiss="modal">Close</button>
             </div>
         </div>
     </div>
@@ -291,16 +291,209 @@ $(document).ready(function() {
 </script>
 
 <style>
-.accordion-button:not(.collapsed) {
-    background-color: #e7f1ff;
-    color: #0c63e4;
+/* Cosmic Background and Base Styles */
+body {
+    background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+    background-attachment: fixed;
+    color: #e0e0ff;
 }
 
+/* Text Colors */
+.text-yellow { color: #FFD700 !important; }
+.text-green { color: #32CD32 !important; }
+.text-light { color: #e0e0ff !important; }
+
+/* Card Styles */
+.cosmic-card {
+    background: rgba(25, 25, 60, 0.9);
+    border: 1px solid #4444aa;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(50, 50, 150, 0.3);
+    backdrop-filter: blur(10px);
+}
+
+.cosmic-header {
+    background: linear-gradient(135deg, #32CD32, #228B22) !important;
+    border-bottom: 2px solid #FFD700;
+}
+
+/* Stat Cards */
+.cosmic-card-primary { background: linear-gradient(135deg, #1e3c72, #2a5298) !important; }
+.cosmic-card-success { background: linear-gradient(135deg, #00b09b, #96c93d) !important; }
+.cosmic-card-warning { background: linear-gradient(135deg, #FFD700, #FFA500) !important; }
+.cosmic-card-info { background: linear-gradient(135deg, #4A00E0, #8E2DE2) !important; }
+
+/* Button Styles */
+.btn-cosmic {
+    background: linear-gradient(135deg, #FFD700, #FFA500);
+    border: none;
+    color: #1a1a2e;
+    font-weight: 600;
+}
+
+.btn-cosmic:hover {
+    background: linear-gradient(135deg, #FFA500, #FF8C00);
+    color: #1a1a2e;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(255, 215, 0, 0.4);
+}
+
+.btn-cosmic-success {
+    background: linear-gradient(135deg, #32CD32, #228B22);
+    border: none;
+    color: white;
+    font-weight: 600;
+}
+
+.btn-cosmic-success:hover {
+    background: linear-gradient(135deg, #228B22, #006400);
+    color: white;
+    transform: translateY(-2px);
+}
+
+.btn-cosmic-info {
+    background: linear-gradient(135deg, #4A00E0, #8E2DE2);
+    border: none;
+    color: white;
+    font-weight: 600;
+}
+
+.btn-cosmic-info:hover {
+    background: linear-gradient(135deg, #8E2DE2, #4A00E0);
+    color: white;
+    transform: translateY(-2px);
+}
+
+/* Accordion Styles */
+.cosmic-accordion {
+    background: rgba(30, 30, 70, 0.9);
+    border: 1px solid #4444aa;
+    border-radius: 8px !important;
+    margin-bottom: 8px;
+}
+
+.cosmic-accordion-btn {
+    background: linear-gradient(135deg, #2a2a5a, #3a3a7a) !important;
+    color: #FFD700 !important;
+    border: none;
+}
+
+.cosmic-accordion-btn:not(.collapsed) {
+    background: linear-gradient(135deg, #3a3a7a, #4a4a9a) !important;
+    color: #FFD700 !important;
+    box-shadow: 0 2px 10px rgba(255, 215, 0, 0.2);
+}
+
+.cosmic-accordion-body {
+    background: rgba(40, 40, 80, 0.9);
+    border-top: 2px solid #4444aa;
+}
+
+/* Badge Styles */
+.cosmic-badge-secondary {
+    background: linear-gradient(135deg, #6666cc, #8888dd) !important;
+    color: white !important;
+}
+
+.cosmic-badge-success {
+    background: linear-gradient(135deg, #32CD32, #228B22) !important;
+    color: white !important;
+}
+
+.cosmic-badge-warning {
+    background: linear-gradient(135deg, #FFD700, #FFA500) !important;
+    color: #1a1a2e !important;
+}
+
+/* Input Styles */
+.cosmic-input {
+    background: rgba(50, 50, 100, 0.8) !important;
+    border: 1px solid #6666cc !important;
+    color: #e0e0ff !important;
+    border-radius: 6px;
+}
+
+.cosmic-input:focus {
+    background: rgba(60, 60, 120, 0.9) !important;
+    border-color: #FFD700 !important;
+    box-shadow: 0 0 0 0.2rem rgba(255, 215, 0, 0.25) !important;
+    color: #e0e0ff !important;
+}
+
+.cosmic-input::placeholder {
+    color: #a0a0cc !important;
+}
+
+/* Response Card */
+.cosmic-response-card {
+    background: rgba(40, 40, 80, 0.9) !important;
+    border: 1px solid #5555bb;
+    border-left: 4px solid #32CD32;
+}
+
+/* Alert Styles */
+.cosmic-alert-info {
+    background: linear-gradient(135deg, rgba(74, 0, 224, 0.3), rgba(142, 45, 226, 0.3));
+    border: 1px solid #6666cc;
+    border-radius: 8px;
+}
+
+/* Modal Styles */
+.cosmic-modal {
+    background: rgba(25, 25, 60, 0.95);
+    border: 2px solid #FFD700;
+    border-radius: 12px;
+    backdrop-filter: blur(15px);
+}
+
+.cosmic-modal-header {
+    background: linear-gradient(135deg, #2a2a5a, #3a3a7a);
+    border-bottom: 2px solid #FFD700;
+}
+
+.cosmic-modal-body {
+    background: rgba(30, 30, 70, 0.9);
+}
+
+.cosmic-modal-footer {
+    background: linear-gradient(135deg, #2a2a5a, #3a3a7a);
+    border-top: 1px solid #4444aa;
+}
+
+.cosmic-close {
+    filter: invert(1) brightness(2);
+}
+
+/* Grading Form */
 .grading-form {
-    background: #f8f9fa;
+    background: linear-gradient(135deg, rgba(50, 50, 100, 0.6), rgba(70, 70, 120, 0.6));
     padding: 1.5rem;
     border-radius: 0.5rem;
-    border-left: 4px solid #0d6efd;
+    border-left: 4px solid #FFD700;
+    backdrop-filter: blur(5px);
+}
+
+/* Form Text */
+.form-text {
+    color: #a0a0cc !important;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(30, 30, 70, 0.8);
+}
+
+::-webkit-scrollbar-thumb {
+    background: linear-gradient(135deg, #FFD700, #FFA500);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(135deg, #FFA500, #FF8C00);
 }
 </style>
 {% endblock %}
