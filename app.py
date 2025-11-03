@@ -5,6 +5,8 @@ import os
 from datetime import datetime
 from config import Config
 from werkzeug.security import generate_password_hash, check_password_hash
+import time
+import threading
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -86,6 +88,22 @@ def teacher_required(f):
             return redirect(url_for('index'))
         return f(*args, **kwargs)
     return decorated_function
+
+def keep_alive():
+    """Simple background thread to prevent spin-down"""
+    while True:
+        time.sleep(300)  # Ping every 5 minutes
+        try:
+            # This keeps the service active
+            print(f"Keep-alive ping at {datetime.now().isoformat()}")
+        except:
+            pass
+
+# Start keep-alive thread when app starts
+if 'RENDER' in os.environ:
+    keep_alive_thread = threading.Thread(target=keep_alive, daemon=True)
+    keep_alive_thread.start()
+    print("Keep-alive thread started for Render deployment")
 
 @app.route('/')
 def index():
