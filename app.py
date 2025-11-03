@@ -17,11 +17,14 @@ def get_data_dir():
     # On Render, use /tmp/data for persistence between deployments
     if 'RENDER' in os.environ:
         data_dir = '/tmp/data'
+        # Ensure the directory exists and has proper permissions
+        os.makedirs(data_dir, exist_ok=True)
+        print(f"📁 Using Render persistent data directory: {data_dir}")
     else:
         # Local development
         data_dir = 'data'
+        os.makedirs(data_dir, exist_ok=True)
     
-    os.makedirs(data_dir, exist_ok=True)
     return data_dir
 
 # Helper functions for JSON file operations
@@ -45,14 +48,20 @@ def save_json(filename, data):
 # Initialize data files if they don't exist with demo data
 def initialize_data():
     """Initialize data files with demo content if empty"""
+    data_dir = get_data_dir()
+    
     for filename in ['users.json', 'prompts.json', 'submissions.json']:
-        filepath = os.path.join(get_data_dir(), filename)
+        filepath = os.path.join(data_dir, filename)
         if not os.path.exists(filepath) or os.path.getsize(filepath) == 0:
             save_json(filename, {})
+            print(f"📄 Created empty {filename}")
     
-    # Add demo teacher account if no users exist
+    # Add demo accounts if no users exist
     users = load_json('users.json')
     if not users:
+        print("🆕 Initializing demo accounts...")
+        
+        # Demo teacher account
         demo_teacher = {
             'username': 'teacher',
             'password_hash': generate_password_hash('teach123'),
@@ -60,9 +69,57 @@ def initialize_data():
             'created_at': datetime.now().isoformat()
         }
         users['teacher'] = demo_teacher
+        
+        # Demo student accounts
+        demo_students = [
+            {'username': 'alice', 'password': 'pass123', 'grade': '8'},
+            {'username': 'bob', 'password': 'pass123', 'grade': '9'},
+            {'username': 'charlie', 'password': 'pass123', 'grade': '10'}
+        ]
+        
+        for student in demo_students:
+            users[student['username']] = {
+                'username': student['username'],
+                'password_hash': generate_password_hash(student['password']),
+                'role': 'student',
+                'grade': student['grade'],
+                'created_at': datetime.now().isoformat()
+            }
+        
         save_json('users.json', users)
-        print("Demo teacher account created: username='teacher', password='teach123'")
-
+        print("✅ Demo accounts created:")
+        print("   Teacher: username='teacher', password='teach123'")
+        print("   Students: username='alice/bob/charlie', password='pass123'")
+    
+    # Add demo prompts if none exist
+    prompts = load_json('prompts.json')
+    if not prompts:
+        print("📝 Creating demo prompts...")
+        demo_prompts = [
+            {
+                'id': 'demo_prompt_1',
+                'title': 'The Future of Space Exploration',
+                'description': 'Write about what you think space exploration will look like in 2050. Consider technological advancements, international cooperation, and potential discoveries.',
+                'grade_level': '8',
+                'created_by': 'teacher',
+                'created_at': datetime.now().isoformat()
+            },
+            {
+                'id': 'demo_prompt_2', 
+                'title': 'Climate Change Solutions',
+                'description': 'Propose three innovative solutions to address climate change. Explain how each solution would work and its potential impact.',
+                'grade_level': '9',
+                'created_by': 'teacher',
+                'created_at': datetime.now().isoformat()
+            }
+        ]
+        
+        for prompt in demo_prompts:
+            prompts[prompt['id']] = prompt
+        
+        save_json('prompts.json', prompts)
+        print("✅ Demo prompts created")
+        
 # Initialize data on app start
 initialize_data()
 
