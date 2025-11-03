@@ -4,37 +4,65 @@ import json
 import os
 from datetime import datetime
 from config import Config
-from werkzeug.security import generate_password_hash, check_password_hash  # ADDED
+from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
 app.config.from_object(Config)
 
-# Ensure data directory exists
-os.makedirs('data', exist_ok=True)
+# FIXED: Use persistent data directory that survives deployments
+def get_data_dir():
+    """Get persistent data directory path"""
+    # On Render, use /tmp/data for persistence between deployments
+    if 'RENDER' in os.environ:
+        data_dir = '/tmp/data'
+    else:
+        # Local development
+        data_dir = 'data'
+    
+    os.makedirs(data_dir, exist_ok=True)
+    return data_dir
 
 # Helper functions for JSON file operations
 def load_json(filename):
     """Load data from JSON file"""
-    filepath = os.path.join('data', filename)
+    filepath = os.path.join(get_data_dir(), filename)
     if os.path.exists(filepath):
         try:
             with open(filepath, 'r') as f:
                 return json.load(f)
-        except json.JSONDecodeError:
+        except (json.JSONDecodeError, KeyError):
             return {}
     return {}
 
 def save_json(filename, data):
     """Save data to JSON file"""
-    filepath = os.path.join('data', filename)
+    filepath = os.path.join(get_data_dir(), filename)
     with open(filepath, 'w') as f:
         json.dump(data, f, indent=4)
 
-# Initialize data files if they don't exist
-for filename in ['users.json', 'prompts.json', 'submissions.json']:
-    filepath = os.path.join('data', filename)
-    if not os.path.exists(filepath):
-        save_json(filename, {})
+# Initialize data files if they don't exist with demo data
+def initialize_data():
+    """Initialize data files with demo content if empty"""
+    for filename in ['users.json', 'prompts.json', 'submissions.json']:
+        filepath = os.path.join(get_data_dir(), filename)
+        if not os.path.exists(filepath) or os.path.getsize(filepath) == 0:
+            save_json(filename, {})
+    
+    # Add demo teacher account if no users exist
+    users = load_json('users.json')
+    if not users:
+        demo_teacher = {
+            'username': 'teacher',
+            'password_hash': generate_password_hash('teach123'),
+            'role': 'teacher',
+            'created_at': datetime.now().isoformat()
+        }
+        users['teacher'] = demo_teacher
+        save_json('users.json', users)
+        print("Demo teacher account created: username='teacher', password='teach123'")
+
+# Initialize data on app start
+initialize_data()
 
 # Login required decorator
 def login_required(f):
@@ -86,10 +114,10 @@ def register():
             flash('Please select your grade level.', 'danger')
             return render_template('register.html')
         
-        # Create new user - FIXED PASSWORD STORAGE
+        # Create new user
         user_data = {
             'username': username,
-            'password_hash': generate_password_hash(password),  # FIXED
+            'password_hash': generate_password_hash(password),
             'role': role,
             'grade': grade,
             'created_at': datetime.now().isoformat()
@@ -113,7 +141,6 @@ def login():
         
         user = users.get(username)
         
-        # FIXED PASSWORD CHECK
         if user and check_password_hash(user['password_hash'], password):
             session['user_id'] = username
             session['role'] = user['role']
@@ -139,6 +166,7 @@ def logout():
 def teacher_dashboard():
     prompts = load_json('prompts.json')
     submissions = load_json('submissions.json')
+    users = load_json('users.json')
     
     # Count submissions per prompt
     prompt_stats = {}
@@ -153,9 +181,37 @@ def teacher_dashboard():
                 if sub.get('grade') is not None:
                     prompt_stats[prompt_id]['graded'] += 1
     
+    # Get top 5 students for leaderboard preview
+    top_students = []
+    student_scores = {}
+    
+    for sub_id, sub in submissions.items():
+        if sub.get('grade') is not None:
+            student_id = sub['student_id']
+            if student_id not in student_scores:
+                student_scores[student_id] = {
+                    'grades': [],
+                    'username': student_id,
+                    'grade_level': users.get(student_id, {}).get('grade', 'N/A')
+                }
+            student_scores[student_id]['grades'].append(sub['grade'])
+    
+    for student_id, data in student_scores.items():
+        if data['grades']:
+            avg_score = sum(data['grades']) / len(data['grades'])
+            top_students.append({
+                'username': data['username'],
+                'grade_level': data['grade_level'],
+                'avg_score': round(avg_score, 2)
+            })
+    
+    top_students.sort(key=lambda x: x['avg_score'], reverse=True)
+    top_students = top_students[:5]  # Top 5 only
+    
     return render_template('teacher_dashboard.html', 
                          prompts=prompts, 
-                         prompt_stats=prompt_stats)
+                         prompt_stats=prompt_stats,
+                         top_students=top_students)
 
 @app.route('/teacher/create_prompt', methods=['GET', 'POST'])
 @teacher_required
@@ -239,7 +295,6 @@ def grade_submissions(prompt_id):
     # Sort by submission date
     prompt_submissions.sort(key=lambda x: x['submitted_at'], reverse=True)
     
-    # ADDED ERROR HANDLING
     if not prompt_submissions:
         flash('No submissions found for this prompt yet.', 'info')
     
@@ -426,4 +481,4 @@ def leaderboard():
     return render_template('leaderboard.html', leaderboard=leaderboard_data)
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=False)  # FIXED FOR DEPLOYMENT
+    app.run(host='0.0.0.0', port=5000, debug=False)
