@@ -39,25 +39,7 @@
             </div>
         </div>
 
-        <!-- Quick Stats -->
-        <div class="cosmic-stats">
-            <div class="stat-item">
-                <div class="stat-number" data-count="1000">0</div>
-                <div class="stat-label">Active Scholars</div>
-            </div>
-            <div class="stat-item">
-                <div class="stat-number" data-count="500">0</div>
-                <div class="stat-label">Cosmic Challenges</div>
-            </div>
-            <div class="stat-item">
-                <div class="stat-number" data-count="95">0</div>
-                <div class="stat-label">Success Rate</div>
-            </div>
-            <div class="stat-item">
-                <div class="stat-number" data-count="4.8">0</div>
-                <div class="stat-label">Star Rating</div>
-            </div>
-        </div>
+        
 
         <div class="cta-section">
             <p class="cta-text">Ready to explore the Cosmos?</p>
@@ -295,42 +277,7 @@
     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
 }
 
-/* Stats */
-.cosmic-stats {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 2rem;
-    margin: 3rem auto;
-    max-width: 700px;
-    padding: 2rem;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 20px;
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.stat-item {
-    text-align: center;
-}
-
-.stat-number {
-    font-size: 2.5rem;
-    font-weight: bold;
-    background: linear-gradient(45deg, #FFD700, #32CD32);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    margin-bottom: 0.5rem;
-    text-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
-}
-
-.stat-label {
-    color: #b0b8c9;
-    font-size: 0.9rem;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    font-weight: 500;
-}
+/* Stats removed: .cosmic-stats, .stat-item, .stat-number, .stat-label (deleted) */
 
 /* CTA Section */
 .cta-section {
@@ -429,30 +376,5 @@
 }
 </style>
 
-<script>
-// Animated counter for stats
-document.addEventListener('DOMContentLoaded', function() {
-    const counters = document.querySelectorAll('.stat-number');
-    const speed = 200;
-    
-    counters.forEach(counter => {
-        const target = +counter.getAttribute('data-count');
-        const count = +counter.innerText;
-        const increment = target / speed;
-        
-        if(count < target) {
-            const updateCount = () => {
-                const current = +counter.innerText;
-                if(current < target) {
-                    counter.innerText = Math.ceil(current + increment);
-                    setTimeout(updateCount, 1);
-                } else {
-                    counter.innerText = target;
-                }
-            }
-            updateCount();
-        }
-    });
-});
-</script>
+<!-- Removed animated counter script since Quick Stats section was deleted -->
 {% endblock %}

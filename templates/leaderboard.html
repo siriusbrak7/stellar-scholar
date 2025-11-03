@@ -1,40 +1,45 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container">
-    <div class="row">
-        <div class="col-12">
-            <div class="card p-4 mb-4">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h2>🏆 Stellar Scholar Leaderboard</h2>
-                        <p class="text-muted mb-0">See how you rank among fellow scholars</p>
-                    </div>
-                    <div>
-                        {% if session.role == 'teacher' %}
-                        <a href="{{ url_for('teacher_dashboard') }}" class="btn btn-outline-secondary">Teacher Dashboard</a>
-                        {% else %}
-                        <a href="{{ url_for('student_dashboard') }}" class="btn btn-outline-secondary">My Dashboard</a>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-        </div>
+<div class="cosmic-leaderboard">
+    <!-- Animated Stars Background -->
+    <div class="stars-container">
+        <div class="star star-1"></div>
+        <div class="star star-2"></div>
+        <div class="star star-3"></div>
+        <div class="star star-4"></div>
+        <div class="star star-5"></div>
     </div>
+    
+    <!-- Floating Planets -->
+    <div class="planet planet-1"></div>
+    <div class="planet planet-2"></div>
 
-    <!-- Leaderboard Stats -->
-    <div class="row mb-4">
-        <div class="col-md-3">
-            <div class="card text-center bg-warning text-dark">
-                <div class="card-body">
-                    <h3>{{ leaderboard|length }}</h3>
-                    <p>Ranked Students</p>
+    <div class="leaderboard-content">
+        <!-- Header -->
+        <div class="leaderboard-header">
+            <h1 class="cosmic-title">🏆 Cosmic Scholar Rankings</h1>
+            <p class="cosmic-subtitle">See how you shine among the stars! ✨</p>
+            
+            {% if session.role == 'teacher' %}
+            <a href="{{ url_for('teacher_dashboard') }}" class="btn btn-teacher-action">Teacher Dashboard</a>
+            {% else %}
+            <a href="{{ url_for('student_dashboard') }}" class="btn btn-student-action">My Dashboard</a>
+            {% endif %}
+        </div>
+
+        <!-- Leaderboard Stats -->
+        <div class="leaderboard-stats">
+            <div class="stat-card">
+                <div class="stat-emoji">👨‍🎓</div>
+                <div class="stat-info">
+                    <div class="stat-number">{{ leaderboard|length }}</div>
+                    <div class="stat-label">Ranked Scholars</div>
                 </div>
             </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card text-center bg-success text-white">
-                <div class="card-body">
+            <div class="stat-card">
+                <div class="stat-emoji">⭐</div>
+                <div class="stat-info">
                     <h3>
                         {% if leaderboard %}
                             {{ leaderboard[0].username }}
@@ -42,13 +47,12 @@
                             --
                         {% endif %}
                     </h3>
-                    <p>Top Scholar</p>
+                    <div class="stat-label">Galaxy Leader</div>
                 </div>
             </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card text-center bg-info text-white">
-                <div class="card-body">
+            <div class="stat-card">
+                <div class="stat-emoji">📊</div>
+                <div class="stat-info">
                     <h3>
                         {% if leaderboard %}
                             {{ (leaderboard|sum(attribute='avg_score') / leaderboard|length)|round(1) }}
@@ -56,382 +60,824 @@
                             0
                         {% endif %}
                     </h3>
-                    <p>Class Average</p>
+                    <div class="stat-label">Class Average</div>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="card text-center bg-primary text-white">
-                <div class="card-body">
-                    <h3>
-                        {% if leaderboard %}
-                            {{ leaderboard|sum(attribute='num_submissions') }}
-                        {% else %}
-                            0
-                        {% endif %}
-                    </h3>
-                    <p>Total Submissions</p>
-                </div>
-            </div>
-        </div>
-    </div>
 
-    <!-- Current User Highlight -->
-    {% if session.role == 'student' and leaderboard %}
-    {% set current_user_rank = none %}
-    {% set user_identifier = session.get('username') if session.get('username') is not none else session.get('user_id') %}
-    {% for student in leaderboard %}
-        {% if student.username == user_identifier %}
-            {% set current_user_rank = student %}
+        <!-- Current User Highlight -->
+        {% if session.role == 'student' and leaderboard %}
+        {% set current_user_rank = none %}
+        {% set user_identifier = session.get('username') if session.get('username') is not none else session.get('user_id') %}
+        {% for student in leaderboard %}
+            {% if student.username == user_identifier %}
+                {% set current_user_rank = student %}
+            {% endif %}
+        {% endfor %}
+        
+        {% if current_user_rank %}
+        <div class="user-highlight">
+            <div class="highlight-content">
+                <div class="highlight-badge">
+                    <span class="highlight-rank">#{{ current_user_rank.rank }}</span>
+                    <span class="highlight-text">Your Rank</span>
+                </div>
+                <div class="highlight-info">
+                    <h3>🎯 Your Cosmic Position</h3>
+                    <p>You're shining at <strong>#{{ current_user_rank.rank }}</strong> with <strong>{{ current_user_rank.avg_score }} points</strong> across {{ current_user_rank.num_submissions }} mission(s)!</p>
+                </div>
+                <div class="highlight-score">
+                    <div class="score-display">{{ current_user_rank.avg_score }}</div>
+                    <div class="score-label">Points</div>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="user-highlight not-ranked">
+            <div class="highlight-content">
+                <div class="highlight-badge">
+                    <span class="highlight-emoji">🚀</span>
+                </div>
+                <div class="highlight-info">
+                    <h3>🌠 Start Your Journey!</h3>
+                    <p>Complete missions to appear on the leaderboard and join the cosmic rankings!</p>
+                </div>
+            </div>
+        </div>
         {% endif %}
-    {% endfor %}
-    
-    {% if current_user_rank %}
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card border-success">
-                <div class="card-body bg-success bg-opacity-10">
-                    <div class="row align-items-center">
-                        <div class="col-md-8">
-                            <h4 class="text-success">🎯 Your Position</h4>
-                            <p class="mb-0">
-                                You're ranked <strong>#{{ current_user_rank.rank }}</strong> 
-                                with an average of <strong>{{ current_user_rank.avg_score }}/100</strong>
-                                across {{ current_user_rank.num_submissions }} submission(s).
-                            </p>
-                        </div>
-                        <div class="col-md-4 text-end">
-                            <div class="display-4 text-success">#{{ current_user_rank.rank }}</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    {% else %}
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card border-warning">
-                <div class="card-body bg-warning bg-opacity-10">
-                    <div class="text-center">
-                        <h4 class="text-warning">📊 Start Your Journey!</h4>
-                        <p class="mb-0">
-                            You haven't been graded on any submissions yet. Complete assessments to appear on the leaderboard!
-                        </p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    {% endif %}
-    {% endif %}
+        {% endif %}
 
-    <!-- Leaderboard Table -->
-    <div class="row">
-        <div class="col-12">
-            <div class="card p-4">
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h3 class="mb-0">Student Rankings</h3>
-                    <div class="btn-group">
-                        <button class="btn btn-outline-primary active" onclick="showAllGrades(this)">All Grades</button>
+        <!-- Leaderboard Content -->
+        <div class="leaderboard-main">
+            <!-- Podium for Top 3 -->
+            {% if leaderboard and leaderboard|length >= 3 %}
+            <div class="podium-section">
+                <h2 class="section-title">🏅 Galaxy Champions</h2>
+                <div class="podium">
+                    <!-- 2nd Place -->
+                    <div class="podium-item silver">
+                        <div class="podium-rank">🥈</div>
+                        <div class="podium-avatar">{{ leaderboard[1].username[0]|upper }}</div>
+                        <div class="podium-info">
+                            <div class="podium-name">{{ leaderboard[1].username }}</div>
+                            <div class="podium-score">{{ leaderboard[1].avg_score }} pts</div>
+                        </div>
+                    </div>
+                    
+                    <!-- 1st Place -->
+                    <div class="podium-item gold">
+                        <div class="podium-rank">🥇</div>
+                        <div class="podium-avatar">{{ leaderboard[0].username[0]|upper }}</div>
+                        <div class="podium-info">
+                            <div class="podium-name">{{ leaderboard[0].username }}</div>
+                            <div class="podium-score">{{ leaderboard[0].avg_score }} pts</div>
+                        </div>
+                    </div>
+                    
+                    <!-- 3rd Place -->
+                    <div class="podium-item bronze">
+                        <div class="podium-rank">🥉</div>
+                        <div class="podium-avatar">{{ leaderboard[2].username[0]|upper }}</div>
+                        <div class="podium-info">
+                            <div class="podium-name">{{ leaderboard[2].username }}</div>
+                            <div class="podium-score">{{ leaderboard[2].avg_score }} pts</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Full Rankings -->
+            <div class="rankings-section">
+                <div class="section-header">
+                    <h2 class="section-title">📈 All Cosmic Scholars</h2>
+                    <div class="filters">
+                        <button class="filter-btn active" onclick="showAllGrades(this)">All Grades</button>
                         {% if session.role == 'student' %}
                         {% set user_identifier = session.get('username') if session.get('username') is not none else session.get('user_id') %}
                         {% set user_grade = (leaderboard|selectattr('username', 'equalto', user_identifier)|map(attribute='grade_level')|first) if user_identifier else None %}
-                        <button class="btn btn-outline-success" onclick="filterByGrade('{{ user_grade }}', this)">My Grade</button>
+                        <button class="filter-btn" onclick="filterByGrade('{{ user_grade }}', this)">My Grade</button>
                         {% endif %}
                     </div>
                 </div>
 
                 {% if leaderboard %}
-                <div class="table-responsive">
-                    <table class="table table-hover table-striped" id="leaderboardTable">
-                        <thead class="table-dark">
-                            <tr>
-                                <th width="80">Rank</th>
-                                <th>Student</th>
-                                <th width="100">Grade</th>
-                                <th width="120">Average Score</th>
-                                <th width="120">Submissions</th>
-                                <th width="100">Performance</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for student in leaderboard %}
-                            <tr class="{% if session.role == 'student' and (session.get('username') if session.get('username') is not none else session.get('user_id')) == student.username %}table-success{% endif %} student-row" 
-                                data-grade="{{ student.grade_level }}">
-                                <td>
-                                    {% if student.rank == 1 %}
-                                    <span class="badge bg-warning text-dark fs-6">🥇 {{ student.rank }}</span>
-                                    {% elif student.rank == 2 %}
-                                    <span class="badge bg-secondary fs-6">🥈 {{ student.rank }}</span>
-                                    {% elif student.rank == 3 %}
-                                    <span class="badge bg-danger fs-6">🥉 {{ student.rank }}</span>
-                                    {% else %}
-                                    <span class="badge bg-light text-dark">#{{ student.rank }}</span>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    <div class="d-flex align-items-center">
-                                        <div class="avatar-circle me-3">
-                                            <span class="avatar-text">{{ student.username[0]|upper }}</span>
-                                        </div>
-                                        <div>
-                                            <strong>{{ student.username }}</strong>
-                                            {% if session.role == 'student' and (session.get('username') if session.get('username') is not none else session.get('user_id')) == student.username %}
-                                            <span class="badge bg-success ms-2">You</span>
-                                            {% endif %}
-                                        </div>
-                                    </div>
-                                </td>
-                                <td>
-                                    <span class="badge bg-info">Grade {{ student.grade_level }}</span>
-                                </td>
-                                <td>
-                                    <div class="progress" style="height: 20px;">
-                                        <div class="progress-bar 
-                                            {% if student.avg_score >= 90 %}bg-success
-                                            {% elif student.avg_score >= 70 %}bg-primary
-                                            {% elif student.avg_score >= 50 %}bg-warning
-                                            {% else %}bg-danger{% endif %}" 
-                                            data-score="{{ student.avg_score }}" role="progressbar" aria-valuenow="{{ student.avg_score }}" aria-valuemin="0" aria-valuemax="100">
-                                            <strong>{{ '%.0f'|format(student.avg_score) }}</strong>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td>
-                                    <span class="badge bg-dark fs-6">{{ student.num_submissions }}</span>
-                                </td>
-                                <td>
-                                    {% if student.avg_score >= 90 %}
-                                    <span class="badge bg-success">Excellent</span>
-                                    {% elif student.avg_score >= 70 %}
-                                    <span class="badge bg-primary">Good</span>
-                                    {% elif student.avg_score >= 50 %}
-                                    <span class="badge bg-warning">Average</span>
-                                    {% else %}
-                                    <span class="badge bg-danger">Needs Work</span>
-                                    {% endif %}
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
+                <div class="rankings-list">
+                    {% for student in leaderboard %}
+                    <div class="ranking-item {% if session.role == 'student' and (session.get('username') if session.get('username') is not none else session.get('user_id')) == student.username %}current-user{% endif %}" 
+                         data-grade="{{ student.grade_level }}">
+                        <!-- Rank -->
+                        <div class="rank-display">
+                            {% if student.rank == 1 %}
+                            <div class="rank-badge gold">🥇 {{ student.rank }}</div>
+                            {% elif student.rank == 2 %}
+                            <div class="rank-badge silver">🥈 {{ student.rank }}</div>
+                            {% elif student.rank == 3 %}
+                            <div class="rank-badge bronze">🥉 {{ student.rank }}</div>
+                            {% else %}
+                            <div class="rank-badge">#{{ student.rank }}</div>
+                            {% endif %}
+                        </div>
 
-                <!-- Grade Level Filters -->
-                <div class="row mt-4">
-                    <div class="col-12">
-                        <div class="card">
-                            <div class="card-body text-center">
-                                <h5>Filter by Grade Level</h5>
-                                <div class="btn-group">
-                                    <button class="btn btn-outline-primary" onclick="showAllGrades(this)">All</button>
-                                    <button class="btn btn-outline-success" onclick="filterByGrade('8', this)">Grade 8</button>
-                                    <button class="btn btn-outline-success" onclick="filterByGrade('9', this)">Grade 9</button>
-                                    <button class="btn btn-outline-success" onclick="filterByGrade('10', this)">Grade 10</button>
-                                    <button class="btn btn-outline-success" onclick="filterByGrade('11', this)">Grade 11</button>
+                        <!-- Student Info -->
+                        <div class="student-info">
+                            <div class="student-avatar">{{ student.username[0]|upper }}</div>
+                            <div class="student-details">
+                                <div class="student-name">
+                                    {{ student.username }}
+                                    {% if session.role == 'student' and (session.get('username') if session.get('username') is not none else session.get('user_id')) == student.username %}
+                                    <span class="you-badge">YOU</span>
+                                    {% endif %}
+                                </div>
+                                <div class="student-meta">
+                                    <span class="grade-badge">Grade {{ student.grade_level }}</span>
+                                    <span class="submissions">{{ student.num_submissions }} missions</span>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                </div>
 
-                {% else %}
-                <div class="text-center py-5">
-                    <div class="alert alert-info">
-                        <h4>📊 No Rankings Yet</h4>
-                        <p class="mb-3">The leaderboard will appear once students start receiving grades on their submissions.</p>
-                        {% if session.role == 'teacher' %}
-                        {% if prompts %}
-                        <a href="{{ url_for('grade_submissions', prompt_id=prompts[0].id) }}" class="btn btn-primary">Start Grading Submissions</a>
-                        {% else %}
-                        <a href="#" class="btn btn-primary disabled">Start Grading Submissions</a>
-                        {% endif %}
-                        {% else %}
-                        <p>Complete assessments and wait for your teacher to grade them!</p>
-                        {% endif %}
+                        <!-- Progress -->
+                        <div class="progress-section">
+                            <div class="progress-container">
+                                <div class="progress-bar" data-score="{{ student.avg_score }}" data-level="{% if student.avg_score >= 90 %}cosmic{% elif student.avg_score >= 70 %}stellar{% elif student.avg_score >= 50 %}rising{% else %}explorer{% endif %}" role="progressbar" aria-valuemin="0" aria-valuemax="100">
+                                    <span class="progress-text">{{ student.avg_score }}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Performance Badge -->
+                        <div class="performance-badge">
+                            {% if student.avg_score >= 90 %}
+                            <span class="badge cosmic">🌠 Cosmic Scholar</span>
+                            {% elif student.avg_score >= 70 %}
+                            <span class="badge stellar">⭐ Stellar Student</span>
+                            {% elif student.avg_score >= 50 %}
+                            <span class="badge rising">🚀 Rising Star</span>
+                            {% else %}
+                            <span class="badge explorer">🔭 Explorer</span>
+                            {% endif %}
+                        </div>
                     </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="empty-leaderboard">
+                    <div class="empty-icon">🌌</div>
+                    <h3>No Rankings Yet</h3>
+                    <p>The cosmic leaderboard will appear once scholars start completing missions!</p>
+                    {% if session.role == 'teacher' %}
+                    <a href="{{ url_for('create_prompt') }}" class="btn btn-primary">Create First Mission</a>
+                    {% else %}
+                    <p>Complete assessments to join the rankings!</p>
+                    {% endif %}
                 </div>
                 {% endif %}
             </div>
         </div>
     </div>
-
-    <!-- Performance Insights -->
-    {% if leaderboard %}
-    <div class="row mt-4">
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="mb-0">🏅 Top Performers</h5>
-                </div>
-                <div class="card-body">
-                    <div class="top-performers-list">
-                        {% for student in leaderboard[:3] %}
-                        <div class="performer-item {% if loop.index == 1 %}gold{% elif loop.index == 2 %}silver{% else %}bronze{% endif %}">
-                            <div class="performer-rank">
-                                {% if loop.index == 1 %}🥇{% elif loop.index == 2 %}🥈{% else %}🥉{% endif %}
-                            </div>
-                            <div class="performer-info">
-                                <div class="performer-name">{{ student.username }}</div>
-                                <div class="performer-details">Grade {{ student.grade_level }} • {{ student.num_submissions }} submissions</div>
-                            </div>
-                            <div class="performer-score">{{ student.avg_score }}</div>
-                        </div>
-                        {% endfor %}
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-header bg-info text-white">
-                    <h5 class="mb-0">📈 Grade Distribution</h5>
-                </div>
-                <div class="card-body">
-                    {% set excellent = leaderboard|selectattr('avg_score', '>=', 90)|list|length %}
-                    {% set good = leaderboard|selectattr('avg_score', '>=', 70)|selectattr('avg_score', '<', 90)|list|length %}
-                    {% set average = leaderboard|selectattr('avg_score', '>=', 50)|selectattr('avg_score', '<', 70)|list|length %}
-                    {% set needs_work = leaderboard|selectattr('avg_score', '<', 50)|list|length %}
-                    
-                    <div class="mb-2">
-                        <span class="badge bg-success">Excellent (90-100):</span> {{ excellent }} students
-                    </div>
-                    <div class="mb-2">
-                        <span class="badge bg-primary">Good (70-89):</span> {{ good }} students
-                    </div>
-                    <div class="mb-2">
-                        <span class="badge bg-warning">Average (50-69):</span> {{ average }} students
-                    </div>
-                    <div class="mb-2">
-                        <span class="badge bg-danger">Needs Work (0-49):</span> {{ needs_work }} students
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    {% endif %}
 </div>
 
 <style>
-/* Top Performers Styling */
-.top-performers-list {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
+/* Cosmic Leaderboard Styles */
+.cosmic-leaderboard {
+    background: linear-gradient(135deg, #0a0e27 0%, #16213e 50%, #1a1a2e 100%);
+    min-height: 100vh;
+    position: relative;
+    overflow-x: hidden;
+    padding: 2rem;
 }
 
-.performer-item {
+.leaderboard-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    position: relative;
+    z-index: 2;
+}
+
+/* Header */
+.leaderboard-header {
+    text-align: center;
+    margin-bottom: 3rem;
+}
+
+.cosmic-title {
+    font-family: 'Dancing Script', cursive;
+    font-size: 4rem;
+    background: linear-gradient(45deg, #FFD700, #32CD32, #FFD700);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 0.5rem;
+}
+
+.cosmic-subtitle {
+    color: #b0b8c9;
+    font-size: 1.3rem;
+    margin-bottom: 2rem;
+}
+
+/* Stats */
+.leaderboard-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.stat-card {
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 15px;
+    padding: 1.5rem;
     display: flex;
     align-items: center;
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 215, 0, 0.3);
-    border-radius: 10px;
-    padding: 1rem;
+    gap: 1rem;
     transition: all 0.3s ease;
 }
 
-.performer-item:hover {
-    background: rgba(255, 255, 255, 0.12);
-    border-color: var(--primary-yellow);
+.stat-card:hover {
+    transform: translateY(-5px);
+    border-color: rgba(255, 215, 0, 0.3);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
 }
 
-.performer-item.gold {
-    border-color: #FFD700;
-    background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(255, 215, 0, 0.05));
+.stat-emoji {
+    font-size: 2.5rem;
+    filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.3));
 }
 
-.performer-item.silver {
-    border-color: #C0C0C0;
-    background: linear-gradient(135deg, rgba(192, 192, 192, 0.1), rgba(192, 192, 192, 0.05));
-}
-
-.performer-item.bronze {
-    border-color: #CD7F32;
-    background: linear-gradient(135deg, rgba(205, 127, 50, 0.1), rgba(205, 127, 50, 0.05));
-}
-
-.performer-rank {
-    font-size: 1.5rem;
-    margin-right: 1rem;
-    width: 40px;
-    text-align: center;
-}
-
-.performer-info {
-    flex: 1;
-}
-
-.performer-name {
+.stat-info h3 {
     color: var(--primary-yellow);
-    font-weight: 600;
-    font-size: 1.1rem;
+    margin: 0;
+    font-size: 1.5rem;
 }
 
-.performer-details {
-    color: var(--text-soft);
+.stat-number {
+    font-size: 2.5rem;
+    font-weight: bold;
+    background: linear-gradient(45deg, #FFD700, #32CD32);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1;
+}
+
+.stat-label {
+    color: #b0b8c9;
     font-size: 0.9rem;
     margin-top: 0.25rem;
 }
 
-.performer-score {
-    color: var(--primary-green);
+/* User Highlight */
+.user-highlight {
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(50, 205, 50, 0.1));
+    border: 2px solid rgba(255, 215, 0, 0.3);
+    border-radius: 20px;
+    padding: 2rem;
+    margin-bottom: 3rem;
+    backdrop-filter: blur(10px);
+}
+
+.user-highlight.not-ranked {
+    background: linear-gradient(135deg, rgba(106, 17, 203, 0.1), rgba(37, 117, 252, 0.1));
+    border-color: rgba(106, 17, 203, 0.3);
+}
+
+.highlight-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 2rem;
+}
+
+.highlight-badge {
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.highlight-rank {
+    display: block;
+    font-size: 3rem;
+    font-weight: bold;
+    background: linear-gradient(45deg, #FFD700, #32CD32);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1;
+}
+
+.highlight-text {
+    color: #b0b8c9;
+    font-size: 0.9rem;
+    margin-top: 0.5rem;
+}
+
+.highlight-emoji {
+    font-size: 3rem;
+    display: block;
+}
+
+.highlight-info {
+    flex: 1;
+}
+
+.highlight-info h3 {
+    color: var(--primary-yellow);
+    margin-bottom: 0.5rem;
+    font-size: 1.5rem;
+}
+
+.highlight-info p {
+    color: var(--text-soft);
+    margin: 0;
+    font-size: 1.1rem;
+}
+
+.highlight-score {
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.score-display {
+    font-size: 2.5rem;
+    font-weight: bold;
+    background: linear-gradient(45deg, #FFD700, #32CD32);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1;
+}
+
+.score-label {
+    color: #b0b8c9;
+    font-size: 0.9rem;
+    margin-top: 0.5rem;
+}
+
+/* Podium */
+.podium-section {
+    margin-bottom: 3rem;
+}
+
+.section-title {
+    color: var(--primary-yellow);
+    font-size: 2rem;
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.podium {
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    gap: 1rem;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.podium-item {
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 15px;
+    padding: 2rem 1rem;
+    text-align: center;
+    flex: 1;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+}
+
+.podium-item:hover {
+    transform: translateY(-10px);
+}
+
+.podium-item.gold {
+    border: 2px solid #FFD700;
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.15), rgba(255, 215, 0, 0.05));
+    order: 2;
+    margin-bottom: 2rem;
+}
+
+.podium-item.silver {
+    border: 2px solid #C0C0C0;
+    background: linear-gradient(135deg, rgba(192, 192, 192, 0.15), rgba(192, 192, 192, 0.05));
+    order: 1;
+}
+
+.podium-item.bronze {
+    border: 2px solid #CD7F32;
+    background: linear-gradient(135deg, rgba(205, 127, 50, 0.15), rgba(205, 127, 50, 0.05));
+    order: 3;
+}
+
+.podium-rank {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+}
+
+.podium-avatar {
+    width: 60px;
+    height: 60px;
+    background: linear-gradient(45deg, #FFD700, #32CD32);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 1.5rem;
+    color: #000;
+    margin: 0 auto 1rem;
+}
+
+.podium-name {
+    color: white;
+    font-weight: 600;
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
+}
+
+.podium-score {
+    color: var(--primary-yellow);
     font-weight: bold;
     font-size: 1.2rem;
-    background: rgba(50, 205, 50, 0.1);
-    padding: 0.5rem 0.75rem;
+}
+
+/* Rankings */
+.rankings-section {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 20px;
+    padding: 2rem;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.filters {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.filter-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: var(--text-soft);
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.filter-btn.active,
+.filter-btn:hover {
+    background: var(--primary-yellow);
+    color: #000;
+    border-color: var(--primary-yellow);
+}
+
+/* Ranking Items */
+.rankings-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.ranking-item {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 15px;
+    padding: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    transition: all 0.3s ease;
+}
+
+.ranking-item:hover {
+    transform: translateX(10px);
+    border-color: rgba(255, 215, 0, 0.3);
+    background: rgba(255, 255, 255, 0.12);
+}
+
+.ranking-item.current-user {
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.15), rgba(50, 205, 50, 0.1));
+    border-color: rgba(255, 215, 0, 0.5);
+}
+
+/* Rank Display */
+.rank-display {
+    flex-shrink: 0;
+}
+
+.rank-badge {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    min-width: 60px;
+    text-align: center;
+}
+
+.rank-badge.gold {
+    background: linear-gradient(45deg, #FFD700, #FFA500);
+    color: #000;
+}
+
+.rank-badge.silver {
+    background: linear-gradient(45deg, #C0C0C0, #A0A0A0);
+    color: #000;
+}
+
+.rank-badge.bronze {
+    background: linear-gradient(45deg, #CD7F32, #A65C00);
+    color: #000;
+}
+
+/* Student Info */
+.student-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex: 1;
+}
+
+.student-avatar {
+    width: 50px;
+    height: 50px;
+    background: linear-gradient(45deg, #6a11cb, #2575fc);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 1.2rem;
+    color: white;
+    flex-shrink: 0;
+}
+
+.student-details {
+    flex: 1;
+}
+
+.student-name {
+    color: white;
+    font-weight: 600;
+    font-size: 1.1rem;
+    margin-bottom: 0.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.you-badge {
+    background: var(--primary-green);
+    color: #000;
+    padding: 0.2rem 0.6rem;
+    border-radius: 10px;
+    font-size: 0.7rem;
+    font-weight: bold;
+}
+
+.student-meta {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
+.grade-badge {
+    background: rgba(106, 17, 203, 0.3);
+    color: #b0b8c9;
+    padding: 0.2rem 0.6rem;
     border-radius: 8px;
-    border: 1px solid rgba(50, 205, 50, 0.3);
+    font-size: 0.8rem;
+}
+
+.submissions {
+    color: #b0b8c9;
+    font-size: 0.8rem;
+}
+
+/* Progress */
+.progress-section {
+    flex: 0 0 200px;
+}
+
+.progress-container {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    height: 30px;
+    overflow: hidden;
+    position: relative;
+}
+
+.progress-bar {
+    height: 100%;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: width 1s ease-in-out;
+    position: relative;
+}
+
+/* Progress bar background variants (use data-level to set class via JS) */
+.progress-bar.cosmic { background: linear-gradient(45deg, #FFD700, #32CD32); }
+.progress-bar.stellar { background: linear-gradient(45deg, #4FC3F7, #29B6F6); }
+.progress-bar.rising { background: linear-gradient(45deg, #FFB74D, #FF9800); }
+.progress-bar.explorer { background: linear-gradient(45deg, #FF5252, #F44336); }
+
+.progress-text {
+    color: #000;
+    font-weight: bold;
+    font-size: 0.8rem;
+    text-shadow: 0 0 2px rgba(255, 255, 255, 0.5);
+}
+
+/* Performance Badges */
+.performance-badge {
+    flex-shrink: 0;
+}
+
+.badge {
+    padding: 0.4rem 0.8rem;
+    border-radius: 15px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.badge.cosmic {
+    background: linear-gradient(45deg, #FFD700, #32CD32);
+    color: #000;
+}
+
+.badge.stellar {
+    background: linear-gradient(45deg, #4FC3F7, #29B6F6);
+    color: #000;
+}
+
+.badge.rising {
+    background: linear-gradient(45deg, #FFB74D, #FF9800);
+    color: #000;
+}
+
+.badge.explorer {
+    background: linear-gradient(45deg, #FF5252, #F44336);
+    color: #fff;
+}
+
+/* Empty State */
+.empty-leaderboard {
+    text-align: center;
+    padding: 4rem 2rem;
+    color: #b0b8c9;
+}
+
+.empty-icon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+.empty-leaderboard h3 {
+    color: var(--primary-yellow);
+    margin-bottom: 1rem;
+}
+
+.empty-leaderboard p {
+    margin-bottom: 2rem;
+    font-size: 1.1rem;
+}
+
+/* Buttons */
+.btn-teacher-action, .btn-student-action, .btn-primary {
+    background: linear-gradient(45deg, #FFD700, #32CD32);
+    color: #000;
+    padding: 1rem 2rem;
+    border-radius: 50px;
+    text-decoration: none;
+    font-weight: 600;
+    border: none;
+    transition: all 0.3s ease;
+    display: inline-block;
+}
+
+.btn-teacher-action:hover, .btn-student-action:hover, .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(255, 215, 0, 0.4);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .cosmic-leaderboard {
+        padding: 1rem;
+    }
+    
+    .cosmic-title {
+        font-size: 2.5rem;
+    }
+    
+    .leaderboard-stats {
+        grid-template-columns: 1fr;
+    }
+    
+    .highlight-content {
+        flex-direction: column;
+        text-align: center;
+        gap: 1rem;
+    }
+    
+    .podium {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .podium-item {
+        width: 100%;
+        max-width: 250px;
+    }
+    
+    .podium-item.gold {
+        margin-bottom: 0;
+        order: 1;
+    }
+    
+    .section-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .ranking-item {
+        flex-direction: column;
+        text-align: center;
+        gap: 1rem;
+    }
+    
+    .student-info {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .student-meta {
+        justify-content: center;
+    }
+    
+    .progress-section {
+        flex: 0 0 auto;
+        width: 100%;
+    }
 }
 </style>
 
 <script>
 function filterByGrade(grade, btn) {
-    const rows = document.querySelectorAll('.student-row');
-    rows.forEach(row => {
-        if (row.getAttribute('data-grade') === grade) {
-            row.style.display = '';
+    const items = document.querySelectorAll('.ranking-item');
+    items.forEach(item => {
+        if (String(item.getAttribute('data-grade')) === String(grade)) {
+            item.style.display = 'flex';
         } else {
-            row.style.display = 'none';
+            item.style.display = 'none';
         }
     });
     
     // Update active button state
-    document.querySelectorAll('.btn-group .btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
     if (btn) btn.classList.add('active');
 }
 
 function showAllGrades(btn) {
-    const rows = document.querySelectorAll('.student-row');
-    rows.forEach(row => row.style.display = '');
+    const items = document.querySelectorAll('.ranking-item');
+    items.forEach(item => item.style.display = 'flex');
     
     // Update active button state
-    document.querySelectorAll('.btn-group .btn').forEach(b => b.classList.remove('active'));
-    if (btn) {
-        btn.classList.add('active');
-    } else {
-        const first = document.querySelector('.btn-group .btn:first-child');
-        if (first) first.classList.add('active');
-    }
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
 }
 
-// Auto-refresh leaderboard every 30 seconds if on the page
-setTimeout(() => {
-    if (window.location.pathname === '/leaderboard') {
-        window.location.reload();
-    }
-}, 30000);
-
-// Set progress bar widths from data-score attributes to avoid inline template CSS
-document.addEventListener('DOMContentLoaded', () => {
-    document.querySelectorAll('.progress-bar[data-score]').forEach(el => {
-        const score = el.getAttribute('data-score');
-        if (score !== null) {
-            // clamp and set width
-            const n = Math.max(0, Math.min(100, Number(score) || 0));
-            el.style.width = n + '%';
-            el.setAttribute('aria-valuenow', String(n));
-        }
+// Animate and set progress bars on load using data attributes
+document.addEventListener('DOMContentLoaded', function() {
+    const progressBars = document.querySelectorAll('.progress-bar');
+    progressBars.forEach(bar => {
+        const score = Number(bar.getAttribute('data-score')) || 0;
+        const level = bar.getAttribute('data-level');
+        // apply background class for level
+        if (level) bar.classList.add(level);
+        // set aria value
+        bar.setAttribute('aria-valuenow', String(score));
+        // animate from 0 to score
+        bar.style.width = '0%';
+        setTimeout(() => {
+            bar.style.width = Math.max(0, Math.min(100, score)) + '%';
+        }, 150);
     });
 });
 </script>
