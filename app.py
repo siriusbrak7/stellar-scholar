@@ -498,5 +498,24 @@ def leaderboard():
     
     return render_template('leaderboard.html', leaderboard=leaderboard_data)
 
+# Add keep-alive thread to prevent Render spin-down - ADD THIS SECTION
+if 'RENDER' in os.environ:
+    def keep_alive():
+        """Background thread to prevent auto-spin down"""
+        import time
+        while True:
+            time.sleep(300)  # Run every 5 minutes
+            try:
+                # Simple print to keep service active
+                print(f"🔄 Keep-alive ping at {datetime.now().strftime('%H:%M:%S')}")
+            except:
+                pass
+    
+    # Start the thread
+    import threading
+    keep_alive_thread = threading.Thread(target=keep_alive, daemon=True)
+    keep_alive_thread.start()
+    print("✅ Keep-alive thread started for Render deployment")
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=False)
