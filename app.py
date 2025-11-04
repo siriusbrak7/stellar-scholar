@@ -5,123 +5,31 @@ import os
 from datetime import datetime
 from config import Config
 from werkzeug.security import generate_password_hash, check_password_hash
-import time
-import threading
+from supabase import create_client, Client
+import logging
 
 app = Flask(__name__)
 app.config.from_object(Config)
 
-# FIXED: Use persistent data directory that survives deployments
-def get_data_dir():
-    """Get persistent data directory path"""
-    # On Render, use /tmp/data for persistence between deployments
-    if 'RENDER' in os.environ:
-        data_dir = '/tmp/data'
-        # Ensure the directory exists and has proper permissions
-        os.makedirs(data_dir, exist_ok=True)
-        print(f"📁 Using Render persistent data directory: {data_dir}")
-    else:
-        # Local development
-        data_dir = 'data'
-        os.makedirs(data_dir, exist_ok=True)
-    
-    return data_dir
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-# Helper functions for JSON file operations
-def load_json(filename):
-    """Load data from JSON file"""
-    filepath = os.path.join(get_data_dir(), filename)
-    if os.path.exists(filepath):
-        try:
-            with open(filepath, 'r') as f:
-                return json.load(f)
-        except (json.JSONDecodeError, KeyError):
-            return {}
-    return {}
-
-def save_json(filename, data):
-    """Save data to JSON file"""
-    filepath = os.path.join(get_data_dir(), filename)
-    with open(filepath, 'w') as f:
-        json.dump(data, f, indent=4)
-
-# Initialize data files if they don't exist with demo data
-def initialize_data():
-    """Initialize data files with demo content if empty"""
-    data_dir = get_data_dir()
-    
-    for filename in ['users.json', 'prompts.json', 'submissions.json']:
-        filepath = os.path.join(data_dir, filename)
-        if not os.path.exists(filepath) or os.path.getsize(filepath) == 0:
-            save_json(filename, {})
-            print(f"📄 Created empty {filename}")
-    
-    # Add demo accounts if no users exist
-    users = load_json('users.json')
-    if not users:
-        print("🆕 Initializing demo accounts...")
+# Initialize Supabase client
+def get_supabase():
+    """Initialize and return Supabase client"""
+    try:
+        url = os.environ.get('SUPABASE_URL')
+        key = os.environ.get('SUPABASE_KEY')
         
-        # Demo teacher account
-        demo_teacher = {
-            'username': 'teacher',
-            'password_hash': generate_password_hash('teach123'),
-            'role': 'teacher',
-            'created_at': datetime.now().isoformat()
-        }
-        users['teacher'] = demo_teacher
-        
-        # Demo student accounts
-        demo_students = [
-            {'username': 'alice', 'password': 'pass123', 'grade': '8'},
-            {'username': 'bob', 'password': 'pass123', 'grade': '9'},
-            {'username': 'charlie', 'password': 'pass123', 'grade': '10'}
-        ]
-        
-        for student in demo_students:
-            users[student['username']] = {
-                'username': student['username'],
-                'password_hash': generate_password_hash(student['password']),
-                'role': 'student',
-                'grade': student['grade'],
-                'created_at': datetime.now().isoformat()
-            }
-        
-        save_json('users.json', users)
-        print("✅ Demo accounts created:")
-        print("   Teacher: username='teacher', password='teach123'")
-        print("   Students: username='alice/bob/charlie', password='pass123'")
-    
-    # Add demo prompts if none exist
-    prompts = load_json('prompts.json')
-    if not prompts:
-        print("📝 Creating demo prompts...")
-        demo_prompts = [
-            {
-                'id': 'demo_prompt_1',
-                'title': 'The Future of Space Exploration',
-                'description': 'Write about what you think space exploration will look like in 2050. Consider technological advancements, international cooperation, and potential discoveries.',
-                'grade_level': '8',
-                'created_by': 'teacher',
-                'created_at': datetime.now().isoformat()
-            },
-            {
-                'id': 'demo_prompt_2', 
-                'title': 'Climate Change Solutions',
-                'description': 'Propose three innovative solutions to address climate change. Explain how each solution would work and its potential impact.',
-                'grade_level': '9',
-                'created_by': 'teacher',
-                'created_at': datetime.now().isoformat()
-            }
-        ]
-        
-        for prompt in demo_prompts:
-            prompts[prompt['id']] = prompt
-        
-        save_json('prompts.json', prompts)
-        print("✅ Demo prompts created")
-        
-# Initialize data on app start
-initialize_data()
+        if not url or not key:
+            logger.error("Missing Supabase environment variables")
+            return None
+            
+        return create_client(url, key)
+    except Exception as e:
+        logger.error(f"Error initializing Supabase: {e}")
+        return None
 
 # Login required decorator
 def login_required(f):
@@ -138,29 +46,26 @@ def teacher_required(f):
     def decorated_function(*args, **kwargs):
         if 'user_id' not in session:
             return redirect(url_for('login'))
-        users = load_json('users.json')
-        user = users.get(session['user_id'])
-        if not user or user['role'] != 'teacher':
-            flash('Access denied. Teachers only.', 'danger')
+        
+        supabase = get_supabase()
+        if not supabase:
+            flash('Database connection error.', 'danger')
             return redirect(url_for('index'))
-        return f(*args, **kwargs)
-    return decorated_function
-
-def keep_alive():
-    """Simple background thread to prevent spin-down"""
-    while True:
-        time.sleep(300)  # Ping every 5 minutes
+            
         try:
-            # This keeps the service active
-            print(f"Keep-alive ping at {datetime.now().isoformat()}")
-        except:
-            pass
-
-# Start keep-alive thread when app starts
-if 'RENDER' in os.environ:
-    keep_alive_thread = threading.Thread(target=keep_alive, daemon=True)
-    keep_alive_thread.start()
-    print("Keep-alive thread started for Render deployment")
+            # Get user from Supabase
+            response = supabase.table('users').select('*').eq('username', session['user_id']).execute()
+            user = response.data[0] if response.data else None
+            
+            if not user or user['role'] != 'teacher':
+                flash('Access denied. Teachers only.', 'danger')
+                return redirect(url_for('index'))
+            return f(*args, **kwargs)
+        except Exception as e:
+            logger.error(f"Error checking teacher role: {e}")
+            flash('Error verifying permissions.', 'danger')
+            return redirect(url_for('index'))
+    return decorated_function
 
 @app.route('/')
 def index():
@@ -169,7 +74,10 @@ def index():
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
-        users = load_json('users.json')
+        supabase = get_supabase()
+        if not supabase:
+            flash('Database connection error. Please try again.', 'danger')
+            return render_template('register.html')
         
         username = request.form.get('username', '').strip()
         password = request.form.get('password', '').strip()
@@ -181,52 +89,72 @@ def register():
             flash('Username and password are required.', 'danger')
             return render_template('register.html')
         
-        if username in users:
-            flash('Username already exists. Please choose another.', 'danger')
-            return render_template('register.html')
-        
         if role == 'student' and not grade:
             flash('Please select your grade level.', 'danger')
             return render_template('register.html')
         
-        # Create new user
-        user_data = {
-            'username': username,
-            'password_hash': generate_password_hash(password),
-            'role': role,
-            'grade': grade,
-            'created_at': datetime.now().isoformat()
-        }
-        
-        users[username] = user_data
-        save_json('users.json', users)
-        
-        flash('Registration successful! Please log in.', 'success')
-        return redirect(url_for('login'))
+        try:
+            # Check if username already exists
+            response = supabase.table('users').select('username').eq('username', username).execute()
+            if response.data:
+                flash('Username already exists. Please choose another.', 'danger')
+                return render_template('register.html')
+            
+            # Create new user
+            user_data = {
+                'username': username,
+                'password_hash': generate_password_hash(password),
+                'role': role,
+                'grade': grade,
+                'created_at': datetime.now().isoformat()
+            }
+            
+            # Insert into Supabase
+            result = supabase.table('users').insert(user_data).execute()
+            
+            if result.data:
+                flash('Registration successful! Please log in.', 'success')
+                return redirect(url_for('login'))
+            else:
+                flash('Registration failed. Please try again.', 'danger')
+                
+        except Exception as e:
+            logger.error(f"Registration error: {e}")
+            flash('Registration error. Please try again.', 'danger')
     
     return render_template('register.html')
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        users = load_json('users.json')
+        supabase = get_supabase()
+        if not supabase:
+            flash('Database connection error. Please try again.', 'danger')
+            return render_template('login.html')
         
         username = request.form.get('username', '').strip()
         password = request.form.get('password', '').strip()
         
-        user = users.get(username)
-        
-        if user and check_password_hash(user['password_hash'], password):
-            session['user_id'] = username
-            session['role'] = user['role']
-            flash(f'Welcome back, {username}!', 'success')
+        try:
+            # Get user from Supabase
+            response = supabase.table('users').select('*').eq('username', username).execute()
+            user = response.data[0] if response.data else None
             
-            if user['role'] == 'teacher':
-                return redirect(url_for('teacher_dashboard'))
+            if user and check_password_hash(user['password_hash'], password):
+                session['user_id'] = username
+                session['role'] = user['role']
+                flash(f'Welcome back, {username}!', 'success')
+                
+                if user['role'] == 'teacher':
+                    return redirect(url_for('teacher_dashboard'))
+                else:
+                    return redirect(url_for('student_dashboard'))
             else:
-                return redirect(url_for('student_dashboard'))
-        else:
-            flash('Invalid username or password.', 'danger')
+                flash('Invalid username or password.', 'danger')
+                
+        except Exception as e:
+            logger.error(f"Login error: {e}")
+            flash('Login error. Please try again.', 'danger')
     
     return render_template('login.html')
 
@@ -239,60 +167,82 @@ def logout():
 @app.route('/teacher/dashboard')
 @teacher_required
 def teacher_dashboard():
-    prompts = load_json('prompts.json')
-    submissions = load_json('submissions.json')
-    users = load_json('users.json')
+    supabase = get_supabase()
+    if not supabase:
+        flash('Database connection error.', 'danger')
+        return redirect(url_for('index'))
     
-    # Count submissions per prompt
-    prompt_stats = {}
-    for prompt_id in prompts:
-        prompt_stats[prompt_id] = {
-            'total': 0,
-            'graded': 0
-        }
-        for sub_id, sub in submissions.items():
-            if sub['prompt_id'] == prompt_id:
-                prompt_stats[prompt_id]['total'] += 1
-                if sub.get('grade') is not None:
-                    prompt_stats[prompt_id]['graded'] += 1
-    
-    # Get top 5 students for leaderboard preview
-    top_students = []
-    student_scores = {}
-    
-    for sub_id, sub in submissions.items():
-        if sub.get('grade') is not None:
-            student_id = sub['student_id']
-            if student_id not in student_scores:
-                student_scores[student_id] = {
-                    'grades': [],
-                    'username': student_id,
-                    'grade_level': users.get(student_id, {}).get('grade', 'N/A')
-                }
-            student_scores[student_id]['grades'].append(sub['grade'])
-    
-    for student_id, data in student_scores.items():
-        if data['grades']:
-            avg_score = sum(data['grades']) / len(data['grades'])
-            top_students.append({
-                'username': data['username'],
-                'grade_level': data['grade_level'],
-                'avg_score': round(avg_score, 2)
-            })
-    
-    top_students.sort(key=lambda x: x['avg_score'], reverse=True)
-    top_students = top_students[:5]  # Top 5 only
-    
-    return render_template('teacher_dashboard.html', 
-                         prompts=prompts, 
-                         prompt_stats=prompt_stats,
-                         top_students=top_students)
+    try:
+        # Get all prompts
+        prompts_response = supabase.table('prompts').select('*').execute()
+        prompts = {prompt['id']: prompt for prompt in prompts_response.data} if prompts_response.data else {}
+        
+        # Get all submissions
+        submissions_response = supabase.table('submissions').select('*').execute()
+        submissions = submissions_response.data if submissions_response.data else []
+        
+        # Count submissions per prompt
+        prompt_stats = {}
+        for prompt_id in prompts:
+            prompt_stats[prompt_id] = {
+                'total': 0,
+                'graded': 0
+            }
+            for sub in submissions:
+                if sub['prompt_id'] == prompt_id:
+                    prompt_stats[prompt_id]['total'] += 1
+                    if sub.get('grade') is not None:
+                        prompt_stats[prompt_id]['graded'] += 1
+        
+        # Get top students for leaderboard preview
+        top_students = []
+        student_scores = {}
+        
+        for sub in submissions:
+            if sub.get('grade') is not None:
+                student_id = sub['student_id']
+                if student_id not in student_scores:
+                    # Get student info
+                    user_response = supabase.table('users').select('grade').eq('username', student_id).execute()
+                    grade_level = user_response.data[0]['grade'] if user_response.data else 'N/A'
+                    
+                    student_scores[student_id] = {
+                        'grades': [],
+                        'username': student_id,
+                        'grade_level': grade_level
+                    }
+                student_scores[student_id]['grades'].append(sub['grade'])
+        
+        for student_id, data in student_scores.items():
+            if data['grades']:
+                avg_score = sum(data['grades']) / len(data['grades'])
+                top_students.append({
+                    'username': data['username'],
+                    'grade_level': data['grade_level'],
+                    'avg_score': round(avg_score, 2)
+                })
+        
+        top_students.sort(key=lambda x: x['avg_score'], reverse=True)
+        top_students = top_students[:5]  # Top 5 only
+        
+        return render_template('teacher_dashboard.html', 
+                             prompts=prompts, 
+                             prompt_stats=prompt_stats,
+                             top_students=top_students)
+                             
+    except Exception as e:
+        logger.error(f"Teacher dashboard error: {e}")
+        flash('Error loading dashboard.', 'danger')
+        return redirect(url_for('index'))
 
 @app.route('/teacher/create_prompt', methods=['GET', 'POST'])
 @teacher_required
 def create_prompt():
     if request.method == 'POST':
-        prompts = load_json('prompts.json')
+        supabase = get_supabase()
+        if not supabase:
+            flash('Database connection error.', 'danger')
+            return render_template('create_prompt.html')
         
         title = request.form.get('title', '').strip()
         description = request.form.get('description', '').strip()
@@ -302,185 +252,259 @@ def create_prompt():
             flash('All fields are required.', 'danger')
             return render_template('create_prompt.html')
         
-        prompt_id = f"prompt_{datetime.now().strftime('%Y%m%d%H%M%S')}"
-        
-        prompts[prompt_id] = {
-            'id': prompt_id,
-            'title': title,
-            'description': description,
-            'grade_level': grade_level,
-            'created_by': session['user_id'],
-            'created_at': datetime.now().isoformat()
-        }
-        
-        save_json('prompts.json', prompts)
-        flash('Prompt created successfully!', 'success')
-        return redirect(url_for('teacher_dashboard'))
+        try:
+            prompt_id = f"prompt_{datetime.now().strftime('%Y%m%d%H%M%S')}"
+            
+            prompt_data = {
+                'id': prompt_id,
+                'title': title,
+                'description': description,
+                'grade_level': grade_level,
+                'created_by': session['user_id'],
+                'created_at': datetime.now().isoformat()
+            }
+            
+            # Insert into Supabase
+            result = supabase.table('prompts').insert(prompt_data).execute()
+            
+            if result.data:
+                flash('Prompt created successfully!', 'success')
+                return redirect(url_for('teacher_dashboard'))
+            else:
+                flash('Failed to create prompt.', 'danger')
+                
+        except Exception as e:
+            logger.error(f"Create prompt error: {e}")
+            flash('Error creating prompt.', 'danger')
     
     return render_template('create_prompt.html')
 
 @app.route('/teacher/grade/<prompt_id>', methods=['GET', 'POST'])
 @teacher_required
 def grade_submissions(prompt_id):
-    prompts = load_json('prompts.json')
-    submissions = load_json('submissions.json')
-    users = load_json('users.json')
-    
-    prompt = prompts.get(prompt_id)
-    if not prompt:
-        flash('Prompt not found.', 'danger')
+    supabase = get_supabase()
+    if not supabase:
+        flash('Database connection error.', 'danger')
         return redirect(url_for('teacher_dashboard'))
     
-    if request.method == 'POST':
-        submission_id = request.form.get('submission_id')
-        grade = request.form.get('grade')
-        feedback = request.form.get('feedback', '').strip()
+    try:
+        # Get prompt
+        prompt_response = supabase.table('prompts').select('*').eq('id', prompt_id).execute()
+        prompt = prompt_response.data[0] if prompt_response.data else None
         
-        if submission_id in submissions:
-            try:
-                grade_value = float(grade)
-                if 0 <= grade_value <= 100:
-                    submissions[submission_id]['grade'] = grade_value
-                    submissions[submission_id]['feedback'] = feedback
-                    submissions[submission_id]['graded_at'] = datetime.now().isoformat()
-                    save_json('submissions.json', submissions)
-                    flash('Submission graded successfully!', 'success')
-                else:
-                    flash('Grade must be between 0 and 100.', 'danger')
-            except ValueError:
-                flash('Invalid grade value.', 'danger')
+        if not prompt:
+            flash('Prompt not found.', 'danger')
+            return redirect(url_for('teacher_dashboard'))
         
-        return redirect(url_for('grade_submissions', prompt_id=prompt_id))
-    
-    # Get submissions for this prompt
-    prompt_submissions = []
-    for sub_id, sub in submissions.items():
-        if sub['prompt_id'] == prompt_id:
-            student_info = users.get(sub['student_id'], {})
+        if request.method == 'POST':
+            submission_id = request.form.get('submission_id')
+            grade = request.form.get('grade')
+            feedback = request.form.get('feedback', '').strip()
+            
+            if submission_id:
+                try:
+                    grade_value = float(grade) if grade else None
+                    if grade_value is not None and (grade_value < 0 or grade_value > 100):
+                        flash('Grade must be between 0 and 100.', 'danger')
+                    else:
+                        # Update submission in Supabase
+                        update_data = {}
+                        if grade_value is not None:
+                            update_data['grade'] = grade_value
+                        if feedback:
+                            update_data['feedback'] = feedback
+                        update_data['graded_at'] = datetime.now().isoformat()
+                        
+                        result = supabase.table('submissions').update(update_data).eq('id', submission_id).execute()
+                        
+                        if result.data:
+                            flash('Submission graded successfully!', 'success')
+                        else:
+                            flash('Failed to grade submission.', 'danger')
+                except ValueError:
+                    flash('Invalid grade value.', 'danger')
+            
+            return redirect(url_for('grade_submissions', prompt_id=prompt_id))
+        
+        # Get submissions for this prompt with student info
+        submissions_response = supabase.table('submissions').select('*').eq('prompt_id', prompt_id).execute()
+        prompt_submissions = []
+        
+        for sub in submissions_response.data:
+            # Get student info
+            user_response = supabase.table('users').select('grade').eq('username', sub['student_id']).execute()
+            student_grade = user_response.data[0]['grade'] if user_response.data else 'N/A'
+            
             prompt_submissions.append({
-                'id': sub_id,
+                'id': sub['id'],
                 'student_username': sub['student_id'],
-                'student_grade': student_info.get('grade', 'N/A'),
+                'student_grade': student_grade,
                 'response': sub['response'],
                 'grade': sub.get('grade'),
                 'feedback': sub.get('feedback', ''),
                 'submitted_at': sub['submitted_at']
             })
-    
-    # Sort by submission date
-    prompt_submissions.sort(key=lambda x: x['submitted_at'], reverse=True)
-    
-    if not prompt_submissions:
-        flash('No submissions found for this prompt yet.', 'info')
-    
-    return render_template('grade_submissions.html', 
-                         prompt=prompt, 
-                         submissions=prompt_submissions)
+        
+        # Sort by submission date
+        prompt_submissions.sort(key=lambda x: x['submitted_at'], reverse=True)
+        
+        if not prompt_submissions:
+            flash('No submissions found for this prompt yet.', 'info')
+        
+        return render_template('grade_submissions.html', 
+                             prompt=prompt, 
+                             submissions=prompt_submissions)
+                             
+    except Exception as e:
+        logger.error(f"Grade submissions error: {e}")
+        flash('Error loading submissions.', 'danger')
+        return redirect(url_for('teacher_dashboard'))
 
 @app.route('/student/dashboard')
 @login_required
 def student_dashboard():
-    users = load_json('users.json')
-    user = users.get(session['user_id'])
+    supabase = get_supabase()
+    if not supabase:
+        flash('Database connection error.', 'danger')
+        return redirect(url_for('index'))
     
-    if user['role'] != 'student':
-        return redirect(url_for('teacher_dashboard'))
-    
-    prompts = load_json('prompts.json')
-    submissions = load_json('submissions.json')
-    
-    # Get prompts for student's grade level
-    available_prompts = []
-    for prompt_id, prompt in prompts.items():
-        if prompt['grade_level'] == user['grade']:
+    try:
+        # Get current user
+        user_response = supabase.table('users').select('*').eq('username', session['user_id']).execute()
+        user = user_response.data[0] if user_response.data else None
+        
+        if not user or user['role'] != 'student':
+            return redirect(url_for('teacher_dashboard'))
+        
+        # Get prompts for student's grade level
+        prompts_response = supabase.table('prompts').select('*').eq('grade_level', user['grade']).execute()
+        prompts_data = prompts_response.data if prompts_response.data else []
+        
+        # Get student's submissions
+        submissions_response = supabase.table('submissions').select('*').eq('student_id', session['user_id']).execute()
+        submissions_data = submissions_response.data if submissions_response.data else []
+        
+        available_prompts = []
+        for prompt in prompts_data:
             # Check if student has already submitted
             has_submitted = False
             submission_data = None
-            for sub_id, sub in submissions.items():
-                if sub['prompt_id'] == prompt_id and sub['student_id'] == session['user_id']:
+            for sub in submissions_data:
+                if sub['prompt_id'] == prompt['id']:
                     has_submitted = True
                     submission_data = sub
                     break
             
             available_prompts.append({
-                'id': prompt_id,
+                'id': prompt['id'],
                 'title': prompt['title'],
                 'description': prompt['description'],
                 'has_submitted': has_submitted,
                 'submission': submission_data
             })
-    
-    return render_template('student_dashboard.html', 
-                         prompts=available_prompts,
-                         user=user)
+        
+        return render_template('student_dashboard.html', 
+                             prompts=available_prompts,
+                             user=user)
+                             
+    except Exception as e:
+        logger.error(f"Student dashboard error: {e}")
+        flash('Error loading dashboard.', 'danger')
+        return redirect(url_for('index'))
 
 @app.route('/student/submit/<prompt_id>', methods=['POST'])
 @login_required
 def submit_response(prompt_id):
-    users = load_json('users.json')
-    user = users.get(session['user_id'])
-    
-    if user['role'] != 'student':
-        flash('Only students can submit responses.', 'danger')
-        return redirect(url_for('index'))
-    
-    prompts = load_json('prompts.json')
-    submissions = load_json('submissions.json')
-    
-    prompt = prompts.get(prompt_id)
-    if not prompt:
-        flash('Prompt not found.', 'danger')
+    supabase = get_supabase()
+    if not supabase:
+        flash('Database connection error.', 'danger')
         return redirect(url_for('student_dashboard'))
     
-    response = request.form.get('response', '').strip()
-    
-    if not response:
-        flash('Response cannot be empty.', 'danger')
-        return redirect(url_for('student_dashboard'))
-    
-    # Check if already submitted
-    for sub_id, sub in submissions.items():
-        if sub['prompt_id'] == prompt_id and sub['student_id'] == session['user_id']:
+    try:
+        # Get current user
+        user_response = supabase.table('users').select('*').eq('username', session['user_id']).execute()
+        user = user_response.data[0] if user_response.data else None
+        
+        if not user or user['role'] != 'student':
+            flash('Only students can submit responses.', 'danger')
+            return redirect(url_for('index'))
+        
+        # Get prompt
+        prompt_response = supabase.table('prompts').select('*').eq('id', prompt_id).execute()
+        prompt = prompt_response.data[0] if prompt_response.data else None
+        
+        if not prompt:
+            flash('Prompt not found.', 'danger')
+            return redirect(url_for('student_dashboard'))
+        
+        response = request.form.get('response', '').strip()
+        
+        if not response:
+            flash('Response cannot be empty.', 'danger')
+            return redirect(url_for('student_dashboard'))
+        
+        # Check if already submitted
+        existing_response = supabase.table('submissions').select('*').eq('prompt_id', prompt_id).eq('student_id', session['user_id']).execute()
+        if existing_response.data:
             flash('You have already submitted a response to this prompt.', 'warning')
             return redirect(url_for('student_dashboard'))
-    
-    submission_id = f"sub_{datetime.now().strftime('%Y%m%d%H%M%S')}_{session['user_id']}"
-    
-    submissions[submission_id] = {
-        'id': submission_id,
-        'prompt_id': prompt_id,
-        'student_id': session['user_id'],
-        'response': response,
-        'submitted_at': datetime.now().isoformat(),
-        'grade': None,
-        'feedback': ''
-    }
-    
-    save_json('submissions.json', submissions)
-    flash('Response submitted successfully!', 'success')
-    return redirect(url_for('student_dashboard'))
+        
+        submission_id = f"sub_{datetime.now().strftime('%Y%m%d%H%M%S')}_{session['user_id']}"
+        
+        submission_data = {
+            'id': submission_id,
+            'prompt_id': prompt_id,
+            'student_id': session['user_id'],
+            'response': response,
+            'submitted_at': datetime.now().isoformat(),
+            'grade': None,
+            'feedback': ''
+        }
+        
+        # Insert into Supabase
+        result = supabase.table('submissions').insert(submission_data).execute()
+        
+        if result.data:
+            flash('Response submitted successfully!', 'success')
+        else:
+            flash('Failed to submit response.', 'danger')
+            
+        return redirect(url_for('student_dashboard'))
+        
+    except Exception as e:
+        logger.error(f"Submit response error: {e}")
+        flash('Error submitting response.', 'danger')
+        return redirect(url_for('student_dashboard'))
 
 @app.route('/student/history')
 @login_required
 def student_history():
-    users = load_json('users.json')
-    user = users.get(session['user_id'])
+    supabase = get_supabase()
+    if not supabase:
+        flash('Database connection error.', 'danger')
+        return redirect(url_for('index'))
     
-    if user['role'] != 'student':
-        flash('Only students can view submission history.', 'warning')
-        return redirect(url_for('teacher_dashboard'))
-    
-    prompts = load_json('prompts.json')
-    submissions = load_json('submissions.json')
-    
-    # Get all submissions for this student
-    student_submissions = []
-    for sub_id, sub in submissions.items():
-        if sub['student_id'] == session['user_id']:
-            prompt = prompts.get(sub['prompt_id'])
+    try:
+        # Get current user
+        user_response = supabase.table('users').select('*').eq('username', session['user_id']).execute()
+        user = user_response.data[0] if user_response.data else None
+        
+        if not user or user['role'] != 'student':
+            flash('Only students can view submission history.', 'warning')
+            return redirect(url_for('teacher_dashboard'))
+        
+        # Get all submissions for this student with prompt info
+        submissions_response = supabase.table('submissions').select('*').eq('student_id', session['user_id']).execute()
+        student_submissions = []
+        
+        for sub in submissions_response.data:
+            # Get prompt info
+            prompt_response = supabase.table('prompts').select('*').eq('id', sub['prompt_id']).execute()
+            prompt = prompt_response.data[0] if prompt_response.data else None
+            
             if prompt:
                 student_submissions.append({
-                    'id': sub_id,
+                    'id': sub['id'],
                     'prompt_title': prompt['title'],
                     'prompt_description': prompt['description'],
                     'response': sub['response'],
@@ -489,73 +513,93 @@ def student_history():
                     'submitted_at': sub['submitted_at'],
                     'graded_at': sub.get('graded_at')
                 })
-    
-    # Sort by submission date (most recent first)
-    student_submissions.sort(key=lambda x: x['submitted_at'], reverse=True)
-    
-    # Calculate statistics
-    total_submissions = len(student_submissions)
-    graded_count = sum(1 for s in student_submissions if s['grade'] is not None)
-    
-    avg_grade = None
-    if graded_count > 0:
-        total_grade = sum(s['grade'] for s in student_submissions if s['grade'] is not None)
-        avg_grade = round(total_grade / graded_count, 2)
-    
-    stats = {
-        'total': total_submissions,
-        'graded': graded_count,
-        'pending': total_submissions - graded_count,
-        'average': avg_grade
-    }
-    
-    return render_template('student_history.html', 
-                         submissions=student_submissions, 
-                         stats=stats,
-                         user=user)
+        
+        # Sort by submission date (most recent first)
+        student_submissions.sort(key=lambda x: x['submitted_at'], reverse=True)
+        
+        # Calculate statistics
+        total_submissions = len(student_submissions)
+        graded_count = sum(1 for s in student_submissions if s['grade'] is not None)
+        
+        avg_grade = None
+        if graded_count > 0:
+            total_grade = sum(s['grade'] for s in student_submissions if s['grade'] is not None)
+            avg_grade = round(total_grade / graded_count, 2)
+        
+        stats = {
+            'total': total_submissions,
+            'graded': graded_count,
+            'pending': total_submissions - graded_count,
+            'average': avg_grade
+        }
+        
+        return render_template('student_history.html', 
+                             submissions=student_submissions, 
+                             stats=stats,
+                             user=user)
+                             
+    except Exception as e:
+        logger.error(f"Student history error: {e}")
+        flash('Error loading submission history.', 'danger')
+        return redirect(url_for('student_dashboard'))
 
 @app.route('/leaderboard')
 @login_required
 def leaderboard():
-    users = load_json('users.json')
-    submissions = load_json('submissions.json')
+    supabase = get_supabase()
+    if not supabase:
+        flash('Database connection error.', 'danger')
+        return redirect(url_for('index'))
     
-    # Calculate average scores for each student
-    student_scores = {}
-    
-    for sub_id, sub in submissions.items():
-        if sub.get('grade') is not None:
+    try:
+        # Get all submissions with grades
+        submissions_response = supabase.table('submissions').select('*').not_.is_('grade', 'null').execute()
+        graded_submissions = submissions_response.data if submissions_response.data else []
+        
+        # Get all users
+        users_response = supabase.table('users').select('*').execute()
+        users_data = {user['username']: user for user in users_response.data} if users_response.data else {}
+        
+        # Calculate average scores for each student
+        student_scores = {}
+        
+        for sub in graded_submissions:
             student_id = sub['student_id']
             if student_id not in student_scores:
                 student_scores[student_id] = {
                     'grades': [],
                     'username': student_id,
-                    'grade_level': users.get(student_id, {}).get('grade', 'N/A')
+                    'grade_level': users_data.get(student_id, {}).get('grade', 'N/A')
                 }
             student_scores[student_id]['grades'].append(sub['grade'])
-    
-    # Calculate averages
-    leaderboard_data = []
-    for student_id, data in student_scores.items():
-        if data['grades']:
-            avg_score = sum(data['grades']) / len(data['grades'])
-            leaderboard_data.append({
-                'username': data['username'],
-                'grade_level': data['grade_level'],
-                'avg_score': round(avg_score, 2),
-                'num_submissions': len(data['grades'])
-            })
-    
-    # Sort by average score
-    leaderboard_data.sort(key=lambda x: x['avg_score'], reverse=True)
-    
-    # Add ranking
-    for i, student in enumerate(leaderboard_data):
-        student['rank'] = i + 1
-    
-    return render_template('leaderboard.html', leaderboard=leaderboard_data)
+        
+        # Calculate averages
+        leaderboard_data = []
+        for student_id, data in student_scores.items():
+            if data['grades']:
+                avg_score = sum(data['grades']) / len(data['grades'])
+                leaderboard_data.append({
+                    'username': data['username'],
+                    'grade_level': data['grade_level'],
+                    'avg_score': round(avg_score, 2),
+                    'num_submissions': len(data['grades'])
+                })
+        
+        # Sort by average score
+        leaderboard_data.sort(key=lambda x: x['avg_score'], reverse=True)
+        
+        # Add ranking
+        for i, student in enumerate(leaderboard_data):
+            student['rank'] = i + 1
+        
+        return render_template('leaderboard.html', leaderboard=leaderboard_data)
+        
+    except Exception as e:
+        logger.error(f"Leaderboard error: {e}")
+        flash('Error loading leaderboard.', 'danger')
+        return redirect(url_for('index'))
 
-# Add keep-alive thread to prevent Render spin-down - ADD THIS SECTION
+# Add keep-alive thread to prevent Render spin-down
 if 'RENDER' in os.environ:
     def keep_alive():
         """Background thread to prevent auto-spin down"""
@@ -563,12 +607,10 @@ if 'RENDER' in os.environ:
         while True:
             time.sleep(300)  # Run every 5 minutes
             try:
-                # Simple print to keep service active
                 print(f"🔄 Keep-alive ping at {datetime.now().strftime('%H:%M:%S')}")
             except:
                 pass
     
-    # Start the thread
     import threading
     keep_alive_thread = threading.Thread(target=keep_alive, daemon=True)
     keep_alive_thread.start()
