@@ -513,6 +513,8 @@ def student_history():
                     'submitted_at': sub['submitted_at'],
                     'graded_at': sub.get('graded_at')
                 })
+
+        # FINAL TEST: Data persistence check - Brakatu 11:07
         
         # Sort by submission date (most recent first)
         student_submissions.sort(key=lambda x: x['submitted_at'], reverse=True)
