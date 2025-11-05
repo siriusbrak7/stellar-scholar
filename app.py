@@ -140,7 +140,7 @@ def login():
             response = supabase.table('users').select('*').eq('username', username).execute()
             user = response.data[0] if response.data else None
             
-            if user and check_password_hash(user['password_hash'], password, method='scrypt'):
+            if user and check_password_hash(user['password_hash'], password):
                 session['user_id'] = username
                 session['role'] = user['role']
                 flash(f'Welcome back, {username}!', 'success')
