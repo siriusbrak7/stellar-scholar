@@ -150,13 +150,31 @@
             <!-- Full Rankings -->
             <div class="rankings-section">
                 <div class="section-header">
-                    <h2 class="section-title">📈 All Cosmic Scholars</h2>
+                    <h2 class="section-title">
+                        {% if current_grade_filter == 'all' %}
+                        📈 All Cosmic Scholars
+                        {% else %}
+                        📈 Grade {{ current_grade_filter }} Scholars
+                        {% endif %}
+                    </h2>
                     <div class="filters">
-                        <button class="filter-btn active" onclick="showAllGrades(this)">All Grades</button>
+                        <a href="{{ url_for('leaderboard', grade='all') }}" 
+                           class="filter-btn {% if current_grade_filter == 'all' %}active{% endif %}">
+                           All Grades
+                        </a>
+                        {% for grade in available_grades %}
+                        <a href="{{ url_for('leaderboard', grade=grade) }}" 
+                           class="filter-btn {% if current_grade_filter == grade %}active{% endif %}">
+                           Grade {{ grade }}
+                        </a>
+                        {% endfor %}
                         {% if session.role == 'student' %}
                         {% set user_identifier = session.get('username') if session.get('username') is not none else session.get('user_id') %}
                         {% set user_grade = (leaderboard|selectattr('username', 'equalto', user_identifier)|map(attribute='grade_level')|first) if user_identifier else None %}
-                        <button class="filter-btn" onclick="filterByGrade('{{ user_grade }}', this)">My Grade</button>
+                        <a href="{{ url_for('leaderboard', grade=user_grade) }}" 
+                           class="filter-btn {% if current_grade_filter == user_grade %}active{% endif %}">
+                           My Grade
+                        </a>
                         {% endif %}
                     </div>
                 </div>
@@ -839,30 +857,6 @@
 </style>
 
 <script>
-function filterByGrade(grade, btn) {
-    const items = document.querySelectorAll('.ranking-item');
-    items.forEach(item => {
-        if (String(item.getAttribute('data-grade')) === String(grade)) {
-            item.style.display = 'flex';
-        } else {
-            item.style.display = 'none';
-        }
-    });
-    
-    // Update active button state
-    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-    if (btn) btn.classList.add('active');
-}
-
-function showAllGrades(btn) {
-    const items = document.querySelectorAll('.ranking-item');
-    items.forEach(item => item.style.display = 'flex');
-    
-    // Update active button state
-    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-    if (btn) btn.classList.add('active');
-}
-
 // Animate and set progress bars on load using data attributes
 document.addEventListener('DOMContentLoaded', function() {
     const progressBars = document.querySelectorAll('.progress-bar');
