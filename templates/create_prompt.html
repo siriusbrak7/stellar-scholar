@@ -9,16 +9,7 @@
 
     <div class="form-container">
         <form method="POST" id="promptForm">
-            <!-- Question Type -->
-            <div class="form-group">
-                <label for="question_type">Question Type</label>
-                <select id="question_type" name="question_type" class="form-control" onchange="toggleQuestionType()">
-                    <option value="text_response">Written Answer</option>
-                    <option value="multiple_choice">Multiple Choice</option>
-                </select>
-            </div>
-
-            <!-- Basic Fields (Always Visible) -->
+            <!-- Basic Fields -->
             <div class="form-group">
                 <label for="title">Title</label>
                 <input type="text" id="title" name="title" class="form-control" required>
@@ -45,44 +36,6 @@
                 <div class="form-group">
                     <label for="due_date">Due Date (Optional)</label>
                     <input type="datetime-local" id="due_date" name="due_date" class="form-control">
-                </div>
-            </div>
-
-            <!-- Multiple Choice Fields (Hidden by Default) -->
-            <div id="multipleChoiceFields" style="display: none;">
-                <div class="form-section">
-                    <h4>Multiple Choice Options</h4>
-                    
-                    <div class="form-group">
-                        <label for="option_a">Option A</label>
-                        <input type="text" id="option_a" name="option_a" class="form-control">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="option_b">Option B</label>
-                        <input type="text" id="option_b" name="option_b" class="form-control">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="option_c">Option C</label>
-                        <input type="text" id="option_c" name="option_c" class="form-control">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="option_d">Option D</label>
-                        <input type="text" id="option_d" name="option_d" class="form-control">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="correct_answer">Correct Answer</label>
-                        <select id="correct_answer" name="correct_answer" class="form-control">
-                            <option value="">Select Correct Option</option>
-                            <option value="A">Option A</option>
-                            <option value="B">Option B</option>
-                            <option value="C">Option C</option>
-                            <option value="D">Option D</option>
-                        </select>
-                    </div>
                 </div>
             </div>
 
@@ -217,33 +170,5 @@
 }
 </style>
 
-<script>
-function toggleQuestionType() {
-    const questionType = document.getElementById('question_type').value;
-    const multipleChoiceFields = document.getElementById('multipleChoiceFields');
-    
-    if (questionType === 'multiple_choice') {
-        multipleChoiceFields.style.display = 'block';
-        // Make multiple choice fields required
-        document.getElementById('option_a').required = true;
-        document.getElementById('option_b').required = true;
-        document.getElementById('option_c').required = true;
-        document.getElementById('option_d').required = true;
-        document.getElementById('correct_answer').required = true;
-    } else {
-        multipleChoiceFields.style.display = 'none';
-        // Remove required attribute
-        document.getElementById('option_a').required = false;
-        document.getElementById('option_b').required = false;
-        document.getElementById('option_c').required = false;
-        document.getElementById('option_d').required = false;
-        document.getElementById('correct_answer').required = false;
-    }
-}
-
-// Initialize on page load
-document.addEventListener('DOMContentLoaded', function() {
-    toggleQuestionType();
-});
-</script>
+<!-- No additional JS required -->
 {% endblock %}
