@@ -132,21 +132,52 @@
                         {% endif %}
                     </div>
                     {% else %}
-                    <form method="POST" action="{{ url_for('submit_response', prompt_id=prompt.id) }}" class="submission-form">
-                        <div class="form-group">
-                            <label for="response_{{ prompt.id }}" class="form-label">
-                                <span class="label-icon">✏️</span>
-                                Your Mission Response:
-                            </label>
-                            <textarea class="form-input" id="response_{{ prompt.id }}" 
-                                      name="response" rows="4" required 
-                                      placeholder="Share your thoughts, ideas, or solutions here..."></textarea>
-                        </div>
-                        <button type="submit" class="btn btn-submit">
-                            <span class="btn-icon">🚀</span>
-                            Submit Mission
-                        </button>
-                    </form>
+                        {% if prompt.question_type == 'multiple_choice' and prompt.options %}
+                        <!-- Multiple Choice Form -->
+                        <form method="POST" action="{{ url_for('submit_response', prompt_id=prompt.id) }}" class="submission-form">
+                            <div class="form-group">
+                                <label class="form-label">
+                                    <span class="label-icon">🔘</span>
+                                    Choose the correct answer:
+                                </label>
+                                <div class="multiple-choice-options">
+                                    {% for option_key, option_text in prompt.options.items() %}
+                                    {% if option_text %}
+                                    <div class="option-item">
+                                        <input type="radio" id="option_{{ prompt.id }}_{{ option_key }}" 
+                                               name="response" value="{{ option_key }}" required>
+                                        <label for="option_{{ prompt.id }}_{{ option_key }}" class="option-label">
+                                            <span class="option-letter">{{ option_key }}</span>
+                                            <span class="option-text">{{ option_text }}</span>
+                                        </label>
+                                    </div>
+                                    {% endif %}
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-submit">
+                                <span class="btn-icon">🚀</span>
+                                Submit Answer
+                            </button>
+                        </form>
+                        {% else %}
+                        <!-- Written Answer Form (Original) -->
+                        <form method="POST" action="{{ url_for('submit_response', prompt_id=prompt.id) }}" class="submission-form">
+                            <div class="form-group">
+                                <label for="response_{{ prompt.id }}" class="form-label">
+                                    <span class="label-icon">✏️</span>
+                                    Your Mission Response:
+                                </label>
+                                <textarea class="form-input" id="response_{{ prompt.id }}" 
+                                          name="response" rows="4" required 
+                                          placeholder="Share your thoughts, ideas, or solutions here..."></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-submit">
+                                <span class="btn-icon">🚀</span>
+                                Submit Mission
+                            </button>
+                        </form>
+                        {% endif %}
                     {% endif %}
                 </div>
                 {% endfor %}
@@ -522,6 +553,59 @@
     outline: none;
     border-color: #FFD700;
     box-shadow: 0 0 0 2px rgba(255, 215, 0, 0.2);
+}
+
+/* Multiple Choice Options */
+.multiple-choice-options {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.option-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+}
+
+.option-item input[type="radio"] {
+    margin-top: 0.3rem;
+}
+
+.option-label {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    flex: 1;
+}
+
+.option-label:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 215, 0, 0.4);
+}
+
+.option-letter {
+    background: linear-gradient(45deg, #FFD700, #32CD32);
+    color: #1a1a2e;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    flex-shrink: 0;
+}
+
+.option-text {
+    color: white;
+    flex: 1;
 }
 
 .btn-submit {
