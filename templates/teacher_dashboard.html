@@ -221,7 +221,7 @@
                         <!-- Top 3 Students -->
                         <div class="top-students">
                             <h4>🏆 Top Performers</h4>
-                            {% for username, progress in list(student_progress.items())[:3] %}
+                            {% for username, progress in (student_progress.items()|list)[:3] %}
                             {% if progress.average_grade != 'N/A' %}
                             <div class="top-student">
                                 <div class="student-avatar">{{ progress.username[0]|upper }}</div>
