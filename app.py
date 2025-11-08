@@ -279,6 +279,36 @@ def create_prompt():
     
     return render_template('create_prompt.html')
 
+@app.route('/teacher/delete_prompt/<prompt_id>', methods=['POST'])
+@teacher_required
+def delete_prompt(prompt_id):
+    supabase = get_supabase()
+    if not supabase:
+        flash('Database connection error.', 'danger')
+        return redirect(url_for('teacher_dashboard'))
+    
+    try:
+        # First, check if there are any submissions for this prompt
+        submissions_response = supabase.table('submissions').select('id').eq('prompt_id', prompt_id).execute()
+        
+        if submissions_response.data:
+            flash('Cannot delete prompt - students have already submitted responses to it.', 'warning')
+            return redirect(url_for('teacher_dashboard'))
+        
+        # Delete the prompt from Supabase
+        result = supabase.table('prompts').delete().eq('id', prompt_id).execute()
+        
+        if result.data:
+            flash('Prompt deleted successfully!', 'success')
+        else:
+            flash('Prompt not found or already deleted.', 'warning')
+            
+    except Exception as e:
+        logger.error(f"Delete prompt error: {e}")
+        flash('Error deleting prompt.', 'danger')
+    
+    return redirect(url_for('teacher_dashboard'))
+
 @app.route('/teacher/grade/<prompt_id>', methods=['GET', 'POST'])
 @teacher_required
 def grade_submissions(prompt_id):
