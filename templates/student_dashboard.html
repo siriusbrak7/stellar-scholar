@@ -75,6 +75,11 @@
             <div class="missions-grid">
                 {% for prompt in prompts %}
                 <div class="mission-card {% if prompt.has_submitted %}completed{% else %}pending{% endif %}">
+                    <!-- DEBUG: Add this temporary line -->
+                    <div style="background: red; color: white; padding: 10px; margin-bottom: 10px;">
+                        DEBUG: question_type={{ prompt.question_type }}, options={{ prompt.options }}
+                    </div>
+
                     <div class="mission-header">
                         <h3 class="mission-title">{{ prompt.title }}</h3>
                         <div class="mission-status">
