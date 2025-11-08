@@ -613,7 +613,8 @@ def student_dashboard():
                 'title': prompt['title'],
                 'description': prompt['description'],
                 'has_submitted': has_submitted,
-                'submission': submission_data
+                    'submission': submission_data,
+                    'due_date': prompt.get('due_date')  # Add due date from prompt
             })
         
         return render_template('student_dashboard.html', 
