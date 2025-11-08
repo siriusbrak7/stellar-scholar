@@ -162,6 +162,14 @@
                             </div>
                         </div>
                         
+                        <!-- Add this after the mission-stats div -->
+                        {% if prompt.due_date %}
+                        <div class="due-date-info">
+                            <span class="due-date-icon">📅</span>
+                            <span class="due-date-text">Due: {{ prompt.due_date[:16]|replace('T', ' ') }}</span>
+                        </div>
+                        {% endif %}
+                        
                         <div class="mission-actions">
                             {% if prompt_stats[prompt_id].total > 0 %}
                             <a href="{{ url_for('grade_submissions', prompt_id=prompt_id) }}" class="btn btn-grade">
@@ -775,6 +783,28 @@
 .mission-footer small {
     color: #8a93aa;
     font-size: 0.8rem;
+}
+
+/* Due Date Display */
+.due-date-info {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 1rem 0;
+    padding: 0.5rem;
+    background: rgba(106, 17, 203, 0.1);
+    border-radius: 8px;
+    border-left: 3px solid #6a11cb;
+}
+
+.due-date-icon {
+    font-size: 1rem;
+}
+
+.due-date-text {
+    color: #6a11cb;
+    font-size: 0.9rem;
+    font-weight: 500;
 }
 
 /* Mission Control */
