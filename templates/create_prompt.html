@@ -52,8 +52,14 @@
                 </div>
 
                 <div class="form-actions">
-                    <button type="submit" class="btn btn-teacher-action">🚀 Launch Mission</button>
-                    <a href="{{ url_for('teacher_dashboard') }}" class="btn btn-cancel">Cancel</a>
+                    <button type="submit" class="btn btn-launch-mission">
+                        <span class="btn-icon">🚀</span>
+                        Launch Mission
+                    </button>
+                    <a href="{{ url_for('teacher_dashboard') }}" class="btn btn-cancel">
+                        <span class="btn-icon">←</span>
+                        Cancel
+                    </a>
                 </div>
             </form>
         </div>
