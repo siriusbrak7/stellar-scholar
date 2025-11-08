@@ -1,282 +1,158 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="cosmic-prompt-create">
-    <div class="stars-container">
-        <div class="star star-1"></div>
-        <div class="star star-2"></div>
-        <div class="star star-3"></div>
+<div class="container">
+    <div class="header">
+        <h1>Create New Prompt</h1>
+        <a href="{{ url_for('teacher_dashboard') }}" class="btn btn-secondary">← Back to Dashboard</a>
     </div>
 
-    <div class="create-prompt-content">
-        <div class="create-header">
-            <h1 class="cosmic-title">🚀 Create New Mission</h1>
-            <p class="cosmic-subtitle">Launch a new learning adventure for your scholars</p>
-            <a href="{{ url_for('teacher_dashboard') }}" class="btn btn-back">← Back to Dashboard</a>
-        </div>
+    <div class="form-container">
+        <form method="POST">
+            <div class="form-group">
+                <label for="title">Title</label>
+                <input type="text" id="title" name="title" class="form-control" required>
+            </div>
 
-        <div class="prompt-form-container">
-            <form method="POST" class="prompt-form">
+            <div class="form-group">
+                <label for="description">Description</label>
+                <textarea id="description" name="description" class="form-control" rows="5" required></textarea>
+            </div>
+
+            <div class="form-row">
                 <div class="form-group">
-                    <label for="title" class="form-label">Mission Title</label>
-                    <input type="text" id="title" name="title" class="form-input" 
-                           placeholder="Enter a compelling mission title..." required>
+                    <label for="grade_level">Grade Level</label>
+                    <select id="grade_level" name="grade_level" class="form-control" required>
+                        <option value="">Select Grade</option>
+                        <option value="8">Grade 8</option>
+                        <option value="9">Grade 9</option>
+                        <option value="10">Grade 10</option>
+                        <option value="11">Grade 11</option>
+                        <option value="12">Grade 12</option>
+                    </select>
                 </div>
 
                 <div class="form-group">
-                    <label for="description" class="form-label">Mission Briefing</label>
-                    <textarea id="description" name="description" class="form-textarea" 
-                              placeholder="Describe the mission objectives and what scholars need to accomplish..." 
-                              rows="6" required></textarea>
+                    <label for="due_date">Due Date (Optional)</label>
+                    <input type="datetime-local" id="due_date" name="due_date" class="form-control">
                 </div>
+            </div>
 
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="grade_level" class="form-label">Grade Level</label>
-                        <select id="grade_level" name="grade_level" class="form-select" required>
-                            <option value="">Select Grade Level</option>
-                            <option value="8">Grade 8</option>
-                            <option value="9">Grade 9</option>
-                            <option value="10">Grade 10</option>
-                            <option value="11">Grade 11</option>
-                            <option value="12">Grade 12</option>
-                        </select>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="due_date" class="form-label">Due Date (Optional)</label>
-                        <input type="datetime-local" id="due_date" name="due_date" 
-                               class="form-input" min="{{ now.strftime('%Y-%m-%dT%H:%M') }}">
-                        <small class="form-help">Set a deadline for this mission</small>
-                    </div>
-                </div>
-
-                <div class="form-actions">
-                    <button type="submit" class="btn btn-launch-mission">
-                        <span class="btn-icon">🚀</span>
-                        Launch Mission
-                    </button>
-                    <a href="{{ url_for('teacher_dashboard') }}" class="btn btn-cancel">
-                        <span class="btn-icon">←</span>
-                        Cancel
-                    </a>
-                </div>
-            </form>
-        </div>
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">Create Prompt</button>
+                <a href="{{ url_for('teacher_dashboard') }}" class="btn btn-secondary">Cancel</a>
+            </div>
+        </form>
     </div>
 </div>
 
 <style>
-.cosmic-prompt-create {
-    min-height: 100vh;
-    background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
-    position: relative;
-    overflow: hidden;
-}
-
-.create-prompt-content {
+.container {
     max-width: 800px;
     margin: 0 auto;
     padding: 2rem;
-    position: relative;
-    z-index: 2;
 }
 
-.create-header {
-    text-align: center;
-    margin-bottom: 3rem;
-}
-
-.cosmic-title {
-    background: linear-gradient(45deg, #FFD700, #32CD32);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-    font-size: 2.5rem;
-    margin-bottom: 0.5rem;
-}
-
-.cosmic-subtitle {
-    color: #b0b8c9;
-    font-size: 1.1rem;
-    margin-bottom: 1.5rem;
-}
-
-.btn-back {
-    background: rgba(255, 255, 255, 0.1);
-    color: #b0b8c9;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    padding: 0.5rem 1rem;
-    border-radius: 8px;
-    text-decoration: none;
-    transition: all 0.3s ease;
-}
-
-.btn-back:hover {
-    background: rgba(255, 255, 255, 0.2);
-    color: white;
-}
-
-.prompt-form-container {
-    background: rgba(255, 255, 255, 0.08);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 20px;
-    padding: 2rem;
-}
-
-.prompt-form {
+.header {
     display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.header h1 {
+    color: #333;
+    margin: 0;
+}
+
+.form-container {
+    background: white;
+    padding: 2rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
 }
 
 .form-group {
-    display: flex;
-    flex-direction: column;
+    margin-bottom: 1.5rem;
 }
 
 .form-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 1.5rem;
+    gap: 1rem;
 }
 
-.form-label {
-    color: #FFD700;
-    font-weight: 600;
+.form-group label {
+    display: block;
     margin-bottom: 0.5rem;
-    font-size: 1rem;
+    font-weight: 600;
+    color: #333;
 }
 
-.form-input, .form-textarea, .form-select {
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 10px;
-    padding: 0.75rem 1rem;
-    color: white;
+.form-control {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
     font-size: 1rem;
-    transition: all 0.3s ease;
+    box-sizing: border-box;
 }
 
-.form-input:focus, .form-textarea:focus, .form-select:focus {
+.form-control:focus {
     outline: none;
-    border-color: #FFD700;
-    box-shadow: 0 0 0 2px rgba(255, 215, 0, 0.2);
-}
-
-.form-textarea {
-    resize: vertical;
-    min-height: 120px;
-    font-family: inherit;
-}
-
-.form-select {
-    appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23FFD700'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 1rem center;
-    background-size: 1rem;
-}
-
-.form-help {
-    color: #8a93aa;
-    font-size: 0.8rem;
-    margin-top: 0.25rem;
+    border-color: #007bff;
+    box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
 }
 
 .form-actions {
     display: flex;
     gap: 1rem;
-    justify-content: center;
+    justify-content: flex-end;
     margin-top: 2rem;
 }
 
-.btn-teacher-action {
-    background: linear-gradient(45deg, #FFD700, #32CD32);
-    color: #1a1a2e;
+.btn {
+    padding: 0.75rem 1.5rem;
     border: none;
-    padding: 1rem 2rem;
-    border-radius: 10px;
-    font-weight: 600;
-    font-size: 1.1rem;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-.btn-teacher-action:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(255, 215, 0, 0.3);
-}
-
-.btn-cancel {
-    background: rgba(255, 255, 255, 0.1);
-    color: #b0b8c9;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    padding: 1rem 2rem;
-    border-radius: 10px;
+    border-radius: 4px;
     text-decoration: none;
-    transition: all 0.3s ease;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background-color 0.3s;
 }
 
-.btn-cancel:hover {
-    background: rgba(255, 255, 255, 0.2);
+.btn-primary {
+    background-color: #007bff;
     color: white;
 }
 
-/* Responsive */
+.btn-primary:hover {
+    background-color: #0056b3;
+}
+
+.btn-secondary {
+    background-color: #6c757d;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background-color: #545b62;
+}
+
 @media (max-width: 768px) {
-    .create-prompt-content {
-        padding: 1rem;
-    }
-    
     .form-row {
         grid-template-columns: 1fr;
+    }
+    
+    .header {
+        flex-direction: column;
+        gap: 1rem;
+        align-items: flex-start;
     }
     
     .form-actions {
         flex-direction: column;
     }
 }
-
-/* Stars animation */
-.stars-container {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
-    z-index: 1;
-}
-
-.star {
-    position: absolute;
-    background: white;
-    border-radius: 50%;
-    animation: twinkle linear infinite;
-}
-
-.star-1 { width: 2px; height: 2px; top: 20%; left: 10%; animation-duration: 3s; }
-.star-2 { width: 1px; height: 1px; top: 60%; left: 80%; animation-duration: 4s; }
-.star-3 { width: 1.5px; height: 1.5px; top: 40%; left: 50%; animation-duration: 5s; }
-
-@keyframes twinkle {
-    0%, 100% { opacity: 0.2; }
-    50% { opacity: 1; }
-}
 </style>
-
-<script>
-// Set min date to current date/time when page loads
-document.addEventListener('DOMContentLoaded', function() {
-    const dueDateField = document.getElementById('due_date');
-    if (dueDateField) {
-        const now = new Date();
-        // Format to YYYY-MM-DDTHH:MM for datetime-local input
-        const minDate = now.toISOString().slice(0, 16);
-        dueDateField.min = minDate;
-    }
-});
-</script>
 {% endblock %}
