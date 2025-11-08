@@ -173,13 +173,28 @@ def teacher_dashboard():
         return redirect(url_for('index'))
     
     try:
+        # Get grade filter from query parameter
+        grade_filter = request.args.get('grade', 'all')
+        
         # Get all prompts
         prompts_response = supabase.table('prompts').select('*').execute()
-        prompts = {prompt['id']: prompt for prompt in prompts_response.data} if prompts_response.data else {}
+        all_prompts = prompts_response.data if prompts_response.data else []
+        
+        # Apply grade filter
+        if grade_filter != 'all':
+            prompts_data = [p for p in all_prompts if p['grade_level'] == grade_filter]
+        else:
+            prompts_data = all_prompts
+        
+        prompts = {prompt['id']: prompt for prompt in prompts_data}
         
         # Get all submissions
         submissions_response = supabase.table('submissions').select('*').execute()
         submissions = submissions_response.data if submissions_response.data else []
+        
+        # Get all users (for analytics)
+        users_response = supabase.table('users').select('*').execute()
+        users_data = users_response.data if users_response.data else []
         
         # Count submissions per prompt
         prompt_stats = {}
@@ -194,6 +209,95 @@ def teacher_dashboard():
                     if sub.get('grade') is not None:
                         prompt_stats[prompt_id]['graded'] += 1
         
+        # Get unique grades for filter buttons
+        unique_grades = sorted(list(set([p['grade_level'] for p in all_prompts])))
+        
+        # STUDENT PROGRESS TRACKING
+        student_progress = {}
+        class_analytics = {
+            'total_students': 0,
+            'active_students': 0,
+            'total_submissions': 0,
+            'average_completion_rate': 0,
+            'average_grade': 0,
+            'grade_breakdown': {}
+        }
+        
+        # Calculate student progress and class analytics
+        for user in users_data:
+            if user['role'] == 'student':
+                student_grade = user['grade']
+                
+                # Get prompts for this student's grade
+                grade_prompts = [p for p in all_prompts if p['grade_level'] == student_grade]
+                total_prompts = len(grade_prompts)
+                
+                if total_prompts > 0:
+                    # Count submissions for this student
+                    student_subs = [s for s in submissions if s['student_id'] == user['username']]
+                    submitted_count = len(student_subs)
+                    graded_subs = [s for s in student_subs if s.get('grade') is not None]
+                    
+                    completion_rate = (submitted_count / total_prompts) * 100
+                    avg_grade = sum(s['grade'] for s in graded_subs) / len(graded_subs) if graded_subs else 0
+                    
+                    student_progress[user['username']] = {
+                        'username': user['username'],
+                        'grade_level': student_grade,
+                        'completed_prompts': submitted_count,
+                        'total_prompts': total_prompts,
+                        'completion_rate': round(completion_rate, 1),
+                        'average_grade': round(avg_grade, 1) if graded_subs else 'N/A',
+                        'graded_count': len(graded_subs)
+                    }
+                    
+                    # Update class analytics
+                    class_analytics['total_students'] += 1
+                    if submitted_count > 0:
+                        class_analytics['active_students'] += 1
+                    
+                    class_analytics['total_submissions'] += submitted_count
+                    
+                    # Update grade breakdown
+                    if student_grade not in class_analytics['grade_breakdown']:
+                        class_analytics['grade_breakdown'][student_grade] = {
+                            'students': 0,
+                            'active': 0,
+                            'completion_rate': 0
+                        }
+                    
+                    class_analytics['grade_breakdown'][student_grade]['students'] += 1
+                    if submitted_count > 0:
+                        class_analytics['grade_breakdown'][student_grade]['active'] += 1
+
+        # If no student progress was collected, initialize empty structures to avoid template errors
+        if not student_progress:
+            student_progress = {}
+            class_analytics = {
+                'total_students': 0,
+                'active_students': 0,
+                'total_submissions': 0,
+                'average_completion_rate': 0,
+                'average_grade': 0,
+                'grade_breakdown': {}
+            }
+
+        # Calculate overall averages
+        if class_analytics['total_students'] > 0:
+            # Avoid division by zero when no student progress entries exist
+            if student_progress and len(student_progress) > 0:
+                completion_rates = [s['completion_rate'] for s in student_progress.values()]
+                if len(completion_rates) > 0:
+                    class_analytics['average_completion_rate'] = round(sum(completion_rates) / len(completion_rates), 1)
+                else:
+                    class_analytics['average_completion_rate'] = 0
+            else:
+                class_analytics['average_completion_rate'] = 0
+            
+            grades = [s['average_grade'] for s in student_progress.values() if s['average_grade'] != 'N/A']
+            if grades:
+                class_analytics['average_grade'] = round(sum(grades) / len(grades), 1)
+        
         # Get top students for leaderboard preview
         top_students = []
         student_scores = {}
@@ -202,7 +306,6 @@ def teacher_dashboard():
             if sub.get('grade') is not None:
                 student_id = sub['student_id']
                 if student_id not in student_scores:
-                    # Get student info
                     user_response = supabase.table('users').select('grade').eq('username', student_id).execute()
                     grade_level = user_response.data[0]['grade'] if user_response.data else 'N/A'
                     
@@ -223,12 +326,16 @@ def teacher_dashboard():
                 })
         
         top_students.sort(key=lambda x: x['avg_score'], reverse=True)
-        top_students = top_students[:5]  # Top 5 only
+        top_students = top_students[:5]
         
         return render_template('teacher_dashboard.html', 
                              prompts=prompts, 
                              prompt_stats=prompt_stats,
-                             top_students=top_students)
+                             top_students=top_students,
+                             current_grade_filter=grade_filter,
+                             available_grades=unique_grades,
+                             student_progress=student_progress,
+                             class_analytics=class_analytics)
                              
     except Exception as e:
         logger.error(f"Teacher dashboard error: {e}")
