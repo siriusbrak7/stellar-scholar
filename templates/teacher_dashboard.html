@@ -215,8 +215,8 @@
                                 <span class="completion">{{ progress.completed_prompts }}/{{ progress.total_prompts }} done</span>
                             </div>
                             <div class="progress-bar-container">
-                                <div class="progress-bar" style="width: {{ progress.completion_rate }} %"></div>
-                                <span class="progress-text">{{ progress.completion_rate }} %</span>
+                                <div class="progress-bar" style="width: {{ progress.completion_rate }}{{ '%' }}"></div>
+                                <span class="progress-text">{{ progress.completion_rate }}{{ '%' }}</span>
                             </div>
                         </div>
                         <div class="progress-grade">
