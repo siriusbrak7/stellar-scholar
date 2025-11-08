@@ -236,6 +236,12 @@
                             </div>
                             {% endif %}
                             {% endfor %}
+                            
+                            {% if student_progress|length == 0 %}
+                            <div class="empty-mini">
+                                <p>No graded submissions yet</p>
+                            </div>
+                            {% endif %}
                         </div>
                     </div>
                     {% else %}
@@ -464,7 +470,14 @@
     font-size: 0.7rem;
 }
 
-/* Mission Cards (Keep your excellent improvements) */
+.empty-mini {
+    text-align: center;
+    padding: 1rem;
+    color: #b0b8c9;
+    font-style: italic;
+}
+
+/* Mission Cards */
 .missions-section {
     margin-bottom: 2rem;
 }
