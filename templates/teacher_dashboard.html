@@ -215,8 +215,8 @@
                                 <span class="completion">{{ progress.completed_prompts }}/{{ progress.total_prompts }} done</span>
                             </div>
                             <div class="progress-bar-container">
-                                <div class="progress-bar" style="width: {{ progress.completion_rate }}{{ '%' }}"></div>
-                                <span class="progress-text">{{ progress.completion_rate }}{{ '%' }}</span>
+                                <div class="progress-bar" data-progress="{{ progress.completion_rate }}"></div>
+                                    <span class="progress-text">{{ progress.completion_rate }}{{ '%' }}</span>
                             </div>
                         </div>
                         <div class="progress-grade">
@@ -959,4 +959,18 @@
     }
 }
 </style>
+<script>
+// Set progress bar widths from data-progress attributes to avoid putting Jinja inside style attributes
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.progress-bar').forEach(function (el) {
+        var val = el.getAttribute('data-progress');
+        if (!val) return;
+        // clamp between 0 and 100
+        var n = Number(val);
+        if (isNaN(n)) n = 0;
+        n = Math.max(0, Math.min(100, n));
+        el.style.width = n + '%';
+    });
+});
+</script>
 {% endblock %}
