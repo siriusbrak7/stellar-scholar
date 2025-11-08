@@ -91,14 +91,17 @@
                         {% endif %}
                     </div>
                     
-                    {% if prompt_stats[prompt_id].total == 0 %}
-                    <div class="mission-delete">
+                    <div class="mission-actions" style="margin-top: 1rem;">
+                        <a href="{{ url_for('edit_prompt', prompt_id=prompt_id) }}" class="btn btn-warning btn-sm">Edit</a>
+                        
+                        {% if prompt_stats[prompt_id].total == 0 %}
                         <form action="{{ url_for('delete_prompt', prompt_id=prompt_id) }}" method="POST" 
-                              onsubmit="return confirm('Are you sure you want to delete this prompt? This cannot be undone.');">
-                            <button type="submit" class="btn btn-danger btn-sm">Delete Prompt</button>
+                              onsubmit="return confirm('Are you sure you want to delete this prompt? This cannot be undone.');"
+                              style="display: inline;">
+                            <button type="submit" class="btn btn-danger btn-sm">Delete</button>
                         </form>
+                        {% endif %}
                     </div>
-                    {% endif %}
 
                     <div class="mission-footer">
                         <small>Launched: {{ prompt.created_at[:10] }}</small>
@@ -407,7 +410,10 @@
 }
 
 .mission-actions {
-    margin-bottom: 1rem;
+    display: flex;
+    gap: 0.5rem;
+    margin: 1rem 0;
+    justify-content: center;
 }
 
 .btn-grade {
@@ -421,6 +427,7 @@
     transition: all 0.3s ease;
     display: block;
     text-align: center;
+    width: 100%;
 }
 
 .btn-grade:hover {
@@ -433,6 +440,7 @@
     font-style: italic;
     text-align: center;
     display: block;
+    width: 100%;
 }
 
 .mission-footer {
@@ -460,6 +468,22 @@
 
 .btn-danger:hover {
     background: linear-gradient(45deg, #FF0000, #CC0000);
+}
+
+.btn-warning {
+    background: linear-gradient(45deg, #FFD700, #FFA500);
+    color: black;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 5px;
+    font-size: 0.8rem;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.btn-warning:hover {
+    background: linear-gradient(45deg, #E6C200, #E69500);
+    color: black;
 }
 
 /* Empty State */

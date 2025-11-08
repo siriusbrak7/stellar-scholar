@@ -279,6 +279,60 @@ def create_prompt():
     
     return render_template('create_prompt.html')
 
+@app.route('/teacher/edit_prompt/<prompt_id>', methods=['GET', 'POST'])
+@teacher_required
+def edit_prompt(prompt_id):
+    supabase = get_supabase()
+    if not supabase:
+        flash('Database connection error.', 'danger')
+        return redirect(url_for('teacher_dashboard'))
+    
+    try:
+        # Get the current prompt
+        prompt_response = supabase.table('prompts').select('*').eq('id', prompt_id).execute()
+        prompt = prompt_response.data[0] if prompt_response.data else None
+        
+        if not prompt:
+            flash('Prompt not found.', 'danger')
+            return redirect(url_for('teacher_dashboard'))
+        
+        # Check if user owns this prompt
+        if prompt['created_by'] != session['user_id']:
+            flash('You can only edit prompts you created.', 'danger')
+            return redirect(url_for('teacher_dashboard'))
+        
+        if request.method == 'POST':
+            title = request.form.get('title', '').strip()
+            description = request.form.get('description', '').strip()
+            grade_level = request.form.get('grade_level')
+            
+            if not title or not description or not grade_level:
+                flash('All fields are required.', 'danger')
+                return render_template('edit_prompt.html', prompt=prompt)
+            
+            # Update prompt in Supabase
+            update_data = {
+                'title': title,
+                'description': description,
+                'grade_level': grade_level,
+                'updated_at': datetime.now().isoformat()
+            }
+            
+            result = supabase.table('prompts').update(update_data).eq('id', prompt_id).execute()
+            
+            if result.data:
+                flash('Prompt updated successfully!', 'success')
+                return redirect(url_for('teacher_dashboard'))
+            else:
+                flash('Failed to update prompt.', 'danger')
+        
+        return render_template('edit_prompt.html', prompt=prompt)
+        
+    except Exception as e:
+        logger.error(f"Edit prompt error: {e}")
+        flash('Error editing prompt.', 'danger')
+        return redirect(url_for('teacher_dashboard'))
+
 @app.route('/teacher/delete_prompt/<prompt_id>', methods=['POST'])
 @teacher_required
 def delete_prompt(prompt_id):

@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="cosmic-dashboard">
+    <!-- Animated Stars Background -->
+    <div class="stars-container">
+        <div class="star star-1"></div>
+        <div class="star star-2"></div>
+        <div class="star star-3"></div>
+        <div class="star star-4"></div>
+        <div class="star star-5"></div>
+    </div>
+    
+    <div class="dashboard-content">
+        <div class="dashboard-header">
+            <h1 class="cosmic-title">✏️ Edit Cosmic Mission</h1>
+            <p class="cosmic-subtitle">Update your learning challenge</p>
+        </div>
+
+        <div class="card">
+            <div class="card-body">
+                <form method="POST">
+                    <div class="mb-3">
+                        <label for="title" class="form-label">Mission Title</label>
+                        <input type="text" class="form-control" id="title" name="title" 
+                               value="{{ prompt.title }}" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Mission Description</label>
+                        <textarea class="form-control" id="description" name="description" 
+                                  rows="5" required>{{ prompt.description }}</textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="grade_level" class="form-label">Target Grade Level</label>
+                        <select class="form-control" id="grade_level" name="grade_level" required>
+                            <option value="8" {% if prompt.grade_level == '8' %}selected{% endif %}>Grade 8</option>
+                            <option value="9" {% if prompt.grade_level == '9' %}selected{% endif %}>Grade 9</option>
+                            <option value="10" {% if prompt.grade_level == '10' %}selected{% endif %}>Grade 10</option>
+                            <option value="11" {% if prompt.grade_level == '11' %}selected{% endif %}>Grade 11</option>
+                        </select>
+                    </div>
+                    
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-success">Update Mission</button>
+                        <a href="{{ url_for('teacher_dashboard') }}" class="btn btn-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.cosmic-dashboard {
+    background: linear-gradient(135deg, #0a0e27 0%, #16213e 50%, #1a1a2e 100%);
+    min-height: 100vh;
+    padding: 2rem;
+}
+
+.dashboard-content {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.card {
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 15px;
+}
+
+.form-control {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: white;
+}
+
+.form-control:focus {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: var(--primary-yellow);
+    color: white;
+}
+
+.form-label {
+    color: var(--primary-yellow);
+    font-weight: 500;
+}
+</style>
+{% endblock %}
