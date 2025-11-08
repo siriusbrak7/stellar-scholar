@@ -354,6 +354,16 @@ def create_prompt():
         title = request.form.get('title', '').strip()
         description = request.form.get('description', '').strip()
         grade_level = request.form.get('grade_level')
+        due_date_str = request.form.get('due_date', '').strip()
+        due_date_iso = None
+        if due_date_str:
+            try:
+                # Accept ISO-like input from datetime-local (e.g. 2023-08-01T14:30)
+                due_dt = datetime.fromisoformat(due_date_str)
+                due_date_iso = due_dt.isoformat()
+            except Exception:
+                flash('Invalid due date format. Please provide a valid date/time.', 'danger')
+                return render_template('create_prompt.html')
         
         if not title or not description or not grade_level:
             flash('All fields are required.', 'danger')
@@ -367,6 +377,7 @@ def create_prompt():
                 'title': title,
                 'description': description,
                 'grade_level': grade_level,
+                'due_date': due_date_iso,
                 'created_by': session['user_id'],
                 'created_at': datetime.now().isoformat()
             }
@@ -412,16 +423,27 @@ def edit_prompt(prompt_id):
             title = request.form.get('title', '').strip()
             description = request.form.get('description', '').strip()
             grade_level = request.form.get('grade_level')
+            due_date_str = request.form.get('due_date')
             
             if not title or not description or not grade_level:
                 flash('All fields are required.', 'danger')
                 return render_template('edit_prompt.html', prompt=prompt)
+            
+            # Process due date
+            due_date = None
+            if due_date_str:
+                try:
+                    due_date = datetime.fromisoformat(due_date_str.replace('Z', '+00:00'))
+                except ValueError:
+                    flash('Invalid due date format.', 'danger')
+                    return render_template('edit_prompt.html', prompt=prompt)
             
             # Update prompt in Supabase
             update_data = {
                 'title': title,
                 'description': description,
                 'grade_level': grade_level,
+                'due_date': due_date.isoformat() if due_date else None,
                 'updated_at': datetime.now().isoformat()
             }
             
