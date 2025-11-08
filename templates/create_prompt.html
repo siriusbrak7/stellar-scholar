@@ -268,7 +268,15 @@
 </style>
 
 <script>
-// Set min date to current date/time
-document.getElementById('due_date').min = new Date().toISOString().slice(0, 16);
+// Set min date to current date/time when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    const dueDateField = document.getElementById('due_date');
+    if (dueDateField) {
+        const now = new Date();
+        // Format to YYYY-MM-DDTHH:MM for datetime-local input
+        const minDate = now.toISOString().slice(0, 16);
+        dueDateField.min = minDate;
+    }
+});
 </script>
 {% endblock %}
