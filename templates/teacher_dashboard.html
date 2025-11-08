@@ -51,7 +51,7 @@
                 <div class="analytics-card">
                     <div class="analytics-icon">📈</div>
                     <div class="analytics-info">
-                        <div class="analytics-number">{{ class_analytics.average_completion_rate }}%</div>
+                        <div class="analytics-number">{{ class_analytics.average_completion_rate }}{{ '%' }}</div>
                         <div class="analytics-label">Avg Completion</div>
                     </div>
                 </div>
@@ -74,7 +74,7 @@
                         <div class="breakdown-stats">
                             <span>{{ data.students }} students</span>
                             <span>{{ data.active }} active</span>
-                            <span>{{ (data.active / data.students * 100) | round(1) if data.students > 0 else 0 }}% active</span>
+                            <span>{{ (data.active / data.students * 100) | round(1) if data.students > 0 else 0 }}{{ '%' }} active</span>
                         </div>
                     </div>
                     {% endfor %}
