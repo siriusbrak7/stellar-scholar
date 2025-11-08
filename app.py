@@ -645,8 +645,10 @@ def student_dashboard():
                 'title': prompt['title'],
                 'description': prompt['description'],
                 'has_submitted': has_submitted,
-                    'submission': submission_data,
-                    'due_date': prompt.get('due_date')  # Add due date from prompt
+                'submission': submission_data,
+                'due_date': prompt.get('due_date'),
+                'question_type': prompt.get('question_type', 'text_response'),  # Default to text_response if not specified
+                'options': prompt.get('options')  # Add multiple choice options
             })
         
         return render_template('student_dashboard.html', 
