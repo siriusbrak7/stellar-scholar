@@ -1,232 +1,247 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container">
-    <div class="row">
-        <div class="col-12">
-            <div class="card p-4 mb-4">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h2>📚 My Submission History</h2>
-                        <p class="text-muted mb-0">Track your progress and review feedback</p>
-                    </div>
-                    <a href="{{ url_for('student_dashboard') }}" class="btn btn-outline-secondary">Back to Dashboard</a>
-                </div>
-            </div>
-        </div>
+<div class="student-dashboard">
+    <div class="stars-container">
+        <div class="star star-1"></div>
+        <div class="star star-2"></div>
+        <div class="star star-3"></div>
     </div>
 
-    <!-- Statistics Overview -->
-    <div class="row mb-4">
-        <div class="col-md-3">
-            <div class="card text-center bg-primary text-white">
-                <div class="card-body">
-                    <h3>{{ stats.total }}</h3>
-                    <p>Total Submissions</p>
-                </div>
+    <div class="dashboard-content">
+        <div class="student-header">
+            <div class="header-info">
+                <h1 class="welcome-title">📚 Mission History</h1>
+                <p class="welcome-subtitle">Your complete submission journey, <strong>{{ user.username }}</strong></p>
+            </div>
+            <div class="header-actions">
+                <a href="{{ url_for('student_dashboard') }}" class="btn btn-history">
+                    ← Back to Missions
+                </a>
             </div>
         </div>
-        
-        <div class="col-md-3">
-            <div class="card text-center bg-success text-white">
-                <div class="card-body">
-                    <h3>{{ stats.graded }}</h3>
-                    <p>Graded</p>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-md-3">
-            <div class="card text-center bg-warning text-dark">
-                <div class="card-body">
-                    <h3>{{ stats.pending }}</h3>
-                    <p>Pending</p>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-md-3">
-            <div class="card text-center bg-info text-white">
-                <div class="card-body">
-                    <h3>{% if stats.average %}{{ stats.average }}%{% else %}N/A{% endif %}</h3>
-                    <p>Average Grade</p>
-                </div>
-            </div>
-        </div>
-    </div>
 
-    <!-- Submission History -->
-    <div class="row">
-        <div class="col-12">
-            <div class="card p-4">
-                <h3 class="mb-4">All Submissions</h3>
-                
-                {% if submissions %}
-                <div class="timeline">
-                    {% for submission in submissions %}
-                    <div class="timeline-item {% if submission.grade is not none %}graded{% else %}pending{% endif %}">
-                        <div class="timeline-marker">
+        <!-- Stats Overview -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon">📝</div>
+                <div class="stat-info">
+                    <div class="stat-number">{{ stats.total }}</div>
+                    <div class="stat-label">Total Submissions</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">✅</div>
+                <div class="stat-info">
+                    <div class="stat-number">{{ stats.graded }}</div>
+                    <div class="stat-label">Graded</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">⏳</div>
+                <div class="stat-info">
+                    <div class="stat-number">{{ stats.pending }}</div>
+                    <div class="stat-label">Pending Review</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">⭐</div>
+                <div class="stat-info">
+                    <div class="stat-number">{{ stats.average or 'N/A' }}</div>
+                    <div class="stat-label">Average Grade</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Submissions List -->
+        <div class="submissions-section">
+            <h2 class="section-title">Your Mission Submissions</h2>
+            
+            {% if submissions %}
+            <div class="submissions-list">
+                {% for submission in submissions %}
+                <div class="submission-card {% if submission.grade is not none %}graded{% else %}pending{% endif %}">
+                    <div class="submission-header">
+                        <h3 class="mission-title">{{ submission.prompt_title }}</h3>
+                        <div class="submission-status">
                             {% if submission.grade is not none %}
-                            <span class="badge bg-success">✓</span>
+                            <span class="status-badge graded-badge">
+                                <span class="status-icon">✅</span>
+                                Graded: {{ submission.grade }}/100
+                            </span>
                             {% else %}
-                            <span class="badge bg-warning">⏳</span>
+                            <span class="status-badge pending-badge">
+                                <span class="status-icon">⏳</span>
+                                Awaiting Review
+                            </span>
                             {% endif %}
                         </div>
-                        
-                        <div class="timeline-content card {% if submission.grade is not none %}border-success{% else %}border-warning{% endif %}">
-                            <div class="card-body">
-                                <div class="d-flex justify-content-between align-items-start mb-3">
-                                    <h5 class="card-title">{{ submission.prompt_title }}</h5>
-                                    <div class="text-end">
-                                        {% if submission.grade is not none %}
-                                        <span class="badge bg-success fs-6">{{ submission.grade }}/100</span>
-                                        <br>
-                                        <small class="text-muted">Graded: {{ submission.graded_at[:10] if submission.graded_at else 'N/A' }}</small>
-                                        {% else %}
-                                        <span class="badge bg-warning">Awaiting Grade</span>
-                                        <br>
-                                        <small class="text-muted">Submitted: {{ submission.submitted_at[:10] }}</small>
-                                        {% endif %}
-                                    </div>
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <h6>Prompt Description:</h6>
-                                    <div class="card bg-light">
-                                        <div class="card-body">
-                                            <p class="mb-0">{{ submission.prompt_description }}</p>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <h6>Your Response:</h6>
-                                    <div class="card">
-                                        <div class="card-body">
-                                            <p class="mb-0">{{ submission.response }}</p>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                {% if submission.grade is not none and submission.feedback %}
-                                <div class="feedback-section">
-                                    <h6>Teacher Feedback:</h6>
-                                    <div class="card border-info">
-                                        <div class="card-body bg-info bg-opacity-10">
-                                            <p class="mb-0">{{ submission.feedback }}</p>
-                                        </div>
-                                    </div>
-                                </div>
-                                {% elif submission.grade is not none %}
-                                <div class="alert alert-info">
-                                    <small>No written feedback provided for this submission.</small>
-                                </div>
-                                {% endif %}
-                            </div>
-                        </div>
                     </div>
-                    {% endfor %}
-                </div>
-                {% else %}
-                <div class="text-center py-5">
-                    <div class="alert alert-info">
-                        <h4>No Submissions Yet</h4>
-                        <p class="mb-3">You haven't made any submissions yet. Start your learning journey by completing assignments!</p>
-                        <a href="{{ url_for('student_dashboard') }}" class="btn btn-primary">View Available Assignments</a>
+                    
+                    <p class="prompt-description">{{ submission.prompt_description }}</p>
+                    
+                    <div class="submission-content">
+                        <h4>Your Response:</h4>
+                        <p class="response-text">{{ submission.response }}</p>
                     </div>
-                </div>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-
-    <!-- Performance Summary -->
-    {% if stats.graded > 0 %}
-    <div class="row mt-4">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header bg-success text-white">
-                    <h5 class="mb-0">📈 Performance Summary</h5>
-                </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <p><strong>Average Grade:</strong> {{ stats.average }}%</p>
-                            <p><strong>Completion Rate:</strong> {{ "%.1f"|format((stats.graded / stats.total * 100) if stats.total > 0 else 0) }}%</p>
-                        </div>
-                        <div class="col-md-6">
-                            <p><strong>Total Submissions:</strong> {{ stats.total }}</p>
-                            <p><strong>Graded Assignments:</strong> {{ stats.graded }}</p>
-                        </div>
-                    </div>
-                    {% if stats.average >= 90 %}
-                    <div class="alert alert-success mt-3">
-                        <strong>Excellent work!</strong> You're performing at an outstanding level. Keep it up! 🌟
-                    </div>
-                    {% elif stats.average >= 70 %}
-                    <div class="alert alert-primary mt-3">
-                        <strong>Great job!</strong> You're doing well. Continue striving for excellence! 💪
-                    </div>
-                    {% elif stats.average >= 50 %}
-                    <div class="alert alert-warning mt-3">
-                        <strong>Good progress!</strong> You're on the right track. Keep practicing and improving! 📚
-                    </div>
-                    {% else %}
-                    <div class="alert alert-info mt-3">
-                        <strong>Learning journey!</strong> Every submission is progress. Review feedback and keep going! 🎯
+                    
+                    {% if submission.feedback %}
+                    <div class="feedback-section">
+                        <h4>Teacher's Feedback:</h4>
+                        <p class="feedback-text">{{ submission.feedback }}</p>
                     </div>
                     {% endif %}
+                    
+                    <div class="submission-footer">
+                        <small>Submitted: {{ submission.submitted_at[:16]|replace('T', ' at ') }}</small>
+                        {% if submission.graded_at %}
+                        <small>Graded: {{ submission.graded_at[:16]|replace('T', ' at ') }}</small>
+                        {% endif %}
+                    </div>
                 </div>
+                {% endfor %}
             </div>
+            {% else %}
+            <div class="empty-state">
+                <div class="empty-icon">📚</div>
+                <h3>No Submissions Yet</h3>
+                <p>Complete some missions to see your history here!</p>
+                <a href="{{ url_for('student_dashboard') }}" class="btn btn-teacher-action">Start Your First Mission</a>
+            </div>
+            {% endif %}
         </div>
     </div>
-    {% endif %}
 </div>
 
 <style>
-.timeline {
-    position: relative;
-    padding-left: 30px;
+/* Add your cosmic styling here similar to student_dashboard */
+.submissions-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
 }
 
-.timeline-item {
-    position: relative;
+.submission-card {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 15px;
+    padding: 1.5rem;
+    transition: all 0.3s ease;
+}
+
+.submission-card:hover {
+    transform: translateY(-3px);
+    border-color: rgba(255, 215, 0, 0.4);
+}
+
+.submission-card.graded {
+    border-left: 4px solid #32CD32;
+}
+
+.submission-card.pending {
+    border-left: 4px solid #FFD700;
+}
+
+.submission-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+    gap: 1rem;
+}
+
+.mission-title {
+    color: white;
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin: 0;
+    flex: 1;
+}
+
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.graded-badge {
+    background: rgba(50, 205, 50, 0.2);
+    color: #32CD32;
+    border: 1px solid rgba(50, 205, 50, 0.3);
+}
+
+.pending-badge {
+    background: rgba(255, 215, 0, 0.2);
+    color: #FFD700;
+    border: 1px solid rgba(255, 215, 0, 0.3);
+}
+
+.prompt-description {
+    color: #b0b8c9;
+    margin-bottom: 1.5rem;
+    line-height: 1.5;
+}
+
+.submission-content h4, .feedback-section h4 {
+    color: #FFD700;
+    margin-bottom: 0.5rem;
+    font-size: 1rem;
+}
+
+.response-text, .feedback-text {
+    color: #b0b8c9;
+    line-height: 1.5;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    border-left: 3px solid #6a11cb;
+}
+
+.feedback-text {
+    border-left-color: #32CD32;
+}
+
+.submission-footer {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.submission-footer small {
+    color: #8a93aa;
+    font-size: 0.8rem;
+}
+
+/* Use same styles as student_dashboard for consistency */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
     margin-bottom: 2rem;
 }
 
-.timeline-marker {
-    position: absolute;
-    left: -45px;
-    top: 0;
-    width: 30px;
-    height: 30px;
+.stat-card {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 15px;
+    padding: 1.5rem;
     display: flex;
     align-items: center;
-    justify-content: center;
+    gap: 1rem;
+    transition: all 0.3s ease;
 }
 
-.timeline-content {
-    position: relative;
+.stat-card:hover {
+    transform: translateY(-3px);
+    border-color: rgba(255, 215, 0, 0.3);
 }
 
-.timeline-content::before {
-    content: '';
-    position: absolute;
-    left: -20px;
-    top: 15px;
-    width: 20px;
-    height: 2px;
-    background: #dee2e6;
-}
-
-.timeline-item:last-child {
-    margin-bottom: 0;
-}
-
-.feedback-section {
-    margin-top: 1rem;
-    padding-top: 1rem;
-    border-top: 1px dashed #dee2e6;
-}
+/* Add other styles from student_dashboard as needed */
 </style>
 {% endblock %}

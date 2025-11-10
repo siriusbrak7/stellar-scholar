@@ -697,6 +697,73 @@ def student_dashboard():
         flash('Error loading dashboard.', 'danger')
         return redirect(url_for('index'))
 
+@app.route('/student/history')
+@login_required
+def student_history():
+    supabase = get_supabase()
+    if not supabase:
+        flash('Database connection error.', 'danger')
+        return redirect(url_for('index'))
+    
+    try:
+        # Get current user
+        user_response = supabase.table('users').select('*').eq('username', session['user_id']).execute()
+        user = user_response.data[0] if user_response.data else None
+        
+        if not user or user['role'] != 'student':
+            flash('Only students can view submission history.', 'warning')
+            return redirect(url_for('teacher_dashboard'))
+        
+        # Get all submissions for this student with prompt info
+        submissions_response = supabase.table('submissions').select('*').eq('student_id', session['user_id']).execute()
+        student_submissions = []
+        
+        for sub in submissions_response.data:
+            # Get prompt info
+            prompt_response = supabase.table('prompts').select('*').eq('id', sub['prompt_id']).execute()
+            prompt = prompt_response.data[0] if prompt_response.data else None
+            
+            if prompt:
+                student_submissions.append({
+                    'id': sub['id'],
+                    'prompt_title': prompt['title'],
+                    'prompt_description': prompt['description'],
+                    'response': sub['response'],
+                    'grade': sub.get('grade'),
+                    'feedback': sub.get('feedback', ''),
+                    'submitted_at': sub['submitted_at'],
+                    'graded_at': sub.get('graded_at')
+                })
+
+        # Sort by submission date (most recent first)
+        student_submissions.sort(key=lambda x: x['submitted_at'], reverse=True)
+        
+        # Calculate statistics
+        total_submissions = len(student_submissions)
+        graded_count = sum(1 for s in student_submissions if s['grade'] is not None)
+        
+        avg_grade = None
+        if graded_count > 0:
+            total_grade = sum(s['grade'] for s in student_submissions if s['grade'] is not None)
+            avg_grade = round(total_grade / graded_count, 2)
+        
+        stats = {
+            'total': total_submissions,
+            'graded': graded_count,
+            'pending': total_submissions - graded_count,
+            'average': avg_grade
+        }
+        
+        return render_template('student_history.html', 
+                             submissions=student_submissions, 
+                             stats=stats,
+                             user=user)
+                             
+    except Exception as e:
+        logger.error(f"Student history error: {e}")
+        flash('Error loading submission history.', 'danger')
+        return redirect(url_for('student_dashboard'))
+
 @app.route('/student/submit/<prompt_id>', methods=['POST'])
 @login_required
 def submit_response(prompt_id):
