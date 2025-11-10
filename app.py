@@ -750,7 +750,7 @@ def submit_response(prompt_id):
     
     return redirect(url_for('student_dashboard'))
 
-@app.route('/student/leaderboard')
+@app.route('/leaderboard')
 @login_required
 def leaderboard():
     supabase = get_supabase()
@@ -759,51 +759,93 @@ def leaderboard():
         return redirect(url_for('student_dashboard'))
     
     try:
-        # Get all submissions with grades
-        submissions_response = supabase.table('submissions').select('*').execute()
-        submissions = submissions_response.data if submissions_response.data else []
+        # Get grade filter from query parameter
+        grade_filter = request.args.get('grade', 'all')
         
-        # Calculate student scores
+        # Get all users
+        users_response = supabase.table('users').select('*').execute()
+        users_data = {user['username']: user for user in users_response.data} if users_response.data else {}
+        
+        # Get all prompts
+        prompts_response = supabase.table('prompts').select('*').execute()
+        prompts_data = prompts_response.data if prompts_response.data else []
+        
+        # Get all submissions with grades
+        submissions_response = supabase.table('submissions').select('*').not_.is_('grade', 'null').execute()
+        graded_submissions = submissions_response.data if submissions_response.data else []
+        
+        # Calculate average scores for each student - FAIR CALCULATION
         student_scores = {}
         
-        for sub in submissions:
-            if sub.get('grade') is not None:
-                student_id = sub['student_id']
-                if student_id not in student_scores:
-                    # Get student info
-                    user_response = supabase.table('users').select('*').eq('username', student_id).execute()
-                    if user_response.data:
-                        user_data = user_response.data[0]
-                        student_scores[student_id] = {
-                            'username': student_id,
-                            'grade_level': user_data.get('grade', 'N/A'),
-                            'grades': [],
-                            'total_submissions': 0
-                        }
+        for student_username, user_data in users_data.items():
+            if user_data['role'] == 'student':
+                student_grade = user_data['grade']
                 
-                if student_id in student_scores:
-                    student_scores[student_id]['grades'].append(sub['grade'])
+                # Get all prompts for this student's grade level
+                grade_prompts = [p for p in prompts_data if p['grade_level'] == student_grade]
+                total_prompts = len(grade_prompts)
+                
+                if total_prompts > 0:
+                    # Initialize student data
+                    student_scores[student_username] = {
+                        'grades': [],  # Actual grades received
+                        'possible_grades': [],  # Including zeros for missing submissions
+                        'username': student_username,
+                        'grade_level': student_grade,
+                        'total_prompts': total_prompts,
+                        'submitted_prompts': 0
+                    }
+                    
+                    # For each prompt in student's grade level
+                    for prompt in grade_prompts:
+                        # Find if student submitted to this prompt
+                        submission = next((s for s in graded_submissions 
+                                         if s['student_id'] == student_username 
+                                         and s['prompt_id'] == prompt['id']), None)
+                        
+                        if submission:
+                            # Student submitted and was graded
+                            student_scores[student_username]['grades'].append(submission['grade'])
+                            student_scores[student_username]['possible_grades'].append(submission['grade'])
+                            student_scores[student_username]['submitted_prompts'] += 1
+                        else:
+                            # Student didn't submit - count as 0 for fair average
+                            student_scores[student_username]['possible_grades'].append(0)
         
-        # Calculate averages and create leaderboard
+        # Calculate averages using FAIR calculation (include zeros for missing work)
         leaderboard_data = []
-        for student_id, data in student_scores.items():
-            if data['grades']:
-                avg_score = sum(data['grades']) / len(data['grades'])
+        for student_username, data in student_scores.items():
+            if data['possible_grades']:  # Only include students with prompts in their grade
+                # FAIR AVERAGE: sum of all grades (including zeros) / total prompts in grade
+                fair_avg_score = sum(data['possible_grades']) / len(data['possible_grades'])
+                
                 leaderboard_data.append({
                     'username': data['username'],
                     'grade_level': data['grade_level'],
-                    'avg_score': round(avg_score, 2),
-                    'total_graded': len(data['grades'])
+                    'avg_score': round(fair_avg_score, 2),
+                    'num_submissions': data['submitted_prompts'],
+                    'total_prompts': data['total_prompts'],
+                    'completion_rate': round((data['submitted_prompts'] / data['total_prompts']) * 100) if data['total_prompts'] > 0 else 0
                 })
         
-        # Sort by average score (highest first)
+        # Apply grade filter if specified
+        if grade_filter != 'all':
+            leaderboard_data = [s for s in leaderboard_data if s['grade_level'] == grade_filter]
+        
+        # Sort by average score (descending)
         leaderboard_data.sort(key=lambda x: x['avg_score'], reverse=True)
         
-        # Add rank
-        for i, student in enumerate(leaderboard_data, 1):
-            student['rank'] = i
+        # Add ranking
+        for i, student in enumerate(leaderboard_data):
+            student['rank'] = i + 1
         
-        return render_template('leaderboard.html', leaderboard=leaderboard_data)
+        # Get unique grades for filter buttons
+        unique_grades = sorted(list(set([s['grade_level'] for s in leaderboard_data])))
+        
+        return render_template('leaderboard.html', 
+                             leaderboard=leaderboard_data,
+                             current_grade_filter=grade_filter,
+                             available_grades=unique_grades)
         
     except Exception as e:
         logger.error(f"Leaderboard error: {e}")
