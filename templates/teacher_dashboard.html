@@ -146,7 +146,10 @@
                     <div class="mission-card">
                         <div class="mission-header">
                             <h3 class="mission-title">{{ prompt.title }}</h3>
-                            <span class="mission-grade">Grade {{ prompt.grade_level }}</span>
+                            <div class="mission-meta">
+                                <span class="mission-grade">Grade {{ prompt.grade_level }}</span>
+                                <span class="mission-category {{ prompt.category }}">{{ prompt.category|title }}</span>
+                            </div>
                         </div>
                         
                         <p class="mission-description">{{ prompt.description[:120] }}{% if prompt.description|length > 120 %}...{% endif %}</p>
@@ -162,7 +165,6 @@
                             </div>
                         </div>
                         
-                        <!-- Add this after the mission-stats div -->
                         {% if prompt.due_date %}
                         <div class="due-date-info">
                             <span class="due-date-icon">📅</span>
@@ -260,6 +262,11 @@
                             <h4>New Mission</h4>
                             <p>Create a new learning challenge for your scholars</p>
                         </a>
+                        <a href="{{ url_for('manage_students') }}" class="action-card">
+                            <div class="action-icon">👨‍🎓</div>
+                            <h4>Manage Students</h4>
+                            <p>View and manage student accounts and progress</p>
+                        </a>
                     </div>
                 </div>
             </div>
@@ -268,20 +275,150 @@
 </div>
 
 <style>
+.cosmic-dashboard {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+    position: relative;
+    overflow-x: hidden;
+}
+
+.dashboard-content {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 2rem;
+    position: relative;
+    z-index: 2;
+}
+
+/* Stars Background */
+.stars-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.star {
+    position: absolute;
+    background: white;
+    border-radius: 50%;
+    animation: twinkle linear infinite;
+}
+
+.star-1 { width: 2px; height: 2px; top: 20%; left: 10%; animation-duration: 3s; }
+.star-2 { width: 1px; height: 1px; top: 60%; left: 80%; animation-duration: 4s; }
+.star-3 { width: 1.5px; height: 1.5px; top: 40%; left: 50%; animation-duration: 5s; }
+.star-4 { width: 2px; height: 2px; top: 80%; left: 30%; animation-duration: 6s; }
+.star-5 { width: 1px; height: 1px; top: 30%; left: 70%; animation-duration: 7s; }
+
+@keyframes twinkle {
+    0%, 100% { opacity: 0.2; }
+    50% { opacity: 1; }
+}
+
+/* Planets */
+.planet {
+    position: absolute;
+    border-radius: 50%;
+    animation: float 8s ease-in-out infinite;
+    z-index: 1;
+}
+
+.planet-1 {
+    width: 120px;
+    height: 120px;
+    background: radial-gradient(circle at 30% 30%, #32CD32, #228B22);
+    top: 10%;
+    right: 5%;
+    animation-delay: 0s;
+}
+
+.planet-2 {
+    width: 80px;
+    height: 80px;
+    background: radial-gradient(circle at 30% 30%, #FFD700, #FF8C00);
+    bottom: 15%;
+    left: 5%;
+    animation-delay: 2s;
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0px) rotate(0deg); }
+    50% { transform: translateY(-25px) rotate(5deg); }
+}
+
+/* Header */
+.dashboard-header {
+    text-align: center;
+    margin-bottom: 3rem;
+}
+
+.cosmic-title {
+    font-family: 'Dancing Script', cursive;
+    font-size: 3.5rem;
+    background: linear-gradient(45deg, #FFD700, #32CD32, #FFD700);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-shadow: 0 0 30px rgba(255, 215, 0, 0.5);
+    margin-bottom: 1rem;
+    animation: glow 3s ease-in-out infinite alternate;
+}
+
+@keyframes glow {
+    from { text-shadow: 0 0 20px rgba(255, 215, 0, 0.5); }
+    to { text-shadow: 0 0 30px rgba(255, 215, 0, 0.8), 0 0 40px rgba(50, 205, 50, 0.6); }
+}
+
+.cosmic-subtitle {
+    color: #b0b8c9;
+    font-size: 1.2rem;
+    margin-bottom: 2rem;
+}
+
+.btn-teacher-action {
+    background: linear-gradient(45deg, #FFD700, #32CD32);
+    color: #1a1a2e;
+    border: none;
+    padding: 1rem 2rem;
+    border-radius: 50px;
+    font-weight: 600;
+    text-decoration: none;
+    font-size: 1.1rem;
+    transition: all 0.3s ease;
+    display: inline-block;
+}
+
+.btn-teacher-action:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 25px rgba(255, 215, 0, 0.4);
+}
+
 /* Analytics Section */
 .analytics-section {
     margin-bottom: 2rem;
 }
 
+.section-title {
+    color: #FFD700;
+    font-size: 1.8rem;
+    margin-bottom: 1.5rem;
+    font-weight: 600;
+}
+
 .analytics-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 1rem;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
     margin-bottom: 2rem;
 }
 
 .analytics-card {
     background: rgba(255, 255, 255, 0.08);
+    -webkit-backdrop-filter: blur(10px);
     backdrop-filter: blur(10px);
     border: 1px solid rgba(255, 255, 255, 0.15);
     border-radius: 15px;
@@ -298,12 +435,12 @@
 }
 
 .analytics-icon {
-    font-size: 2rem;
+    font-size: 2.5rem;
     filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.3));
 }
 
 .analytics-number {
-    font-size: 2rem;
+    font-size: 2.2rem;
     font-weight: bold;
     background: linear-gradient(45deg, #FFD700, #32CD32);
     -webkit-background-clip: text;
@@ -327,14 +464,14 @@
 }
 
 .grade-breakdown h3 {
-    color: var(--primary-yellow);
+    color: #FFD700;
     margin-bottom: 1rem;
-    font-size: 1.2rem;
+    font-size: 1.3rem;
 }
 
 .breakdown-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     gap: 1rem;
 }
 
@@ -345,7 +482,7 @@
 }
 
 .breakdown-grade {
-    color: var(--primary-yellow);
+    color: #FFD700;
     font-weight: 600;
     margin-bottom: 0.5rem;
 }
@@ -361,11 +498,340 @@
     font-size: 0.9rem;
 }
 
+/* Quick Stats */
+.cosmic-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.stat-card {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 15px;
+    padding: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    transition: all 0.3s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-3px);
+    border-color: rgba(255, 215, 0, 0.3);
+}
+
+.stat-icon {
+    font-size: 2.2rem;
+}
+
+.stat-number {
+    font-size: 1.8rem;
+    font-weight: bold;
+    background: linear-gradient(45deg, #FFD700, #32CD32);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.stat-label {
+    color: #b0b8c9;
+    font-size: 0.9rem;
+}
+
 /* Dashboard Grid */
 .dashboard-grid {
     display: grid;
     grid-template-columns: 2fr 1fr;
     gap: 2rem;
+}
+
+/* Missions Section */
+.missions-section {
+    margin-bottom: 2rem;
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.section-header .section-title {
+    color: #FFD700;
+    font-size: 1.6rem;
+    font-weight: bold;
+    margin: 0;
+}
+
+.filters {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.filter-btn {
+    padding: 0.5rem 1rem;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 20px;
+    color: #b0b8c9;
+    text-decoration: none;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+}
+
+.filter-btn:hover {
+    background: rgba(255, 215, 0, 0.2);
+    border-color: #FFD700;
+    color: #FFD700;
+    transform: translateY(-2px);
+}
+
+.filter-btn.active {
+    background: linear-gradient(45deg, #FFD700, #32CD32);
+    border-color: transparent;
+    color: #1a1a2e;
+    font-weight: 600;
+}
+
+.missions-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+    gap: 1.5rem;
+}
+
+.mission-card {
+    background: rgba(255, 255, 255, 0.08);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 15px;
+    padding: 1.5rem;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.mission-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #FFD700, #32CD32, #6a11cb);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.mission-card:hover {
+    transform: translateY(-5px);
+    border-color: rgba(255, 215, 0, 0.4);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.mission-card:hover::before {
+    opacity: 1;
+}
+
+.mission-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+    gap: 1rem;
+}
+
+.mission-title {
+    color: white;
+    font-size: 1.3rem;
+    font-weight: 600;
+    margin: 0;
+    flex: 1;
+    line-height: 1.3;
+}
+
+.mission-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: flex-end;
+}
+
+.mission-grade {
+    background: linear-gradient(45deg, #6a11cb, #2575fc);
+    color: white;
+    padding: 0.3rem 0.8rem;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.mission-category {
+    background: rgba(106, 17, 203, 0.3);
+    color: #6a11cb;
+    padding: 0.2rem 0.6rem;
+    border-radius: 8px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.mission-category.biology { background: rgba(50, 205, 50, 0.3); color: #32CD32; }
+.mission-category.physics { background: rgba(255, 69, 0, 0.3); color: #FF4500; }
+
+.mission-description {
+    color: #b0b8c9;
+    line-height: 1.5;
+    margin-bottom: 1.5rem;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.mission-stats {
+    display: flex;
+    gap: 2rem;
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+}
+
+.mission-stat {
+    text-align: center;
+    flex: 1;
+}
+
+.stat-value {
+    display: block;
+    font-size: 1.5rem;
+    font-weight: bold;
+    background: linear-gradient(45deg, #FFD700, #32CD32);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    line-height: 1;
+}
+
+.stat-label {
+    color: #b0b8c9;
+    font-size: 0.8rem;
+    margin-top: 0.25rem;
+}
+
+/* Due Date Display */
+.due-date-info {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 1rem 0;
+    padding: 0.5rem;
+    background: rgba(106, 17, 203, 0.1);
+    border-radius: 8px;
+    border-left: 3px solid #6a11cb;
+}
+
+.due-date-icon {
+    font-size: 1rem;
+}
+
+.due-date-text {
+    color: #6a11cb;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.mission-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.btn-grade {
+    background: linear-gradient(45deg, #FFD700, #32CD32);
+    color: #1a1a2e;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 10px;
+    font-weight: 600;
+    text-decoration: none;
+    text-align: center;
+    transition: all 0.3s ease;
+}
+
+.btn-grade:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(255, 215, 0, 0.3);
+}
+
+.no-submissions {
+    background: rgba(255, 255, 255, 0.1);
+    color: #b0b8c9;
+    padding: 0.75rem 1.5rem;
+    border-radius: 10px;
+    text-align: center;
+    font-style: italic;
+    border: 1px dashed rgba(255, 255, 255, 0.3);
+}
+
+.action-buttons {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center;
+}
+
+.btn-warning, .btn-danger {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.btn-warning {
+    background: rgba(255, 193, 7, 0.2);
+    color: #FFC107;
+    border: 1px solid rgba(255, 193, 7, 0.3);
+}
+
+.btn-warning:hover {
+    background: rgba(255, 193, 7, 0.3);
+    transform: translateY(-1px);
+}
+
+.btn-danger {
+    background: rgba(220, 53, 69, 0.2);
+    color: #DC3545;
+    border: 1px solid rgba(220, 53, 69, 0.3);
+}
+
+.btn-danger:hover {
+    background: rgba(220, 53, 69, 0.3);
+    transform: translateY(-1px);
+}
+
+.mission-footer {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    text-align: center;
+}
+
+.mission-footer small {
+    color: #8a93aa;
+    font-size: 0.8rem;
 }
 
 /* Student Progress */
@@ -379,6 +845,7 @@
     gap: 1rem;
     max-height: 400px;
     overflow-y: auto;
+    margin-bottom: 2rem;
 }
 
 .progress-item {
@@ -481,6 +948,7 @@
     text-align: center;
     padding: 2rem;
     color: #b0b8c9;
+    margin-bottom: 2rem;
 }
 
 .empty-progress .empty-icon {
@@ -489,325 +957,7 @@
     opacity: 0.5;
 }
 
-/* Mission Actions */
-.action-buttons {
-    display: flex;
-    gap: 0.5rem;
-    margin-top: 0.5rem;
-}
-
-/* Quick Stats Grid */
-.cosmic-stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1rem;
-    margin-bottom: 2rem;
-}
-
-.stat-card {
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 15px;
-    padding: 1.5rem;
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    transition: all 0.3s ease;
-}
-
-.stat-card:hover {
-    transform: translateY(-3px);
-    border-color: rgba(255, 215, 0, 0.3);
-}
-
-.stat-icon {
-    font-size: 2rem;
-}
-
-.stat-number {
-    font-size: 1.8rem;
-    font-weight: bold;
-    background: linear-gradient(45deg, #FFD700, #32CD32);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-}
-
-.stat-label {
-    color: #b0b8c9;
-    font-size: 0.9rem;
-}
-
-/* Mission Cards */
-.missions-section {
-    margin-bottom: 2rem;
-}
-
-.section-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1.5rem;
-    flex-wrap: wrap;
-    gap: 1rem;
-}
-
-.section-header .section-title {
-    color: #FFD700;
-    font-size: 1.5rem;
-    font-weight: bold;
-    margin: 0;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.filters {
-    display: flex;
-    gap: 0.5rem;
-    flex-wrap: wrap;
-}
-
-.filter-btn {
-    padding: 0.5rem 1rem;
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 20px;
-    color: #b0b8c9;
-    text-decoration: none;
-    font-size: 0.9rem;
-    transition: all 0.3s ease;
-}
-
-.filter-btn:hover {
-    background: rgba(255, 215, 0, 0.2);
-    border-color: #FFD700;
-    color: #FFD700;
-    transform: translateY(-2px);
-}
-
-.filter-btn.active {
-    background: linear-gradient(45deg, #FFD700, #32CD32);
-    border-color: transparent;
-    color: #1a1a2e;
-    font-weight: 600;
-}
-
-.missions-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-    gap: 1.5rem;
-}
-
-.mission-card {
-    background: rgba(255, 255, 255, 0.08);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 15px;
-    padding: 1.5rem;
-    transition: all 0.3s ease;
-    position: relative;
-    overflow: hidden;
-}
-
-.mission-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    background: linear-gradient(90deg, #FFD700, #32CD32, #6a11cb);
-    opacity: 0;
-    transition: opacity 0.3s ease;
-}
-
-.mission-card:hover {
-    transform: translateY(-5px);
-    border-color: rgba(255, 215, 0, 0.4);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-}
-
-.mission-card:hover::before {
-    opacity: 1;
-}
-
-.mission-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 1rem;
-    gap: 1rem;
-}
-
-.mission-title {
-    color: white;
-    font-size: 1.2rem;
-    font-weight: 600;
-    margin: 0;
-    flex: 1;
-    line-height: 1.3;
-}
-
-.mission-grade {
-    background: linear-gradient(45deg, #6a11cb, #2575fc);
-    color: white;
-    padding: 0.3rem 0.8rem;
-    border-radius: 12px;
-    font-size: 0.8rem;
-    font-weight: 600;
-    white-space: nowrap;
-}
-
-.mission-description {
-    color: #b0b8c9;
-    line-height: 1.5;
-    margin-bottom: 1.5rem;
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    line-clamp: 3;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-}
-
-.mission-stats {
-    display: flex;
-    gap: 2rem;
-    margin-bottom: 1.5rem;
-    padding: 1rem;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 10px;
-}
-
-.mission-stat {
-    text-align: center;
-    flex: 1;
-}
-
-.stat-value {
-    display: block;
-    font-size: 1.5rem;
-    font-weight: bold;
-    background: linear-gradient(45deg, #FFD700, #32CD32);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-    line-height: 1;
-}
-
-.stat-label {
-    color: #b0b8c9;
-    font-size: 0.8rem;
-    margin-top: 0.25rem;
-}
-
-.mission-actions {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-}
-
-.btn-grade {
-    background: linear-gradient(45deg, #FFD700, #32CD32);
-    color: #1a1a2e;
-    border: none;
-    padding: 0.75rem 1.5rem;
-    border-radius: 10px;
-    font-weight: 600;
-    text-decoration: none;
-    text-align: center;
-    transition: all 0.3s ease;
-}
-
-.btn-grade:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(255, 215, 0, 0.3);
-}
-
-.no-submissions {
-    background: rgba(255, 255, 255, 0.1);
-    color: #b0b8c9;
-    padding: 0.75rem 1.5rem;
-    border-radius: 10px;
-    text-align: center;
-    font-style: italic;
-    border: 1px dashed rgba(255, 255, 255, 0.3);
-}
-
-.action-buttons {
-    display: flex;
-    gap: 0.5rem;
-    justify-content: center;
-}
-
-.btn-warning, .btn-danger {
-    padding: 0.5rem 1rem;
-    border: none;
-    border-radius: 8px;
-    font-size: 0.8rem;
-    font-weight: 600;
-    text-decoration: none;
-    transition: all 0.3s ease;
-    cursor: pointer;
-}
-
-.btn-warning {
-    background: rgba(255, 193, 7, 0.2);
-    color: #FFC107;
-    border: 1px solid rgba(255, 193, 7, 0.3);
-}
-
-.btn-warning:hover {
-    background: rgba(255, 193, 7, 0.3);
-    transform: translateY(-1px);
-}
-
-.btn-danger {
-    background: rgba(220, 53, 69, 0.2);
-    color: #DC3545;
-    border: 1px solid rgba(220, 53, 69, 0.3);
-}
-
-.btn-danger:hover {
-    background: rgba(220, 53, 69, 0.3);
-    transform: translateY(-1px);
-}
-
-.mission-footer {
-    margin-top: 1rem;
-    padding-top: 1rem;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-    text-align: center;
-}
-
-.mission-footer small {
-    color: #8a93aa;
-    font-size: 0.8rem;
-}
-
-/* Due Date Display */
-.due-date-info {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    margin: 1rem 0;
-    padding: 0.5rem;
-    background: rgba(106, 17, 203, 0.1);
-    border-radius: 8px;
-    border-left: 3px solid #6a11cb;
-}
-
-.due-date-icon {
-    font-size: 1rem;
-}
-
-.due-date-text {
-    color: #6a11cb;
-    font-size: 0.9rem;
-    font-weight: 500;
-}
-
-/* Mission Control */
+/* Quick Actions */
 .quick-actions {
     margin-top: 2rem;
     padding: 1.5rem;
@@ -874,6 +1024,7 @@
     font-size: 1.1rem;
     margin-bottom: 0.5rem;
     font-weight: 600;
+    text-align: center;
 }
 
 .action-card p {
@@ -881,6 +1032,7 @@
     font-size: 0.9rem;
     line-height: 1.4;
     margin: 0;
+    text-align: center;
 }
 
 /* Empty State */
@@ -908,32 +1060,36 @@
     margin-bottom: 1.5rem;
 }
 
-/* Responsive */
-@media (max-width: 968px) {
+/* Responsive Design */
+@media (max-width: 1200px) {
     .dashboard-grid {
         grid-template-columns: 1fr;
     }
     
+    .missions-grid {
+        grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    }
+}
+
+@media (max-width: 768px) {
+    .dashboard-content {
+        padding: 1rem;
+    }
+    
+    .cosmic-title {
+        font-size: 2.5rem;
+    }
+    
     .analytics-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .cosmic-stats-grid {
         grid-template-columns: repeat(2, 1fr);
     }
     
     .missions-grid {
         grid-template-columns: 1fr;
-    }
-}
-
-@media (max-width: 768px) {
-    .analytics-grid {
-        grid-template-columns: 1fr;
-    }
-    
-    .breakdown-grid {
-        grid-template-columns: 1fr;
-    }
-    
-    .cosmic-stats-grid {
-        grid-template-columns: repeat(2, 1fr);
     }
     
     .section-header {
@@ -951,8 +1107,11 @@
         gap: 0.5rem;
     }
     
-    .mission-grade {
-        align-self: flex-start;
+    .mission-meta {
+        flex-direction: row;
+        align-items: center;
+        width: 100%;
+        justify-content: space-between;
     }
     
     .mission-stats {
@@ -962,9 +1121,17 @@
     .action-buttons {
         flex-direction: column;
     }
+    
+    .breakdown-grid {
+        grid-template-columns: 1fr;
+    }
 }
 
 @media (max-width: 480px) {
+    .analytics-grid {
+        grid-template-columns: 1fr;
+    }
+    
     .cosmic-stats-grid {
         grid-template-columns: 1fr;
     }
@@ -987,15 +1154,20 @@
     .stat-value {
         font-size: 1.2rem;
     }
+    
+    .progress-details {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
 }
 </style>
+
 <script>
-// Set progress bar widths from data-progress attributes to avoid putting Jinja inside style attributes
+// Set progress bar widths dynamically
 document.addEventListener('DOMContentLoaded', function () {
     document.querySelectorAll('.progress-bar').forEach(function (el) {
         var val = el.getAttribute('data-progress');
         if (!val) return;
-        // clamp between 0 and 100
         var n = Number(val);
         if (isNaN(n)) n = 0;
         n = Math.max(0, Math.min(100, n));

@@ -217,7 +217,7 @@
                         <!-- Progress -->
                         <div class="progress-section">
                             <div class="progress-container">
-                                <div class="progress-bar" data-score="{{ student.avg_score }}" data-level="{% if student.avg_score >= 90 %}cosmic{% elif student.avg_score >= 70 %}stellar{% elif student.avg_score >= 50 %}rising{% else %}explorer{% endif %}" role="progressbar" aria-valuemin="0" aria-valuemax="100">
+                                <div class="progress-bar" data-score="{{ student.avg_score }}" data-level="{% if student.avg_score >= 90 %}cosmic{% elif student.avg_score >= 70 %}stellar{% elif student.avg_score >= 50 %}rising{% else %}explorer{% endif %}" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-label="Average score">
                                     <span class="progress-text">{{ student.avg_score }}</span>
                                 </div>
                             </div>
@@ -302,8 +302,10 @@
     margin-bottom: 2rem;
 }
 
-.stat-card {
+    .stat-card {
     background: rgba(255, 255, 255, 0.08);
+    -webkit-backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     backdrop-filter: blur(10px);
     border: 1px solid rgba(255, 255, 255, 0.15);
     border-radius: 15px;
@@ -354,6 +356,7 @@
     border-radius: 20px;
     padding: 2rem;
     margin-bottom: 3rem;
+    -webkit-backdrop-filter: blur(10px);
     backdrop-filter: blur(10px);
 }
 
@@ -461,6 +464,7 @@
     text-align: center;
     flex: 1;
     transition: all 0.3s ease;
+    -webkit-backdrop-filter: blur(10px);
     backdrop-filter: blur(10px);
 }
 
@@ -524,6 +528,7 @@
     background: rgba(255, 255, 255, 0.05);
     border-radius: 20px;
     padding: 2rem;
+    -webkit-backdrop-filter: blur(10px);
     backdrop-filter: blur(10px);
     border: 1px solid rgba(255, 255, 255, 0.1);
 }
@@ -865,7 +870,7 @@
     .leaderboard-row,
     .leaderboard-item {
         padding: 0.5rem;
-        min-height: auto;
+        min-height: 0;
     }
     
     .student-rank {

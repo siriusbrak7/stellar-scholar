@@ -19,6 +19,17 @@
                 <textarea id="description" name="description" class="form-control" rows="5" required>{{ prompt.description }}</textarea>
             </div>
 
+            <!-- New Category Dropdown -->
+            <div class="form-group">
+                <label for="category" class="form-label">Subject Category:</label>
+                <select class="form-control" id="category" name="category" required>
+                    <option value="">Select Category</option>
+                    <option value="general" {% if prompt.category == 'general' %}selected{% endif %}>General</option>
+                    <option value="biology" {% if prompt.category == 'biology' %}selected{% endif %}>Biology</option>
+                    <option value="physics" {% if prompt.category == 'physics' %}selected{% endif %}>Physics</option>
+                </select>
+            </div>
+
             <div class="form-row">
                 <div class="form-group">
                     <label for="grade_level">Grade Level</label>

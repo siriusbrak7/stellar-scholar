@@ -17,43 +17,27 @@
         <div class="container">
             <a class="navbar-brand stellar-brand" href="{{ url_for('index') }}">Stellar Scholar</a>
             
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
-            
+
             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
+                <div class="navbar-nav ms-auto">
                     {% if session.user_id %}
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('leaderboard') }}">Leaderboard</a>
-                        </li>
+                        <a class="nav-link" href="{{ url_for('leaderboard') }}">Leaderboard</a>
                         {% if session.role == 'teacher' %}
-                            <li class="nav-item">
-                                <a class="nav-link" href="{{ url_for('teacher_dashboard') }}">Dashboard</a>
-                            </li>
+                            <a class="nav-link" href="{{ url_for('teacher_dashboard') }}">Dashboard</a>
                         {% else %}
-                            <li class="nav-item">
-                                <a class="nav-link" href="{{ url_for('student_dashboard') }}">Dashboard</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="{{ url_for('student_history') }}">My History</a>
-                            </li>
+                            <a class="nav-link" href="{{ url_for('student_dashboard') }}">Dashboard</a>
+                            <a class="nav-link" href="{{ url_for('student_history') }}">My History</a>
                         {% endif %}
-                        <li class="nav-item">
-                            <span class="nav-link text-warning">Welcome, {{ session.user_id }}</span>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-danger" href="{{ url_for('logout') }}">Logout</a>
-                        </li>
+                        <span class="nav-link text-warning">Welcome, {{ session.user_id }}</span>
+                        <a class="nav-link text-danger" href="{{ url_for('logout') }}">Logout</a>
                     {% else %}
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('login') }}">Login</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('register') }}">Register</a>
-                        </li>
+                        <a class="nav-link" href="{{ url_for('login') }}">Login</a>
+                        <a class="nav-link" href="{{ url_for('register') }}">Register</a>
                     {% endif %}
-                </ul>
+                </div>
             </div>
         </div>
     </nav>
@@ -66,7 +50,7 @@
                 {% for category, message in messages %}
                     <div class="alert alert-{{ category }} alert-dismissible fade show">
                         {{ message }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                     </div>
                 {% endfor %}
             {% endif %}

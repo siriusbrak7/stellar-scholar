@@ -1,0 +1,232 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="cosmic-dashboard">
+    <!-- Animated Stars Background -->
+    <div class="stars-container">
+        <div class="star star-1"></div>
+        <div class="star star-2"></div>
+        <div class="star star-3"></div>
+    </div>
+
+    <div class="dashboard-content">
+        <!-- Header -->
+        <div class="dashboard-header">
+            <h1 class="cosmic-title">👨‍🎓 Student Management</h1>
+            <p class="cosmic-subtitle">Manage student accounts and view progress</p>
+            <a href="{{ url_for('teacher_dashboard') }}" class="btn btn-teacher-action">← Back to Dashboard</a>
+        </div>
+
+        <!-- Student List -->
+        <div class="students-section">
+            <div class="section-header">
+                <h2 class="section-title">Registered Students</h2>
+                <div class="section-subtitle">Total: {{ students|length }} students</div>
+            </div>
+            
+            {% if students %}
+            <div class="students-grid">
+                {% for student in students %}
+                <div class="student-card">
+                    <div class="student-header">
+                        <div class="student-avatar">{{ student.username[0]|upper }}</div>
+                        <div class="student-info">
+                            <h3 class="student-name">{{ student.username }}</h3>
+                            <div class="student-grade">Grade {{ student.grade }}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="student-stats">
+                        <div class="stat">
+                            <span class="stat-number">{{ student_stats[student.username].total_submissions }}</span>
+                            <span class="stat-label">Submissions</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-number">{{ student_stats[student.username].graded_submissions }}</span>
+                            <span class="stat-label">Graded</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-number">{{ "%.1f"|format(student_stats[student.username].average_grade) }}</span>
+                            <span class="stat-label">Avg Grade</span>
+                        </div>
+                    </div>
+                    
+                    <div class="student-actions">
+                        <form action="{{ url_for('delete_student', username=student.username) }}" method="POST" 
+                              onsubmit="return confirm('Are you sure you want to delete {{ student.username }}? This will also delete all their submissions and cannot be undone.');">
+                            <button type="submit" class="btn btn-danger btn-sm">Remove Student</button>
+                        </form>
+                    </div>
+                    
+                    <div class="student-footer">
+                        <small>Joined: {{ student.created_at[:10] }}</small>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <div class="empty-icon">👨‍🎓</div>
+                <h3>No Students Registered</h3>
+                <p>Students will appear here once they register accounts.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+.students-section {
+    margin-top: 2rem;
+}
+
+.students-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+}
+
+.student-card {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 15px;
+    padding: 1.5rem;
+    transition: all 0.3s ease;
+}
+
+.student-card:hover {
+    transform: translateY(-5px);
+    border-color: rgba(255, 215, 0, 0.4);
+}
+
+.student-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.student-avatar {
+    width: 50px;
+    height: 50px;
+    background: linear-gradient(45deg, #6a11cb, #2575fc);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    color: white;
+    font-size: 1.2rem;
+}
+
+.student-name {
+    color: white;
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin: 0 0 0.25rem 0;
+}
+
+.student-grade {
+    color: #FFD700;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.student-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+}
+
+.stat {
+    text-align: center;
+}
+
+.stat-number {
+    display: block;
+    font-size: 1.3rem;
+    font-weight: bold;
+    background: linear-gradient(45deg, #FFD700, #32CD32);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.stat-label {
+    color: #b0b8c9;
+    font-size: 0.8rem;
+    margin-top: 0.25rem;
+}
+
+.student-actions {
+    margin-bottom: 1rem;
+}
+
+.btn-danger {
+    background: rgba(220, 53, 69, 0.2);
+    color: #DC3545;
+    border: 1px solid rgba(220, 53, 69, 0.3);
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    width: 100%;
+    transition: all 0.3s ease;
+}
+
+.btn-danger:hover {
+    background: rgba(220, 53, 69, 0.3);
+    transform: translateY(-2px);
+}
+
+.student-footer {
+    padding-top: 1rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    text-align: center;
+}
+
+.student-footer small {
+    color: #8a93aa;
+    font-size: 0.8rem;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 3rem 2rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: 2px dashed rgba(255, 255, 255, 0.2);
+    border-radius: 15px;
+    color: #b0b8c9;
+}
+
+.empty-icon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+    opacity: 0.7;
+}
+
+.empty-state h3 {
+    color: white;
+    margin-bottom: 0.5rem;
+}
+
+.empty-state p {
+    margin: 0;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .students-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .student-stats {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.5rem;
+    }
+}
+</style>
+{% endblock %}
