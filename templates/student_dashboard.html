@@ -110,7 +110,7 @@
             {% endif %}
         </div>
 
-        <!-- FIXED: Progress Stats -->
+        <!-- Progress Stats -->
         <div class="stats-grid">
             {% set total_prompts = prompts|length %}
             {% set completed_prompts = prompts|selectattr('has_submitted')|list|length %}
@@ -156,7 +156,7 @@
             </div>
         </div>
 
-        <!-- Available Missions -->
+        <!-- Available Missions - ORGANIZED BY SUBJECT -->
         <div class="missions-section">
             <div class="section-header">
                 <h2 class="section-title">🎯 Your Missions</h2>
@@ -164,86 +164,272 @@
             </div>
             
             {% if prompts %}
-            <div class="missions-grid">
-                {% for prompt in prompts %}
-                <div class="mission-card {% if prompt.has_submitted %}completed{% else %}pending{% endif %}">
-                    <div class="mission-header">
-                        <h3 class="mission-title">{{ prompt.title }}</h3>
-                        <div class="mission-status">
+                <!-- Group prompts by category -->
+                {% set biology_prompts = prompts|selectattr('category', 'equalto', 'biology')|list %}
+                {% set physics_prompts = prompts|selectattr('category', 'equalto', 'physics')|list %}
+                {% set general_prompts = prompts|selectattr('category', 'equalto', 'general')|list %}
+                
+                <!-- Biology Section -->
+                {% if biology_prompts %}
+                <div class="subject-group">
+                    <h3 class="subject-title">🧬 Biology Missions</h3>
+                    <div class="missions-grid">
+                        {% for prompt in biology_prompts %}
+                        <div class="mission-card {% if prompt.has_submitted %}completed{% else %}pending{% endif %}">
+                            <div class="mission-header">
+                                <h3 class="mission-title">{{ prompt.title }}</h3>
+                                <div class="mission-status">
+                                    {% if prompt.has_submitted %}
+                                    <span class="status-badge completed-badge">
+                                        <span class="badge-icon">✅</span>
+                                        Completed
+                                    </span>
+                                    {% else %}
+                                    <span class="status-badge pending-badge">
+                                        <span class="badge-icon">🚀</span>
+                                        Available
+                                    </span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <p class="mission-description">{{ prompt.description }}</p>
+                            
+                            <!-- Due Date Display -->
+                            {% if prompt.due_date %}
+                            <div class="due-date-section">
+                                <div class="due-date-label">
+                                    <span class="due-icon">📅</span>
+                                    Due Date:
+                                </div>
+                                <div class="due-date-value">
+                                    {{ prompt.due_date[:16]|replace('T', ' at ') }}
+                                </div>
+                            </div>
+                            {% endif %}
+                            
                             {% if prompt.has_submitted %}
-                            <span class="status-badge completed-badge">
-                                <span class="status-icon">✅</span>
-                                Submitted
-                            </span>
+                            <div class="submission-result">
+                                <div class="result-header">
+                                    <span class="result-icon">📋</span>
+                                    Your Submission
+                                </div>
+                                {% if prompt.submission.grade is not none %}
+                                <div class="grade-display">
+                                    <span class="grade-label">Grade:</span>
+                                    <span class="grade-value">{{ prompt.submission.grade }}/100</span>
+                                </div>
+                                {% if prompt.submission.feedback %}
+                                <div class="feedback-section">
+                                    <span class="feedback-label">Teacher's Feedback:</span>
+                                    <p class="feedback-text">{{ prompt.submission.feedback }}</p>
+                                </div>
+                                {% endif %}
+                                {% else %}
+                                <div class="awaiting-grade">
+                                    <span class="awaiting-icon">⏳</span>
+                                    Awaiting teacher's evaluation
+                                </div>
+                                {% endif %}
+                            </div>
                             {% else %}
-                            <span class="status-badge pending-badge">
-                                <span class="status-icon">⏳</span>
-                                Awaiting
-                            </span>
+                            <!-- Simple Written Answer Form -->
+                            <form method="POST" action="{{ url_for('submit_response', prompt_id=prompt.id) }}" class="submission-form">
+                                <div class="form-group">
+                                    <label for="response_{{ prompt.id }}" class="form-label">
+                                        <span class="label-icon">✏️</span>
+                                        Your Mission Response:
+                                    </label>
+                                    <textarea class="form-input" id="response_{{ prompt.id }}" 
+                                              name="response" rows="4" required 
+                                              placeholder="Share your thoughts, ideas, or solutions here..."></textarea>
+                                </div>
+                                <button type="submit" class="btn btn-submit">
+                                    <span class="btn-icon">🚀</span>
+                                    Submit Mission
+                                </button>
+                            </form>
                             {% endif %}
                         </div>
+                        {% endfor %}
                     </div>
-                    
-                    <p class="mission-description">{{ prompt.description }}</p>
-
-                    <!-- Due Date Display -->
-                    {% if prompt.due_date %}
-                    <div class="due-date-section">
-                        <div class="due-date-label">
-                            <span class="due-icon">📅</span>
-                            Due Date:
-                        </div>
-                        <div class="due-date-value">
-                            {{ prompt.due_date[:16]|replace('T', ' at ') }}
-                        </div>
-                    </div>
-                    {% endif %}
-                    
-                    {% if prompt.has_submitted %}
-                    <div class="submission-result">
-                        <div class="result-header">
-                            <span class="result-icon">📋</span>
-                            Your Submission
-                        </div>
-                        {% if prompt.submission.grade is not none %}
-                        <div class="grade-display">
-                            <span class="grade-label">Grade:</span>
-                            <span class="grade-value">{{ prompt.submission.grade }}/100</span>
-                        </div>
-                        {% if prompt.submission.feedback %}
-                        <div class="feedback-section">
-                            <span class="feedback-label">Teacher's Feedback:</span>
-                            <p class="feedback-text">{{ prompt.submission.feedback }}</p>
-                        </div>
-                        {% endif %}
-                        {% else %}
-                        <div class="awaiting-grade">
-                            <span class="awaiting-icon">⏳</span>
-                            Awaiting teacher's evaluation
-                        </div>
-                        {% endif %}
-                    </div>
-                    {% else %}
-                    <!-- Simple Written Answer Form -->
-                    <form method="POST" action="{{ url_for('submit_response', prompt_id=prompt.id) }}" class="submission-form">
-                        <div class="form-group">
-                            <label for="response_{{ prompt.id }}" class="form-label">
-                                <span class="label-icon">✏️</span>
-                                Your Mission Response:
-                            </label>
-                            <textarea class="form-input" id="response_{{ prompt.id }}" 
-                                      name="response" rows="4" required 
-                                      placeholder="Share your thoughts, ideas, or solutions here..."></textarea>
-                        </div>
-                        <button type="submit" class="btn btn-submit">
-                            <span class="btn-icon">🚀</span>
-                            Submit Mission
-                        </button>
-                    </form>
-                    {% endif %}
                 </div>
-                {% endfor %}
-            </div>
+                {% endif %}
+                
+                <!-- Physics Section -->
+                {% if physics_prompts %}
+                <div class="subject-group">
+                    <h3 class="subject-title">⚛️ Physics Missions</h3>
+                    <div class="missions-grid">
+                        {% for prompt in physics_prompts %}
+                        <div class="mission-card {% if prompt.has_submitted %}completed{% else %}pending{% endif %}">
+                            <div class="mission-header">
+                                <h3 class="mission-title">{{ prompt.title }}</h3>
+                                <div class="mission-status">
+                                    {% if prompt.has_submitted %}
+                                    <span class="status-badge completed-badge">
+                                        <span class="badge-icon">✅</span>
+                                        Completed
+                                    </span>
+                                    {% else %}
+                                    <span class="status-badge pending-badge">
+                                        <span class="badge-icon">🚀</span>
+                                        Available
+                                    </span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <p class="mission-description">{{ prompt.description }}</p>
+                            
+                            <!-- Due Date Display -->
+                            {% if prompt.due_date %}
+                            <div class="due-date-section">
+                                <div class="due-date-label">
+                                    <span class="due-icon">📅</span>
+                                    Due Date:
+                                </div>
+                                <div class="due-date-value">
+                                    {{ prompt.due_date[:16]|replace('T', ' at ') }}
+                                </div>
+                            </div>
+                            {% endif %}
+                            
+                            {% if prompt.has_submitted %}
+                            <div class="submission-result">
+                                <div class="result-header">
+                                    <span class="result-icon">📋</span>
+                                    Your Submission
+                                </div>
+                                {% if prompt.submission.grade is not none %}
+                                <div class="grade-display">
+                                    <span class="grade-label">Grade:</span>
+                                    <span class="grade-value">{{ prompt.submission.grade }}/100</span>
+                                </div>
+                                {% if prompt.submission.feedback %}
+                                <div class="feedback-section">
+                                    <span class="feedback-label">Teacher's Feedback:</span>
+                                    <p class="feedback-text">{{ prompt.submission.feedback }}</p>
+                                </div>
+                                {% endif %}
+                                {% else %}
+                                <div class="awaiting-grade">
+                                    <span class="awaiting-icon">⏳</span>
+                                    Awaiting teacher's evaluation
+                                </div>
+                                {% endif %}
+                            </div>
+                            {% else %}
+                            <!-- Simple Written Answer Form -->
+                            <form method="POST" action="{{ url_for('submit_response', prompt_id=prompt.id) }}" class="submission-form">
+                                <div class="form-group">
+                                    <label for="response_{{ prompt.id }}" class="form-label">
+                                        <span class="label-icon">✏️</span>
+                                        Your Mission Response:
+                                    </label>
+                                    <textarea class="form-input" id="response_{{ prompt.id }}" 
+                                              name="response" rows="4" required 
+                                              placeholder="Share your thoughts, ideas, or solutions here..."></textarea>
+                                </div>
+                                <button type="submit" class="btn btn-submit">
+                                    <span class="btn-icon">🚀</span>
+                                    Submit Mission
+                                </button>
+                            </form>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+                
+                <!-- General Section -->
+                {% if general_prompts %}
+                <div class="subject-group">
+                    <h3 class="subject-title">🌟 General Missions</h3>
+                    <div class="missions-grid">
+                        {% for prompt in general_prompts %}
+                        <div class="mission-card {% if prompt.has_submitted %}completed{% else %}pending{% endif %}">
+                            <div class="mission-header">
+                                <h3 class="mission-title">{{ prompt.title }}</h3>
+                                <div class="mission-status">
+                                    {% if prompt.has_submitted %}
+                                    <span class="status-badge completed-badge">
+                                        <span class="badge-icon">✅</span>
+                                        Completed
+                                    </span>
+                                    {% else %}
+                                    <span class="status-badge pending-badge">
+                                        <span class="badge-icon">🚀</span>
+                                        Available
+                                    </span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <p class="mission-description">{{ prompt.description }}</p>
+                            
+                            <!-- Due Date Display -->
+                            {% if prompt.due_date %}
+                            <div class="due-date-section">
+                                <div class="due-date-label">
+                                    <span class="due-icon">📅</span>
+                                    Due Date:
+                                </div>
+                                <div class="due-date-value">
+                                    {{ prompt.due_date[:16]|replace('T', ' at ') }}
+                                </div>
+                            </div>
+                            {% endif %}
+                            
+                            {% if prompt.has_submitted %}
+                            <div class="submission-result">
+                                <div class="result-header">
+                                    <span class="result-icon">📋</span>
+                                    Your Submission
+                                </div>
+                                {% if prompt.submission.grade is not none %}
+                                <div class="grade-display">
+                                    <span class="grade-label">Grade:</span>
+                                    <span class="grade-value">{{ prompt.submission.grade }}/100</span>
+                                </div>
+                                {% if prompt.submission.feedback %}
+                                <div class="feedback-section">
+                                    <span class="feedback-label">Teacher's Feedback:</span>
+                                    <p class="feedback-text">{{ prompt.submission.feedback }}</p>
+                                </div>
+                                {% endif %}
+                                {% else %}
+                                <div class="awaiting-grade">
+                                    <span class="awaiting-icon">⏳</span>
+                                    Awaiting teacher's evaluation
+                                </div>
+                                {% endif %}
+                            </div>
+                            {% else %}
+                            <!-- Simple Written Answer Form -->
+                            <form method="POST" action="{{ url_for('submit_response', prompt_id=prompt.id) }}" class="submission-form">
+                                <div class="form-group">
+                                    <label for="response_{{ prompt.id }}" class="form-label">
+                                        <span class="label-icon">✏️</span>
+                                        Your Mission Response:
+                                    </label>
+                                    <textarea class="form-input" id="response_{{ prompt.id }}" 
+                                              name="response" rows="4" required 
+                                              placeholder="Share your thoughts, ideas, or solutions here..."></textarea>
+                                </div>
+                                <button type="submit" class="btn btn-submit">
+                                    <span class="btn-icon">🚀</span>
+                                    Submit Mission
+                                </button>
+                            </form>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+                
             {% else %}
             <div class="empty-state">
                 <div class="empty-icon">🌌</div>
@@ -257,7 +443,7 @@
             {% endif %}
         </div>
 
-        <!-- FIXED: Quick Actions (No Duplicates) -->
+        <!-- Quick Actions -->
         <div class="quick-actions">
             <h3 class="section-title">🚀 Mission Control</h3>
             <div class="actions-grid">
@@ -280,13 +466,6 @@
         </div>
     </div>
 </div>
-
-<!-- Keep all your existing CSS styles - they're perfect! -->
-<style>
-/* ALL YOUR EXISTING CSS STAYS THE SAME */
-/* ... your existing CSS code ... */
-</style>
-
 
 <style>
 .student-dashboard {
@@ -424,6 +603,19 @@
 .section-subtitle {
     color: #b0b8c9;
     font-size: 1.1rem;
+}
+
+/* Subject Group Styles */
+.subject-group {
+    margin-bottom: 3rem;
+}
+
+.subject-title {
+    color: #FFD700;
+    font-size: 1.5rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid rgba(255, 215, 0, 0.3);
 }
 
 .missions-grid {
@@ -706,26 +898,6 @@
     font-size: 0.9rem;
 }
 
-/* Mobile Notifications */
-@media (max-width: 768px) {
-    .notification-card {
-        padding: 0.75rem 1rem;
-        gap: 0.75rem;
-    }
-    
-    .notification-icon {
-        font-size: 1.25rem;
-    }
-    
-    .notification-title {
-        font-size: 0.9rem;
-    }
-    
-    .notification-message {
-        font-size: 0.8rem;
-    }
-}
-
 /* Quick Actions */
 .quick-actions {
     margin-top: 3rem;
@@ -859,6 +1031,23 @@
     
     .actions-grid {
         grid-template-columns: 1fr;
+    }
+    
+    .notification-card {
+        padding: 0.75rem 1rem;
+        gap: 0.75rem;
+    }
+    
+    .notification-icon {
+        font-size: 1.25rem;
+    }
+    
+    .notification-title {
+        font-size: 0.9rem;
+    }
+    
+    .notification-message {
+        font-size: 0.8rem;
     }
 }
 
