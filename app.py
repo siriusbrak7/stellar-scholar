@@ -101,20 +101,24 @@ def register():
                 flash('Username already exists. Please choose another.', 'danger')
                 return render_template('register.html')
             
-            # Create new user
+            # Create new user with proper grade handling
             user_data = {
                 'username': username,
                 'password_hash': generate_password_hash(password),
                 'role': role,
-                'grade': grade,
+                'approval_status': 'pending',  # NEW - requires admin approval
                 'created_at': datetime.now().isoformat()
             }
-            
+
+            # Only add grade for students
+            if role == 'student' and grade:
+                user_data['grade'] = grade
+
             # Insert into Supabase
             result = supabase.table('users').insert(user_data).execute()
             
             if result.data:
-                flash('Registration successful! Please log in.', 'success')
+                flash('Registration successful! Please wait for admin approval.', 'success')
                 return redirect(url_for('login'))
             else:
                 flash('Registration failed. Please try again.', 'danger')
@@ -142,6 +146,11 @@ def login():
             user = response.data[0] if response.data else None
             
             if user and check_password_hash(user['password_hash'], password):
+                # NEW: Check if user is approved
+                if user.get('approval_status') != 'approved':
+                    flash('Your account is pending admin approval. Please wait for activation.', 'warning')
+                    return render_template('login.html')
+                
                 session['user_id'] = username
                 session['role'] = user['role']
                 flash(f'Welcome back, {username}!', 'success')
@@ -960,6 +969,73 @@ def view_feedback(submission_id):
         logger.error(f"View feedback error: {e}")
         flash('Error loading feedback.', 'danger')
         return redirect(url_for('student_dashboard'))
+    
+@app.route('/admin/dashboard')
+@teacher_required
+def admin_dashboard():
+    supabase = get_supabase()
+    if not supabase:
+        flash('Database connection error.', 'danger')
+        return redirect(url_for('index'))
+    
+    try:
+        # Get pending registrations (new users waiting approval)
+        pending_users = supabase.table('users').select('*').eq('approval_status', 'pending').execute()
+        
+        # Get all users for management
+        all_users = supabase.table('users').select('*').order('created_at', desc=True).execute()
+        
+        return render_template('admin_dashboard.html',
+                             pending_users=pending_users.data if pending_users.data else [],
+                             all_users=all_users.data if all_users.data else [])
+    except Exception as e:
+        logger.error(f"Admin dashboard error: {e}")
+        flash('Error loading admin dashboard.', 'danger')
+        return redirect(url_for('teacher_dashboard'))
+    
+@app.route('/admin/approve_user/<username>', methods=['POST'])
+@teacher_required
+def approve_user(username):
+    supabase = get_supabase()
+    if not supabase:
+        flash('Database connection error.', 'danger')
+        return redirect(url_for('admin_dashboard'))
+    
+    try:
+        # Update user approval status to 'approved'
+        result = supabase.table('users').update({'approval_status': 'approved'}).eq('username', username).execute()
+        
+        if result.data:
+            flash(f'✅ User {username} has been approved successfully!', 'success')
+        else:
+            flash('User not found.', 'warning')
+    except Exception as e:
+        logger.error(f"Approve user error: {e}")
+        flash('Error approving user.', 'danger')
+    
+    return redirect(url_for('admin_dashboard'))
+
+@app.route('/admin/reject_user/<username>', methods=['POST'])
+@teacher_required
+def reject_user(username):
+    supabase = get_supabase()
+    if not supabase:
+        flash('Database connection error.', 'danger')
+        return redirect(url_for('admin_dashboard'))
+    
+    try:
+        # Update user approval status to 'rejected'
+        result = supabase.table('users').update({'approval_status': 'rejected'}).eq('username', username).execute()
+        
+        if result.data:
+            flash(f'❌ User {username} has been rejected.', 'success')
+        else:
+            flash('User not found.', 'warning')
+    except Exception as e:
+        logger.error(f"Reject user error: {e}")
+        flash('Error rejecting user.', 'danger')
+    
+    return redirect(url_for('admin_dashboard'))
 
 if __name__ == '__main__':
     app.run(debug=True)

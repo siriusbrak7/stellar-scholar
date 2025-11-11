@@ -1,0 +1,213 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="admin-dashboard">
+    <div class="container-fluid">
+        <!-- Header -->
+        <div class="admin-header text-center mb-5">
+            <h1 class="stellar-main-title">👨‍💼 Admin Dashboard</h1>
+            <p class="hero-subtitle">Manage User Registrations & Approvals</p>
+        </div>
+
+        <!-- Pending Approvals Section -->
+        {% if pending_users %}
+        <div class="pending-approvals-section mb-5">
+            <h2 class="section-title mb-4">⏳ Pending Approvals ({{ pending_users|length }})</h2>
+            
+            <div class="row">
+                {% for user in pending_users %}
+                <div class="col-md-6 col-lg-4 mb-4">
+                    <div class="user-card pending-card">
+                        <div class="user-info">
+                            <h5 class="username">{{ user.username }}</h5>
+                            <div class="user-details">
+                                <span class="badge role-badge {% if user.role == 'teacher' %}bg-primary{% else %}bg-success{% endif %}">
+                                    {{ user.role|title }}
+                                </span>
+                                {% if user.grade %}
+                                <span class="badge bg-info">Grade {{ user.grade }}</span>
+                                {% endif %}
+                                <small class="text-muted d-block mt-2">
+                                    Registered: {{ user.created_at[:16]|replace('T', ' at ') }}
+                                </small>
+                            </div>
+                        </div>
+                        
+                        <div class="approval-actions">
+                            <form method="POST" action="{{ url_for('approve_user', username=user.username) }}" class="d-inline">
+                                <button type="submit" class="btn btn-success btn-sm">✅ Approve</button>
+                            </form>
+                            <form method="POST" action="{{ url_for('reject_user', username=user.username) }}" class="d-inline">
+                                <button type="submit" class="btn btn-danger btn-sm">❌ Reject</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% else %}
+        <div class="alert alert-info text-center">
+            <h4>🎉 No Pending Approvals!</h4>
+            <p class="mb-0">All registration requests have been processed.</p>
+        </div>
+        {% endif %}
+
+        <!-- All Users Section -->
+        <div class="all-users-section">
+            <h2 class="section-title mb-4">👥 All Users ({{ all_users|length }})</h2>
+            
+            <div class="table-responsive">
+                <table class="table table-dark table-hover">
+                    <thead>
+                        <tr>
+                            <th>Username</th>
+                            <th>Role</th>
+                            <th>Grade</th>
+                            <th>Status</th>
+                            <th>Registered</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user in all_users %}
+                        <tr>
+                            <td>
+                                <strong>{{ user.username }}</strong>
+                                {% if user.username == session.user_id %}
+                                <span class="badge bg-warning">You</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge {% if user.role == 'teacher' %}bg-primary{% else %}bg-success{% endif %}">
+                                    {{ user.role|title }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if user.grade %}
+                                Grade {{ user.grade }}
+                                {% else %}
+                                <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if user.approval_status == 'approved' %}
+                                <span class="badge bg-success">✅ Approved</span>
+                                {% elif user.approval_status == 'pending' %}
+                                <span class="badge bg-warning">⏳ Pending</span>
+                                {% else %}
+                                <span class="badge bg-danger">❌ Rejected</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <small class="text-muted">
+                                    {{ user.created_at[:16]|replace('T', ' ') }}
+                                </small>
+                            </td>
+                            <td>
+                                {% if user.approval_status != 'approved' %}
+                                <form method="POST" action="{{ url_for('approve_user', username=user.username) }}" class="d-inline">
+                                    <button type="submit" class="btn btn-success btn-sm">Approve</button>
+                                </form>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.admin-dashboard {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+    padding: 2rem 0;
+}
+
+.admin-header {
+    padding: 2rem 0;
+}
+
+.section-title {
+    color: #FFD700;
+    border-bottom: 2px solid rgba(255, 215, 0, 0.3);
+    padding-bottom: 0.5rem;
+}
+
+.user-card {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 15px;
+    padding: 1.5rem;
+    transition: all 0.3s ease;
+}
+
+.pending-card {
+    border-left: 4px solid #FFD700;
+}
+
+.user-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+}
+
+.username {
+    color: white;
+    margin-bottom: 1rem;
+}
+
+.user-details {
+    margin-bottom: 1.5rem;
+}
+
+.approval-actions {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: space-between;
+}
+
+.approval-actions .btn {
+    flex: 1;
+}
+
+.table {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.table th {
+    background: rgba(255, 215, 0, 0.2);
+    color: #FFD700;
+    border: none;
+    font-weight: 600;
+}
+
+.table td {
+    border-color: rgba(255, 255, 255, 0.1);
+    vertical-align: middle;
+}
+
+.role-badge {
+    font-size: 0.8rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .admin-dashboard {
+        padding: 1rem 0;
+    }
+    
+    .approval-actions {
+        flex-direction: column;
+    }
+    
+    .table-responsive {
+        font-size: 0.9rem;
+    }
+}
+</style>
+{% endblock %}
