@@ -110,34 +110,48 @@
             {% endif %}
         </div>
 
-        <!-- Quick Stats -->
+        <!-- FIXED: Progress Stats -->
         <div class="stats-grid">
+            {% set total_prompts = prompts|length %}
+            {% set completed_prompts = prompts|selectattr('has_submitted')|list|length %}
+            {% set pending_prompts = prompts|rejectattr('has_submitted')|list|length %}
+            {% set completion_rate = (completed_prompts / total_prompts * 100)|round(1) if total_prompts > 0 else 0 %}
+            
+            <!-- Calculate average grade -->
+            {% set graded_submissions = [] %}
+            {% for prompt in prompts %}
+                {% if prompt.has_submitted and prompt.submission and prompt.submission.grade is not none %}
+                    {% set _ = graded_submissions.append(prompt.submission.grade) %}
+                {% endif %}
+            {% endfor %}
+            {% set average_grade = (graded_submissions|sum / graded_submissions|length)|round(1) if graded_submissions else 0 %}
+
             <div class="stat-card">
-                <div class="stat-icon">📝</div>
+                <div class="stat-icon">📊</div>
                 <div class="stat-info">
-                    <div class="stat-number">{{ prompts|length }}</div>
-                    <div class="stat-label">Available Missions</div>
+                    <div class="stat-number">{{ completion_rate }}%</div>
+                    <div class="stat-label">Completion Rate</div>
                 </div>
             </div>
             <div class="stat-card">
                 <div class="stat-icon">✅</div>
                 <div class="stat-info">
-                    <div class="stat-number">{{ prompts|selectattr('has_submitted')|list|length }}</div>
-                    <div class="stat-label">Completed</div>
-                </div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon">⏳</div>
-                <div class="stat-info">
-                    <div class="stat-number">{{ prompts|rejectattr('has_submitted')|list|length }}</div>
-                    <div class="stat-label">To Complete</div>
+                    <div class="stat-number">{{ completed_prompts }}/{{ total_prompts }}</div>
+                    <div class="stat-label">Missions Done</div>
                 </div>
             </div>
             <div class="stat-card">
                 <div class="stat-icon">⭐</div>
                 <div class="stat-info">
-                    <div class="stat-number">Your Rank</div>
-                    <div class="stat-label">See Leaderboard</div>
+                    <div class="stat-number">{{ average_grade if graded_submissions else 'N/A' }}</div>
+                    <div class="stat-label">Avg Grade</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">🚀</div>
+                <div class="stat-info">
+                    <div class="stat-number">{{ pending_prompts }}</div>
+                    <div class="stat-label">New Missions</div>
                 </div>
             </div>
         </div>
@@ -243,7 +257,7 @@
             {% endif %}
         </div>
 
-        <!-- Quick Actions -->
+        <!-- FIXED: Quick Actions (No Duplicates) -->
         <div class="quick-actions">
             <h3 class="section-title">🚀 Mission Control</h3>
             <div class="actions-grid">
@@ -257,15 +271,22 @@
                     <h4>Scholar Rankings</h4>
                     <p>See where you stand among fellow astronauts</p>
                 </a>
-                <a href="{{ url_for('student_history') }}" class="action-card">
+                <div class="action-card">
                     <div class="action-icon">📈</div>
-                    <h4>Progress Track</h4>
-                    <p>Monitor your learning journey and growth</p>
-                </a>
+                    <h4>Your Progress</h4>
+                    <p>{{ completion_rate }}% complete • {{ average_grade if graded_submissions else 'N/A' }} avg grade</p>
+                </div>
             </div>
         </div>
     </div>
 </div>
+
+<!-- Keep all your existing CSS styles - they're perfect! -->
+<style>
+/* ALL YOUR EXISTING CSS STAYS THE SAME */
+/* ... your existing CSS code ... */
+</style>
+
 
 <style>
 .student-dashboard {
