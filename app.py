@@ -970,8 +970,34 @@ def view_feedback(submission_id):
         flash('Error loading feedback.', 'danger')
         return redirect(url_for('student_dashboard'))
     
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_id' not in session:
+            return redirect(url_for('login'))
+        
+        supabase = get_supabase()
+        if not supabase:
+            flash('Database connection error.', 'danger')
+            return redirect(url_for('index'))
+            
+        try:
+            # Get user from Supabase
+            response = supabase.table('users').select('*').eq('username', session['user_id']).execute()
+            user = response.data[0] if response.data else None
+            
+            if not user or not user.get('is_admin'):
+                flash('Admin access required.', 'danger')
+                return redirect(url_for('index'))
+            return f(*args, **kwargs)
+        except Exception as e:
+            logger.error(f"Admin check error: {e}")
+            flash('Error verifying admin permissions.', 'danger')
+            return redirect(url_for('index'))
+    return decorated_function
+
 @app.route('/admin/dashboard')
-@teacher_required
+@admin_required
 def admin_dashboard():
     supabase = get_supabase()
     if not supabase:
@@ -994,7 +1020,7 @@ def admin_dashboard():
         return redirect(url_for('teacher_dashboard'))
     
 @app.route('/admin/approve_user/<username>', methods=['POST'])
-@teacher_required
+@admin_required
 def approve_user(username):
     supabase = get_supabase()
     if not supabase:
@@ -1016,7 +1042,7 @@ def approve_user(username):
     return redirect(url_for('admin_dashboard'))
 
 @app.route('/admin/reject_user/<username>', methods=['POST'])
-@teacher_required
+@admin_required
 def reject_user(username):
     supabase = get_supabase()
     if not supabase:
