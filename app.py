@@ -1,3 +1,4 @@
+# app.py
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 from functools import wraps
 import json
@@ -173,44 +174,48 @@ def teacher_dashboard():
         return redirect(url_for('index'))
     
     try:
-        # Get grade filter from query parameter
+        # Get filters from query parameters
         grade_filter = request.args.get('grade', 'all')
+        category_filter = request.args.get('category', 'all')
         
-        # Get all prompts - ORDER BY created_at DESC (NEWEST FIRST)
+        # Get all prompts from Supabase (used to derive available filters)
         prompts_response = supabase.table('prompts').select('*').order('created_at', desc=True).execute()
         all_prompts = prompts_response.data if prompts_response.data else []
         
-        # Apply grade filter
-        if grade_filter != 'all':
-            prompts_data = [p for p in all_prompts if p['grade_level'] == grade_filter]
-        else:
-            prompts_data = all_prompts
+        # Build available grades and categories from full prompt set (for filter buttons)
+        unique_grades = sorted(list({p['grade_level'] for p in all_prompts if p.get('grade_level')}))
+        unique_categories = sorted(list({p.get('category', 'general') for p in all_prompts if p.get('category') is not None}))
         
-        prompts = {prompt['id']: prompt for prompt in prompts_data}
+        # Apply grade & category filters to the prompts shown on the dashboard
+        filtered_prompts = all_prompts
+        if grade_filter != 'all':
+            filtered_prompts = [p for p in filtered_prompts if p.get('grade_level') == grade_filter]
+        if category_filter != 'all':
+            filtered_prompts = [p for p in filtered_prompts if (p.get('category') or 'general') == category_filter]
+        
+        prompts = {prompt['id']: prompt for prompt in filtered_prompts}
         
         # Get all submissions
         submissions_response = supabase.table('submissions').select('*').execute()
         submissions = submissions_response.data if submissions_response.data else []
         
-        # Get all users (for analytics)
+        # Get all users (for analytics and student progress)
         users_response = supabase.table('users').select('*').execute()
         users_data = users_response.data if users_response.data else []
         
-        # Count submissions per prompt
+        # Count submissions per prompt (only for prompts currently shown)
         prompt_stats = {}
         for prompt_id in prompts:
             prompt_stats[prompt_id] = {
                 'total': 0,
                 'graded': 0
             }
-            for sub in submissions:
-                if sub['prompt_id'] == prompt_id:
-                    prompt_stats[prompt_id]['total'] += 1
-                    if sub.get('grade') is not None:
-                        prompt_stats[prompt_id]['graded'] += 1
-        
-        # Get unique grades for filter buttons
-        unique_grades = sorted(list(set([p['grade_level'] for p in all_prompts])))
+        for sub in submissions:
+            pid = sub.get('prompt_id')
+            if pid in prompt_stats:
+                prompt_stats[pid]['total'] += 1
+                if sub.get('grade') is not None:
+                    prompt_stats[pid]['graded'] += 1
         
         # STUDENT PROGRESS TRACKING
         student_progress = {}
@@ -225,16 +230,16 @@ def teacher_dashboard():
         
         # Calculate student progress and class analytics
         for user in users_data:
-            if user['role'] == 'student':
-                student_grade = user['grade']
+            if user.get('role') == 'student':
+                student_grade = user.get('grade')
                 
-                # Get prompts for this student's grade
-                grade_prompts = [p for p in all_prompts if p['grade_level'] == student_grade]
+                # Prompts for this student's grade (use ALL prompts to compute expected work)
+                grade_prompts = [p for p in all_prompts if p.get('grade_level') == student_grade]
                 total_prompts = len(grade_prompts)
                 
                 if total_prompts > 0:
-                    # Count submissions for this student
-                    student_subs = [s for s in submissions if s['student_id'] == user['username']]
+                    # Count submissions for this student across all prompts
+                    student_subs = [s for s in submissions if s.get('student_id') == user.get('username')]
                     submitted_count = len(student_subs)
                     graded_subs = [s for s in student_subs if s.get('grade') is not None]
                     
@@ -270,7 +275,7 @@ def teacher_dashboard():
                     if submitted_count > 0:
                         class_analytics['grade_breakdown'][student_grade]['active'] += 1
 
-        # If no student progress was collected, initialize empty structures to avoid template errors
+        # If no student progress was collected, ensure defaults are present
         if not student_progress:
             student_progress = {}
             class_analytics = {
@@ -284,7 +289,6 @@ def teacher_dashboard():
 
         # Calculate overall averages
         if class_analytics['total_students'] > 0:
-            # Avoid division by zero when no student progress entries exist
             if student_progress and len(student_progress) > 0:
                 completion_rates = [s['completion_rate'] for s in student_progress.values()]
                 if len(completion_rates) > 0:
@@ -304,7 +308,7 @@ def teacher_dashboard():
         
         for sub in submissions:
             if sub.get('grade') is not None:
-                student_id = sub['student_id']
+                student_id = sub.get('student_id')
                 if student_id not in student_scores:
                     user_response = supabase.table('users').select('grade').eq('username', student_id).execute()
                     grade_level = user_response.data[0]['grade'] if user_response.data else 'N/A'
@@ -314,7 +318,7 @@ def teacher_dashboard():
                         'username': student_id,
                         'grade_level': grade_level
                     }
-                student_scores[student_id]['grades'].append(sub['grade'])
+                student_scores[student_id]['grades'].append(sub.get('grade'))
         
         for student_id, data in student_scores.items():
             if data['grades']:
@@ -328,12 +332,15 @@ def teacher_dashboard():
         top_students.sort(key=lambda x: x['avg_score'], reverse=True)
         top_students = top_students[:5]
         
+        # Render template with new category filter context
         return render_template('teacher_dashboard.html', 
                              prompts=prompts, 
                              prompt_stats=prompt_stats,
                              top_students=top_students,
                              current_grade_filter=grade_filter,
+                             current_category_filter=category_filter,
                              available_grades=unique_grades,
+                             available_categories=unique_categories,
                              student_progress=student_progress,
                              class_analytics=class_analytics)
                              
