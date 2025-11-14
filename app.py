@@ -1237,5 +1237,9 @@ def reset_with_answer():
         flash('Error verifying answer.', 'danger')
         return redirect(url_for('forgot_password'))
 
+@app.route('/get-hash/<password>')
+def get_hash(password):
+    return generate_password_hash(password)
+
 if __name__ == '__main__':
     app.run(debug=True)
