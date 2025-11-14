@@ -1,56 +1,214 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-6">
-        <div class="card p-4">
-            <h2 class="text-center mb-4">Join Stellar Scholar</h2>
-            
+<div class="cosmic-homepage">
+    <div class="cosmic-content">
+        <h1 class="stellar-main-title">🚀 Join Stellar Scholar</h1>
+        <p class="hero-subtitle">Begin your cosmic learning journey</p>
+
+        <div class="feature-card" style="max-width: 500px; margin: 0 auto;">
             <form method="POST">
+                <!-- Username -->
                 <div class="mb-3">
-                    <label for="username" class="form-label">Username</label>
-                    <input type="text" class="form-control" id="username" name="username" required>
+                    <label for="username" class="form-label text-white">Username</label>
+                    <input type="text" class="form-control" id="username" name="username" 
+                           placeholder="Choose your username" required>
                 </div>
-                
+
+                <!-- Password -->
                 <div class="mb-3">
-                    <label for="password" class="form-label">Password</label>
-                    <input type="password" class="form-control" id="password" name="password" required>
+                    <label for="password" class="form-label text-white">Password</label>
+                    <input type="password" class="form-control" id="password" name="password" 
+                           placeholder="Create a password" required minlength="6">
                 </div>
-                
+
+                <!-- Role Selection -->
                 <div class="mb-3">
-                    <label for="role" class="form-label">I am a:</label>
-                    <select class="form-control" id="role" name="role" required>
-                        <option value="">Select Role</option>
-                        <option value="teacher">Teacher</option>
-                        <option value="student">Student</option>
-                    </select>
+                    <label class="form-label text-white">I am a:</label>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="role" id="teacher" value="teacher" required>
+                        <label class="form-check-label text-white" for="teacher">
+                            👨‍🏫 Teacher
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="role" id="student" value="student">
+                        <label class="form-check-label text-white" for="student">
+                            👨‍🎓 Student
+                        </label>
+                    </div>
                 </div>
-                
-                <div class="mb-3" id="gradeField" style="display: none;">
-                    <label for="grade" class="form-label">Grade Level</label>
+
+                <!-- Grade Level (Students Only) -->
+                <div class="mb-3" id="gradeSection" style="display: none;">
+                    <label for="grade" class="form-label text-white">Grade Level</label>
                     <select class="form-control" id="grade" name="grade">
-                        <option value="">Select Grade</option>
+                        <option value="">Select your grade</option>
+                        <option value="7">Grade 7</option>
                         <option value="8">Grade 8</option>
                         <option value="9">Grade 9</option>
                         <option value="10">Grade 10</option>
                         <option value="11">Grade 11</option>
+                        <option value="12">Grade 12</option>
+
                     </select>
                 </div>
-                
-                <button type="submit" class="btn btn-primary w-100">Register</button>
+
+                <!-- Security Questions (Students Only) -->
+                <div class="mb-3" id="securitySection" style="display: none;">
+                    <label for="security_question" class="form-label text-white">Security Question</label>
+                    <select class="form-control" id="security_question" name="security_question">
+                        <option value="">Select a security question</option>
+                        <option value="What is your favorite subject?">What is your favorite subject?</option>
+                        <option value="What is your pet's name?">What is your pet's name?</option>
+                        <option value="What city were you born in?">What city were you born in?</option>
+                        <option value="What is your mother's maiden name?">What is your mother's maiden name?</option>
+                        <option value="What was your first school?">What was your first school?</option>
+                        <option value="What is your favorite book?">What is your favorite book?</option>
+                    </select>
+
+                    <div class="mt-2">
+                        <label for="security_answer" class="form-label text-white">Security Answer</label>
+                        <input type="text" class="form-control" id="security_answer" name="security_answer" 
+                               placeholder="Your answer (remember this for password reset)">
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary-cta w-100">
+                    🚀 Create Account
+                </button>
             </form>
-            
+
             <div class="text-center mt-3">
-                <p>Already have an account? <a href="{{ url_for('login') }}">Login here</a></p>
+                <p class="text-white-50">Already have an account? 
+                    <a href="{{ url_for('login') }}" class="text-warning">Login here</a>
+                </p>
             </div>
+        </div>
+
+        <!-- Registration Info -->
+        <div class="alert alert-info mt-4" style="max-width: 500px; margin: 0 auto;">
+            <small>
+                <strong>Note:</strong> All accounts require admin approval.<br>
+                You will be able to login once your account is approved.
+            </small>
         </div>
     </div>
 </div>
 
 <script>
-document.getElementById('role').addEventListener('change', function() {
-    const gradeField = document.getElementById('gradeField');
-    gradeField.style.display = this.value === 'student' ? 'block' : 'none';
+document.addEventListener('DOMContentLoaded', function() {
+    const teacherRadio = document.getElementById('teacher');
+    const studentRadio = document.getElementById('student');
+    const gradeSection = document.getElementById('gradeSection');
+    const securitySection = document.getElementById('securitySection');
+    const gradeSelect = document.getElementById('grade');
+    const securityQuestion = document.getElementById('security_question');
+    const securityAnswer = document.getElementById('security_answer');
+
+    function toggleStudentSections() {
+        if (studentRadio.checked) {
+            gradeSection.style.display = 'block';
+            securitySection.style.display = 'block';
+            gradeSelect.required = true;
+            securityQuestion.required = true;
+            securityAnswer.required = true;
+        } else {
+            gradeSection.style.display = 'none';
+            securitySection.style.display = 'none';
+            gradeSelect.required = false;
+            securityQuestion.required = false;
+            securityAnswer.required = false;
+        }
+    }
+
+    teacherRadio.addEventListener('change', toggleStudentSections);
+    studentRadio.addEventListener('change', toggleStudentSections);
+    
+    // Initialize on page load
+    toggleStudentSections();
 });
 </script>
+
+<style>
+.cosmic-homepage {
+    background: linear-gradient(135deg, #0a0e27 0%, #16213e 50%, #1a1a2e 100%);
+    min-height: 100vh;
+    padding: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.cosmic-content {
+    text-align: center;
+    max-width: 900px;
+    width: 100%;
+}
+
+.stellar-main-title {
+    font-family: 'Dancing Script', cursive;
+    font-size: 3rem;
+    background: linear-gradient(45deg, #FFD700, #32CD32);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 1rem;
+}
+
+.hero-subtitle {
+    color: #FFD700;
+    font-size: 1.2rem;
+    margin-bottom: 2rem;
+}
+
+.feature-card {
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 20px;
+    padding: 2rem;
+    transition: all 0.3s ease;
+}
+
+.feature-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+}
+
+.form-control {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: white;
+    border-radius: 10px;
+    padding: 0.75rem;
+}
+
+.form-control:focus {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: #FFD700;
+    color: white;
+    box-shadow: 0 0 0 2px rgba(255, 215, 0, 0.2);
+}
+
+.form-check-input:checked {
+    background-color: #FFD700;
+    border-color: #FFD700;
+}
+
+.btn-primary-cta {
+    background: linear-gradient(45deg, #FFD700, #32CD32);
+    color: black;
+    border: none;
+    padding: 0.75rem 2rem;
+    border-radius: 50px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.btn-primary-cta:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(255, 215, 0, 0.4);
+}
+</style>
 {% endblock %}

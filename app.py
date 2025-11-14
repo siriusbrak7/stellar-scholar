@@ -3,7 +3,7 @@ from flask import Flask, render_template, request, redirect, url_for, session, f
 from functools import wraps
 import json
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 from config import Config
 from werkzeug.security import generate_password_hash, check_password_hash
 from supabase import create_client, Client
@@ -114,6 +114,14 @@ def register():
             if role == 'student' and grade:
                 user_data['grade'] = grade
 
+            # Add security questions for students
+            if role == 'student':
+                security_question = request.form.get('security_question')
+                security_answer = request.form.get('security_answer')
+                if security_question and security_answer:
+                    user_data['security_question'] = security_question
+                    user_data['security_answer_hash'] = generate_password_hash(security_answer.lower().strip())
+
             # Insert into Supabase
             result = supabase.table('users').insert(user_data).execute()
             
@@ -173,6 +181,84 @@ def logout():
     session.clear()
     flash('You have been logged out.', 'info')
     return redirect(url_for('index'))
+
+@app.route('/forgot-password', methods=['GET', 'POST'])
+def forgot_password():
+    if request.method == 'POST':
+        username = request.form.get('username', '').strip()
+        
+        supabase = get_supabase()
+        if not supabase:
+            flash('Database connection error.', 'danger')
+            return render_template('forgot_password.html')
+        
+        try:
+            # Check if user exists and has security question
+            user_response = supabase.table('users').select('*').eq('username', username).execute()
+            user = user_response.data[0] if user_response.data else None
+            
+            if user and user.get('security_question'):
+                # Store username in session for verification
+                session['reset_username'] = username
+                return render_template('security_question.html', 
+                                    question=user['security_question'],
+                                    username=username)
+            else:
+                # Don't reveal if user exists for security
+                flash('If that username exists and has security questions set, you will be redirected.', 'info')
+                return redirect(url_for('forgot_password'))
+                
+        except Exception as e:
+            logger.error(f"Password reset error: {e}")
+            flash('Error processing reset request.', 'danger')
+    
+    return render_template('forgot_password.html')
+
+
+@app.route('/reset-password/<token>', methods=['GET', 'POST'])
+def reset_password(token):
+    supabase = get_supabase()
+    if not supabase:
+        flash('Database connection error.', 'danger')
+        return redirect(url_for('forgot_password'))
+    
+    try:
+        # Verify token is valid and not expired
+        response = supabase.table('users').select('*').eq('reset_token', token).execute()
+        user = response.data[0] if response.data else None
+        
+        if not user or datetime.fromisoformat(user['reset_token_expiry']) < datetime.now():
+            flash('Invalid or expired reset link.', 'danger')
+            return redirect(url_for('forgot_password'))
+        
+        if request.method == 'POST':
+            new_password = request.form.get('password', '').strip()
+            confirm_password = request.form.get('confirm_password', '').strip()
+            
+            if not new_password or not confirm_password:
+                flash('Please fill in all fields.', 'danger')
+                return render_template('reset_password.html', token=token)
+            
+            if new_password != confirm_password:
+                flash('Passwords do not match.', 'danger')
+                return render_template('reset_password.html', token=token)
+            
+            # Update password and clear reset token
+            supabase.table('users').update({
+                'password_hash': generate_password_hash(new_password),
+                'reset_token': None,
+                'reset_token_expiry': None
+            }).eq('reset_token', token).execute()
+            
+            flash('Password reset successfully! Please login with your new password.', 'success')
+            return redirect(url_for('login'))
+        
+        return render_template('reset_password.html', token=token)
+        
+    except Exception as e:
+        logger.error(f"Reset password error: {e}")
+        flash('Error resetting password.', 'danger')
+        return redirect(url_for('forgot_password'))
 
 @app.route('/teacher/dashboard')
 @teacher_required
@@ -1062,6 +1148,94 @@ def reject_user(username):
         flash('Error rejecting user.', 'danger')
     
     return redirect(url_for('admin_dashboard'))
+
+# Add this debug route BEFORE the final if __name__ block
+@app.route('/debug-token/<username>')
+def debug_token(username):
+    supabase = get_supabase()
+    if not supabase:
+        return "No database connection"
+    
+    try:
+        user_response = supabase.table('users').select('reset_token, reset_token_expiry, username').eq('username', username).execute()
+        user = user_response.data[0] if user_response.data else None
+        
+        if user:
+            return f"""
+            <h3>Token Debug for: {user['username']}</h3>
+            <p><strong>Reset Token:</strong> {user.get('reset_token', 'None')}</p>
+            <p><strong>Token Expiry:</strong> {user.get('reset_token_expiry', 'None')}</p>
+            <p><strong>Current Time:</strong> {datetime.now().isoformat()}</p>
+            """
+        else:
+            return "User not found"
+    except Exception as e:
+        return f"Error: {e}"
+    
+@app.route('/verify-security', methods=['POST'])
+def verify_security():
+    username = request.form.get('username')
+    
+    supabase = get_supabase()
+    if not supabase:
+        flash('Database connection error.', 'danger')
+        return redirect(url_for('forgot_password'))
+    
+    try:
+        user_response = supabase.table('users').select('*').eq('username', username).execute()
+        user = user_response.data[0] if user_response.data else None
+        
+        if user and user.get('security_question'):
+            # Store username in session for verification
+            session['reset_username'] = username
+            return render_template('security_question.html', 
+                                question=user['security_question'],
+                                username=username)
+        else:
+            flash('User not found or no security question set.', 'danger')
+            return redirect(url_for('forgot_password'))
+            
+    except Exception as e:
+        logger.error(f"Security question error: {e}")
+        flash('Error verifying user.', 'danger')
+        return redirect(url_for('forgot_password'))
+
+@app.route('/reset-with-answer', methods=['POST'])
+def reset_with_answer():
+    answer = request.form.get('security_answer', '').strip().lower()
+    username = session.get('reset_username')
+    
+    if not username:
+        return redirect(url_for('forgot_password'))
+    
+    supabase = get_supabase()
+    if not supabase:
+        flash('Database connection error.', 'danger')
+        return redirect(url_for('forgot_password'))
+    
+    try:
+        user_response = supabase.table('users').select('*').eq('username', username).execute()
+        user = user_response.data[0] if user_response.data else None
+        
+        if user and check_password_hash(user['security_answer_hash'], answer):
+            # Answer correct - generate reset token
+            import secrets
+            reset_token = secrets.token_urlsafe(32)
+            supabase.table('users').update({
+                'reset_token': reset_token,
+                'reset_token_expiry': (datetime.now() + timedelta(hours=1)).isoformat()
+            }).eq('username', username).execute()
+            
+            session.pop('reset_username', None)
+            return redirect(url_for('reset_password', token=reset_token))
+        else:
+            flash('Incorrect security answer.', 'danger')
+            return redirect(url_for('forgot_password'))
+            
+    except Exception as e:
+        logger.error(f"Security answer error: {e}")
+        flash('Error verifying answer.', 'danger')
+        return redirect(url_for('forgot_password'))
 
 if __name__ == '__main__':
     app.run(debug=True)

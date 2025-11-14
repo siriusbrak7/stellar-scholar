@@ -69,8 +69,62 @@
     </footer>
 
     <!-- Bootstrap JavaScript -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- Custom JavaScript -->
-    <script src="{{ url_for('static', filename='script.js') }}"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+<!-- Custom JavaScript -->
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+
+<!-- Fixed Flash Messages JavaScript -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const flashMessages = document.querySelectorAll('.alert');
+    
+    flashMessages.forEach(function(alert) {
+        // COMPLETELY REMOVE Bootstrap auto-dismiss classes
+        alert.classList.remove('alert-dismissible', 'fade', 'show');
+        
+        // Remove any existing Bootstrap close buttons
+        const bsCloseButtons = alert.querySelector('[data-bs-dismiss="alert"]');
+        if (bsCloseButtons) {
+            bsCloseButtons.remove();
+        }
+        
+        // Create custom close button
+        const closeButton = document.createElement('button');
+        closeButton.type = 'button';
+        closeButton.className = 'btn-close';
+        closeButton.setAttribute('aria-label', 'Close');
+        closeButton.style.cssText = 'position: absolute; right: 15px; top: 15px; cursor: pointer;';
+        
+        // Add close functionality
+        closeButton.addEventListener('click', function() {
+            alert.style.opacity = '0';
+            alert.style.transition = 'opacity 0.5s ease';
+            setTimeout(() => {
+                if (alert.parentNode) {
+                    alert.remove();
+                }
+            }, 500);
+        });
+        
+        alert.style.position = 'relative';
+        alert.style.paddingRight = '50px';
+        alert.style.minHeight = '60px'; // Ensure enough space for button
+        alert.appendChild(closeButton);
+        
+        // Auto-remove after 5 MINUTES (300 seconds) - NOT 15 seconds
+        setTimeout(() => {
+            if (alert.parentNode) {
+                alert.style.opacity = '0';
+                alert.style.transition = 'opacity 0.5s ease';
+                setTimeout(() => {
+                    if (alert.parentNode) {
+                        alert.remove();
+                    }
+                }, 500);
+            }
+        }, 300000); // 300 seconds = 5 minutes
+    });
+});
+</script>
 </body>
 </html>

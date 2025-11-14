@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="cosmic-homepage">
+    <div class="cosmic-content">
+        <h1 class="stellar-main-title">🔒 Security Question</h1>
+        <p class="hero-subtitle">Answer your security question to reset password</p>
+
+        <div class="feature-card" style="max-width: 500px; margin: 0 auto;">
+            <p class="text-white"><strong>Question:</strong> {{ question }}</p>
+            <form method="POST" action="{{ url_for('reset_with_answer') }}">
+                <div class="mb-3">
+                    <label for="security_answer" class="form-label text-white">Your Answer</label>
+                    <input type="text" class="form-control" id="security_answer" name="security_answer" 
+                           placeholder="Enter your answer" required>
+                </div>
+                <button type="submit" class="btn btn-primary-cta w-100">Verify Answer</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
