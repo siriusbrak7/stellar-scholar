@@ -35,9 +35,9 @@
                             
                             <!-- School Admin Links -->
                             {% if session.user_id == 'sirius' %}
-                                <a class="nav-link" href="{{ url_for('super_admin_schools') }}">🏫 Manage Schools</a>
+                                <a class="nav-link" href="{{ url_for('super_admin_dashboard') }}">🏫 Super Admin</a>
                             {% elif is_school_admin %}
-                                <a class="nav-link" href="{{ url_for('school_admin_dashboard') }}">🏫 School Admin</a>
+                                <a class="nav-link" href="{{ url_for('super_admin_schools') }}">🏫 School Admin</a>
                             {% endif %}
                             
                             <!-- Regular Admin Link -->

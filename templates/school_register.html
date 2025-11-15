@@ -11,24 +11,46 @@
                 <!-- School Information -->
                 <h5 class="text-white mb-3">School Details</h5>
                 <div class="mb-3">
-                    <label class="form-label text-white">School Name</label>
+                    <label class="form-label text-white">School Name *</label>
                     <input type="text" class="form-control" name="school_name" required>
                 </div>
 
                 <!-- Admin Account -->
-                <h5 class="text-white mb-3 mt-4">Admin Account</h5>
+                <h5 class="text-white mb-3 mt-4">Admin Account *</h5>
                 <div class="mb-3">
-                    <label class="form-label text-white">Admin Username</label>
+                    <label class="form-label text-white">Admin Username *</label>
                     <input type="text" class="form-control" name="admin_username" required>
                 </div>
+                
                 <div class="mb-3">
-                    <label class="form-label text-white">Admin Password</label>
+                    <label class="form-label text-white">Admin Email *</label>
+                    <input type="email" class="form-control" name="admin_email" required>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label text-white">Admin Password *</label>
                     <input type="password" class="form-control" name="admin_password" required>
+                </div>
+
+                <!-- Optional Contact Info -->
+                <h5 class="text-white mb-3 mt-4">Contact Information (Optional)</h5>
+                <div class="mb-3">
+                    <label class="form-label text-white">Contact Person</label>
+                    <input type="text" class="form-control" name="contact_person" placeholder="Principal or main contact">
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label text-white">Contact Phone</label>
+                    <input type="text" class="form-control" name="contact_phone" placeholder="Phone number">
                 </div>
 
                 <button type="submit" class="btn btn-primary-cta w-100 mt-3">
                     🚀 Create School Platform
                 </button>
+                
+                <div class="text-center mt-3">
+                    <small class="text-muted">* Required fields. Your school will need approval from the platform administrator.</small>
+                </div>
             </form>
         </div>
     </div>

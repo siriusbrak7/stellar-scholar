@@ -105,12 +105,16 @@ def school_admin_required(f):
             return redirect(url_for('index'))
     return decorated_function
 
+# Update the teacher_required decorator to redirect super admin
 def teacher_required(f):
-    """Enhanced to ensure school scoping"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if 'user_id' not in session:
             return redirect(url_for('login'))
+        
+        # Super admin should not access teacher dashboard
+        if session['user_id'] == 'sirius':
+            return redirect(url_for('super_admin_dashboard'))
         
         supabase = get_supabase()
         if not supabase:
@@ -1730,6 +1734,49 @@ def school_settings():
         logger.error(f"School settings error: {e}")
         flash('Error loading school settings.', 'danger')
         return redirect(url_for('school_admin_dashboard'))
+
+@app.route('/super/admin')
+@super_admin_required
+def super_admin_dashboard():
+    """Professional super admin dashboard"""
+    supabase = get_supabase()
+    if not supabase:
+        flash('Database connection error.', 'danger')
+        return redirect(url_for('index'))
+    
+    try:
+        # Get all schools
+        schools_response = supabase.table('schools').select('*').order('created_at', desc=True).execute()
+        schools = schools_response.data if schools_response.data else []
+        
+        # Get all users for platform stats
+        users_response = supabase.table('users').select('*').execute()
+        all_users = users_response.data if users_response.data else []
+        
+        # Calculate stats
+        pending_schools = [s for s in schools if s['status'] == 'pending']
+        active_schools = [s for s in schools if s['status'] == 'active']
+        
+        stats = {
+            'total_schools': len(schools),
+            'pending_schools': len(pending_schools),
+            'active_schools': len(active_schools),
+            'total_users': len(all_users),
+            'active_sessions': 0,  # You can implement session tracking later
+            'storage_used': '2.3 GB'  # Placeholder
+        }
+        
+        # Get recent schools (last 5)
+        recent_schools = schools[:5]
+        
+        return render_template('super_admin_dashboard.html',
+                             stats=stats,
+                             recent_schools=recent_schools)
+                             
+    except Exception as e:
+        logger.error(f"Super admin dashboard error: {e}")
+        flash('Error loading super admin dashboard.', 'danger')
+        return redirect(url_for('index'))
     
 
 if __name__ == '__main__':
