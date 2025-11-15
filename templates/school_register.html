@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="cosmic-homepage">
+    <div class="cosmic-content">
+        <h1 class="stellar-main-title">🏫 Register School</h1>
+        <p class="hero-subtitle">Create your school's Stellar Scholar platform</p>
+
+        <div class="feature-card" style="max-width: 600px; margin: 0 auto;">
+            <form method="POST">
+                <!-- School Information -->
+                <h5 class="text-white mb-3">School Details</h5>
+                <div class="mb-3">
+                    <label class="form-label text-white">School Name</label>
+                    <input type="text" class="form-control" name="school_name" required>
+                </div>
+
+                <!-- Admin Account -->
+                <h5 class="text-white mb-3 mt-4">Admin Account</h5>
+                <div class="mb-3">
+                    <label class="form-label text-white">Admin Username</label>
+                    <input type="text" class="form-control" name="admin_username" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label text-white">Admin Password</label>
+                    <input type="password" class="form-control" name="admin_password" required>
+                </div>
+
+                <button type="submit" class="btn btn-primary-cta w-100 mt-3">
+                    🚀 Create School Platform
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

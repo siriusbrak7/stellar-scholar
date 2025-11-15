@@ -4,4 +4,15 @@ services:
     env: python
     plan: free
     buildCommand: pip install -r requirements.txt
-    startCommand: python app.py
+    startCommand: gunicorn app:app
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: SUPABASE_URL
+        fromDatabase:
+          name: stellar-scholar-db
+          property: connectionString
+      - key: SUPABASE_KEY
+        fromDatabase:
+          name: stellar-scholar-db
+          property: apiKey

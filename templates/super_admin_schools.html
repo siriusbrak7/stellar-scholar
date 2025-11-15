@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2 class="text-white">🏫 School Management</h2>
+                <span class="badge bg-warning">Super Admin</span>
+            </div>
+            
+            <!-- Statistics Cards -->
+            <div class="row mb-4">
+                <div class="col-md-4">
+                    <div class="card text-white bg-primary">
+                        <div class="card-body text-center">
+                            <h3 class="card-title">{{ stats.total_schools }}</h3>
+                            <p class="card-text">Total Schools</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card text-white bg-warning">
+                        <div class="card-body text-center">
+                            <h3 class="card-title">{{ stats.pending_schools }}</h3>
+                            <p class="card-text">Pending Approval</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card text-white bg-success">
+                        <div class="card-body text-center">
+                            <h3 class="card-title">{{ stats.active_schools }}</h3>
+                            <p class="card-text">Active Schools</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Schools Table -->
+            <div class="card">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0">🏫 All Schools</h5>
+                </div>
+                <div class="card-body">
+                    {% if schools %}
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>School Name</th>
+                                    <th>School ID</th>
+                                    <th>Status</th>
+                                    <th>Contact</th>
+                                    <th>Created</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for school in schools %}
+                                <tr>
+                                    <td><strong>{{ school.name }}</strong></td>
+                                    <td><code>{{ school.id }}</code></td>
+                                    <td>
+                                        {% if school.status == 'pending' %}
+                                            <span class="badge bg-warning">Pending</span>
+                                        {% elif school.status == 'active' %}
+                                            <span class="badge bg-success">Active</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">{{ school.status }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if school.contact_person %}
+                                            {{ school.contact_person }}
+                                            {% if school.contact_phone %}
+                                                <br><small>{{ school.contact_phone }}</small>
+                                            {% endif %}
+                                        {% else %}
+                                            <em>No contact info</em>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ school.created_at[:10] }}</td>
+                                    <td>
+                                        {% if school.status == 'pending' %}
+                                            <form method="POST" action="{{ url_for('approve_school', school_id=school.id) }}" class="d-inline">
+                                                <button type="submit" class="btn btn-success btn-sm">✅ Approve</button>
+                                            </form>
+                                            <form method="POST" action="{{ url_for('reject_school', school_id=school.id) }}" class="d-inline" onsubmit="return confirm('Are you sure you want to reject this school? This cannot be undone.');">
+                                                <button type="submit" class="btn btn-danger btn-sm">❌ Reject</button>
+                                            </form>
+                                        {% elif school.status == 'active' %}
+                                            <span class="text-success">✅ Approved</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <p class="text-muted">No schools registered yet.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.card {
+    border: none;
+    border-radius: 15px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+}
+
+.card-body {
+    padding: 1.5rem;
+}
+
+.table th {
+    border-top: none;
+    font-weight: 600;
+    color: #555;
+}
+
+.btn-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+}
+</style>
+{% endblock %}

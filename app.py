@@ -68,6 +68,88 @@ def teacher_required(f):
             return redirect(url_for('index'))
     return decorated_function
 
+# ===== ENHANCED DECORATORS =====
+def super_admin_required(f):
+    """Only for sirius - the platform owner"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_id' not in session or session['user_id'] != 'sirius':
+            flash('Super admin access required.', 'danger')
+            return redirect(url_for('index'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+def school_admin_required(f):
+    """For school-level admins (teachers with is_admin=True)"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_id' not in session:
+            return redirect(url_for('login'))
+        
+        supabase = get_supabase()
+        if not supabase:
+            flash('Database connection error.', 'danger')
+            return redirect(url_for('index'))
+            
+        try:
+            user_response = supabase.table('users').select('*').eq('username', session['user_id']).execute()
+            user = user_response.data[0] if user_response.data else None
+            
+            if not user or not user.get('is_admin') or user['role'] != 'teacher':
+                flash('School admin access required.', 'danger')
+                return redirect(url_for('index'))
+            return f(*args, **kwargs)
+        except Exception as e:
+            logger.error(f"School admin check error: {e}")
+            flash('Error verifying permissions.', 'danger')
+            return redirect(url_for('index'))
+    return decorated_function
+
+def teacher_required(f):
+    """Enhanced to ensure school scoping"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_id' not in session:
+            return redirect(url_for('login'))
+        
+        supabase = get_supabase()
+        if not supabase:
+            flash('Database connection error.', 'danger')
+            return redirect(url_for('index'))
+            
+        try:
+            user_response = supabase.table('users').select('*').eq('username', session['user_id']).execute()
+            user = user_response.data[0] if user_response.data else None
+            
+            if not user or user['role'] != 'teacher':
+                flash('Teacher access required.', 'danger')
+                return redirect(url_for('index'))
+            return f(*args, **kwargs)
+        except Exception as e:
+            logger.error(f"Teacher check error: {e}")
+            flash('Error verifying permissions.', 'danger')
+            return redirect(url_for('index'))
+    return decorated_function
+
+@app.context_processor
+def inject_user_info():
+    """Inject user info into all templates"""
+    if 'user_id' in session:
+        supabase = get_supabase()
+        if supabase:
+            try:
+                user_response = supabase.table('users').select('is_admin, school_id').eq('username', session['user_id']).execute()
+                user = user_response.data[0] if user_response.data else None
+                if user:
+                    return {
+                        'is_school_admin': user.get('is_admin', False) and session.get('role') == 'teacher',
+                        'user_school_id': user.get('school_id')
+                    }
+            except Exception as e:
+                logger.error(f"Context processor error: {e}")
+    
+    return {'is_school_admin': False, 'user_school_id': None}
+
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -79,63 +161,75 @@ def register():
         if not supabase:
             flash('Database connection error. Please try again.', 'danger')
             return render_template('register.html')
-        
+
         username = request.form.get('username', '').strip()
         password = request.form.get('password', '').strip()
         role = request.form.get('role')
         grade = request.form.get('grade') if role == 'student' else None
-        
-        # Validation
+
+        # Basic validation
         if not username or not password:
             flash('Username and password are required.', 'danger')
             return render_template('register.html')
-        
+
         if role == 'student' and not grade:
             flash('Please select your grade level.', 'danger')
             return render_template('register.html')
-        
+
         try:
-            # Check if username already exists
+            # Check existing username
             response = supabase.table('users').select('username').eq('username', username).execute()
             if response.data:
                 flash('Username already exists. Please choose another.', 'danger')
                 return render_template('register.html')
-            
-            # Create new user with proper grade handling
+
+            # Base user data
             user_data = {
                 'username': username,
                 'password_hash': generate_password_hash(password),
                 'role': role,
-                'approval_status': 'pending',  # NEW - requires admin approval
+                'approval_status': 'pending',
                 'created_at': datetime.now().isoformat()
             }
 
-            # Only add grade for students
+            # Add grade if student
             if role == 'student' and grade:
                 user_data['grade'] = grade
 
-            # Add security questions for students
+            # Add security question & answer
             if role == 'student':
                 security_question = request.form.get('security_question')
                 security_answer = request.form.get('security_answer')
+
                 if security_question and security_answer:
                     user_data['security_question'] = security_question
-                    user_data['security_answer_hash'] = generate_password_hash(security_answer.lower().strip())
+                    user_data['security_answer_hash'] = generate_password_hash(
+                        security_answer.lower().strip()
+                    )
 
-            # Insert into Supabase
+            # ✅ Add school_id (your update)
+            school_id = request.form.get('school_id')
+            user_data['school_id'] = school_id
+
+            # Insert into database
             result = supabase.table('users').insert(user_data).execute()
-            
+
             if result.data:
                 flash('Registration successful! Please wait for admin approval.', 'success')
                 return redirect(url_for('login'))
             else:
                 flash('Registration failed. Please try again.', 'danger')
-                
+
         except Exception as e:
             logger.error(f"Registration error: {e}")
             flash('Registration error. Please try again.', 'danger')
-    
-    return render_template('register.html')
+
+    # GET request — Fetch schools for dropdown
+    supabase = get_supabase()
+    schools_response = supabase.table('schools').select('*').execute()
+    schools = schools_response.data if schools_response.data else []
+
+    return render_template('register.html', schools=schools)
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -264,6 +358,10 @@ def reset_password(token):
 @teacher_required
 def teacher_dashboard():
     supabase = get_supabase()
+    # GET CURRENT USER FIRST
+    user_response = supabase.table('users').select('*').eq('username', session['user_id']).execute()
+    user = user_response.data[0] if user_response.data else None
+    
     if not supabase:
         flash('Database connection error.', 'danger')
         return redirect(url_for('index'))
@@ -273,10 +371,11 @@ def teacher_dashboard():
         grade_filter = request.args.get('grade', 'all')
         category_filter = request.args.get('category', 'all')
         
-        # Get all prompts from Supabase (used to derive available filters)
-        prompts_response = supabase.table('prompts').select('*').order('created_at', desc=True).execute()
+        # Get all prompts from user's school only - FIXED SYNTAX
+        prompts_response = supabase.table('prompts').select('*').eq('school_id', user['school_id']).order('created_at', desc=True).execute()
         all_prompts = prompts_response.data if prompts_response.data else []
-        
+
+
         # Build available grades and categories from full prompt set (for filter buttons)
         unique_grades = sorted(list({p['grade_level'] for p in all_prompts if p.get('grade_level')}))
         unique_categories = sorted(list({p.get('category', 'general') for p in all_prompts if p.get('category') is not None}))
@@ -453,6 +552,14 @@ def create_prompt():
             flash('Database connection error.', 'danger')
             return render_template('create_prompt.html')
         
+        # ✅ GET CURRENT USER FIRST (required for school_id)
+        user_response = supabase.table('users').select('*').eq('username', session['user_id']).execute()
+        user = user_response.data[0] if user_response.data else None
+
+        if not user:
+            flash("User not found. Please log in again.", "danger")
+            return redirect(url_for('logout'))
+
         title = request.form.get('title', '').strip()
         description = request.form.get('description', '').strip()
         grade_level = request.form.get('grade_level')
@@ -476,6 +583,7 @@ def create_prompt():
                     flash('Invalid due date format. Please provide a valid date/time.', 'danger')
                     return render_template('create_prompt.html')
             
+            # ✅ Now this works because user is defined
             prompt_data = {
                 'id': prompt_id,
                 'title': title,
@@ -484,23 +592,23 @@ def create_prompt():
                 'category': category,
                 'due_date': due_date,
                 'created_by': session['user_id'],
-                'created_at': datetime.now().isoformat()
+                'created_at': datetime.now().isoformat(),
+                'school_id': user['school_id'],   # <-- FIXED
             }
-            
-            # Insert into Supabase
+
             result = supabase.table('prompts').insert(prompt_data).execute()
-            
             if result.data:
                 flash('Prompt created successfully!', 'success')
                 return redirect(url_for('teacher_dashboard'))
             else:
                 flash('Failed to create prompt.', 'danger')
-                
+
         except Exception as e:
-            logger.error(f"Create prompt error: {e}")
+            logger.error(f"Prompt creation error: {e}")
             flash('Error creating prompt.', 'danger')
-    
+
     return render_template('create_prompt.html')
+
 
 @app.route('/teacher/edit_prompt/<prompt_id>', methods=['GET', 'POST'])
 @teacher_required
@@ -748,10 +856,13 @@ def delete_student(username):
 @login_required
 def student_dashboard():
     supabase = get_supabase()
+    # GET CURRENT USER FIRST
+    user_response = supabase.table('users').select('*').eq('username', session['user_id']).execute()
+    user = user_response.data[0] if user_response.data else None
+    
     if not supabase:
         flash('Database connection error.', 'danger')
-        return redirect(url_for('index'))
-    
+        return redirect(url_for('index'))    
     try:
         # Get current user
         user_response = supabase.table('users').select('*').eq('username', session['user_id']).execute()
@@ -763,6 +874,7 @@ def student_dashboard():
         # Get prompts for student's grade level - ORDER BY created_at DESC (NEWEST FIRST)
         prompts_response = supabase.table('prompts').select('*').eq('grade_level', user['grade']).order('created_at', desc=True).execute()
         prompts_data = prompts_response.data if prompts_response.data else []
+        
         
         # Get student's submissions
         submissions_response = supabase.table('submissions').select('*').eq('student_id', session['user_id']).execute()
@@ -1083,19 +1195,23 @@ def admin_required(f):
     return decorated_function
 
 @app.route('/admin/dashboard')
-@admin_required
+@teacher_required
 def admin_dashboard():
+    """School-scoped admin dashboard for user approvals"""
     supabase = get_supabase()
+    user_response = supabase.table('users').select('*').eq('username', session['user_id']).execute()
+    user = user_response.data[0] if user_response.data else None
+    
     if not supabase:
         flash('Database connection error.', 'danger')
         return redirect(url_for('index'))
     
     try:
-        # Get pending registrations (new users waiting approval)
-        pending_users = supabase.table('users').select('*').eq('approval_status', 'pending').execute()
+        # Get pending registrations from user's school only
+        pending_users = supabase.table('users').select('*').eq('approval_status', 'pending').eq('school_id', user['school_id']).execute()
         
-        # Get all users for management
-        all_users = supabase.table('users').select('*').order('created_at', desc=True).execute()
+        # Get all users from user's school only
+        all_users = supabase.table('users').select('*').eq('school_id', user['school_id']).order('created_at', desc=True).execute()
         
         return render_template('admin_dashboard.html',
                              pending_users=pending_users.data if pending_users.data else [],
@@ -1104,6 +1220,7 @@ def admin_dashboard():
         logger.error(f"Admin dashboard error: {e}")
         flash('Error loading admin dashboard.', 'danger')
         return redirect(url_for('teacher_dashboard'))
+    
     
 @app.route('/admin/approve_user/<username>', methods=['POST'])
 @admin_required
@@ -1240,6 +1357,380 @@ def reset_with_answer():
 @app.route('/get-hash/<password>')
 def get_hash(password):
     return generate_password_hash(password)
+
+@app.route('/school/register', methods=['GET', 'POST'])
+def school_register():
+    if request.method == 'POST':
+        supabase = get_supabase()
+        if not supabase:
+            flash('Database connection error. Please try again.', 'danger')
+            return render_template('school_register.html')
+            
+        school_name = request.form.get('school_name', '').strip()
+        admin_username = request.form.get('admin_username', '').strip()
+        admin_password = request.form.get('admin_password', '').strip()
+        admin_email = request.form.get('admin_email', '').strip()
+        contact_person = request.form.get('contact_person', '').strip()
+        contact_phone = request.form.get('contact_phone', '').strip()
+        
+        # Validation
+        if not all([school_name, admin_username, admin_password, admin_email]):
+            flash('School name, admin username, password and email are required.', 'danger')
+            return render_template('school_register.html')
+        
+        try:
+            # Check if admin username already exists
+            user_response = supabase.table('users').select('username').eq('username', admin_username).execute()
+            if user_response.data:
+                flash('Admin username already exists. Please choose another.', 'danger')
+                return render_template('school_register.html')
+            
+            # Check if school name already exists
+            school_response = supabase.table('schools').select('name').eq('name', school_name).execute()
+            if school_response.data:
+                flash('A school with this name already exists.', 'danger')
+                return render_template('school_register.html')
+            
+            # Generate unique school ID
+            import secrets
+            school_id = f"school_{secrets.token_hex(8)}"
+            
+            # Create school with PENDING status
+            school_data = {
+                'id': school_id,
+                'name': school_name,
+                'contact_person': contact_person,
+                'contact_phone': contact_phone,
+                'status': 'pending',  # Requires super-admin approval
+                'created_at': datetime.now().isoformat()
+            }
+            
+            school_result = supabase.table('schools').insert(school_data).execute()
+            
+            if not school_result.data:
+                flash('Failed to create school. Please try again.', 'danger')
+                return render_template('school_register.html')
+            
+            # Create admin account (also pending)
+            user_data = {
+                'username': admin_username,
+                'password_hash': generate_password_hash(admin_password),
+                'email': admin_email,
+                'role': 'teacher',
+                'approval_status': 'pending',  # Will be approved when school is approved
+                'school_id': school_id,
+                'is_admin': True,
+                'created_at': datetime.now().isoformat()
+            }
+            
+            user_result = supabase.table('users').insert(user_data).execute()
+            
+            if user_result.data:
+                flash('School registration submitted successfully! Your school requires approval from the platform administrator. You will be notified once approved.', 'success')
+                return redirect(url_for('index'))
+            else:
+                # Clean up school if user creation fails
+                supabase.table('schools').delete().eq('id', school_id).execute()
+                flash('Failed to create admin account. Please try again.', 'danger')
+                
+        except Exception as e:
+            logger.error(f"School registration error: {e}")
+            flash('Error during school registration. Please try again.', 'danger')
+    
+    return render_template('school_register.html')
+
+@app.route('/super/admin/schools')
+@super_admin_required
+def super_admin_schools():
+    """Super admin dashboard for managing schools"""
+    supabase = get_supabase()
+    if not supabase:
+        flash('Database connection error.', 'danger')
+        return redirect(url_for('index'))
+    
+    try:
+        # Get all schools
+        schools_response = supabase.table('schools').select('*').order('created_at', desc=True).execute()
+        schools = schools_response.data if schools_response.data else []
+        
+        # Get stats
+        pending_schools = [s for s in schools if s['status'] == 'pending']
+        active_schools = [s for s in schools if s['status'] == 'active']
+        
+        stats = {
+            'total_schools': len(schools),
+            'pending_schools': len(pending_schools),
+            'active_schools': len(active_schools)
+        }
+        
+        return render_template('super_admin_schools.html',
+                             schools=schools,
+                             stats=stats)
+                             
+    except Exception as e:
+        logger.error(f"Super admin schools error: {e}")
+        flash('Error loading school management.', 'danger')
+        return redirect(url_for('index'))
+
+@app.route('/super/admin/approve_school/<school_id>', methods=['POST'])
+@super_admin_required
+def approve_school(school_id):
+    """Approve a school and activate its admin"""
+    supabase = get_supabase()
+    if not supabase:
+        flash('Database connection error.', 'danger')
+        return redirect(url_for('super_admin_schools'))
+    
+    try:
+        # Update school status
+        school_result = supabase.table('schools').update({'status': 'active'}).eq('id', school_id).execute()
+        
+        # Activate the school admin user
+        user_result = supabase.table('users').update({'approval_status': 'approved'}).eq('school_id', school_id).eq('is_admin', True).execute()
+        
+        if school_result.data and user_result.data:
+            flash('School approved successfully! The school admin can now log in.', 'success')
+        else:
+            flash('Error approving school.', 'danger')
+            
+    except Exception as e:
+        logger.error(f"Approve school error: {e}")
+        flash('Error approving school.', 'danger')
+    
+    return redirect(url_for('super_admin_schools'))
+
+@app.route('/super/admin/reject_school/<school_id>', methods=['POST'])
+@super_admin_required
+def reject_school(school_id):
+    """Reject a school registration"""
+    supabase = get_supabase()
+    if not supabase:
+        flash('Database connection error.', 'danger')
+        return redirect(url_for('super_admin_schools'))
+    
+    try:
+        # Delete school and its admin user
+        supabase.table('users').delete().eq('school_id', school_id).execute()
+        supabase.table('schools').delete().eq('id', school_id).execute()
+        
+        flash('School registration rejected and removed.', 'success')
+            
+    except Exception as e:
+        logger.error(f"Reject school error: {e}")
+        flash('Error rejecting school.', 'danger')
+    
+    return redirect(url_for('super_admin_schools'))
+
+@app.route('/init-default-school')
+def init_default_school():
+    """Create a default school for testing - RUN ONCE"""
+    supabase = get_supabase()
+    if not supabase:
+        return "Database connection error"
+    
+    try:
+        # Check if default school already exists
+        school_response = supabase.table('schools').select('*').eq('name', 'Demo Academy').execute()
+        if school_response.data:
+            return "Default school already exists"
+        
+        # Create default school
+        school_data = {
+            'id': 'school_demo_academy',
+            'name': 'Demo Academy',
+            'status': 'active',
+            'created_at': datetime.now().isoformat()
+        }
+        supabase.table('schools').insert(school_data).execute()
+        
+        return "Default school created successfully!"
+        
+    except Exception as e:
+        return f"Error: {e}"
+
+@app.route('/school/admin/dashboard')
+@school_admin_required
+def school_admin_dashboard():
+    """School admin dashboard for managing their school"""
+    supabase = get_supabase()
+    if not supabase:
+        flash('Database connection error.', 'danger')
+        return redirect(url_for('index'))
+    
+    try:
+        # Get current user and school
+        user_response = supabase.table('users').select('*').eq('username', session['user_id']).execute()
+        user = user_response.data[0] if user_response.data else None
+        
+        if not user or not user.get('is_admin'):
+            flash('School admin access required.', 'danger')
+            return redirect(url_for('teacher_dashboard'))
+        
+        # Get school information
+        school_response = supabase.table('schools').select('*').eq('id', user['school_id']).execute()
+        school = school_response.data[0] if school_response.data else None
+        
+        # Get all users in the school
+        users_response = supabase.table('users').select('*').eq('school_id', user['school_id']).execute()
+        school_users = users_response.data if users_response.data else []
+        
+        # Get statistics
+        teachers = [u for u in school_users if u['role'] == 'teacher']
+        students = [u for u in school_users if u['role'] == 'student']
+        pending_users = [u for u in school_users if u.get('approval_status') == 'pending']
+        
+        stats = {
+            'total_teachers': len(teachers),
+            'total_students': len(students),
+            'pending_approvals': len(pending_users),
+            'total_users': len(school_users)
+        }
+        
+        return render_template('school_admin_dashboard.html',
+                             school=school,
+                             users=school_users,
+                             stats=stats)
+                             
+    except Exception as e:
+        logger.error(f"School admin dashboard error: {e}")
+        flash('Error loading school admin dashboard.', 'danger')
+        return redirect(url_for('teacher_dashboard'))
+
+@app.route('/school/admin/bulk_import', methods=['GET', 'POST'])
+@school_admin_required
+def bulk_import_users():
+    """Bulk import teachers/students for the school"""
+    supabase = get_supabase()
+    if not supabase:
+        flash('Database connection error.', 'danger')
+        return redirect(url_for('school_admin_dashboard'))
+    
+    try:
+        # Get current user to check admin status and school_id
+        user_response = supabase.table('users').select('*').eq('username', session['user_id']).execute()
+        user = user_response.data[0] if user_response.data else None
+        
+        if not user or not user.get('is_admin'):
+            flash('School admin access required.', 'danger')
+            return redirect(url_for('teacher_dashboard'))
+        
+        if request.method == 'POST':
+            import_type = request.form.get('import_type')  # 'teachers' or 'students'
+            csv_data = request.form.get('csv_data', '').strip()
+            
+            if not csv_data:
+                flash('Please provide CSV data.', 'danger')
+                return render_template('bulk_import.html')
+            
+            lines = csv_data.split('\n')
+            imported_count = 0
+            errors = []
+            
+            for i, line in enumerate(lines[1:], start=2):  # Skip header row
+                if not line.strip():
+                    continue
+                    
+                parts = [part.strip() for part in line.split(',')]
+                if len(parts) < 3:
+                    errors.append(f"Line {i}: Invalid format, expected username,password,email[,grade]")
+                    continue
+                
+                username, password, email = parts[0], parts[1], parts[2]
+                grade = parts[3] if len(parts) > 3 and import_type == 'students' else None
+                
+                # Check if username already exists
+                existing_user = supabase.table('users').select('username').eq('username', username).execute()
+                if existing_user.data:
+                    errors.append(f"Line {i}: Username '{username}' already exists")
+                    continue
+                
+                # Create user
+                user_data = {
+                    'username': username,
+                    'password_hash': generate_password_hash(password),
+                    'email': email,
+                    'role': 'student' if import_type == 'students' else 'teacher',
+                    'approval_status': 'approved',  # Auto-approve for school admins
+                    'school_id': user['school_id'],
+                    'created_at': datetime.now().isoformat()
+                }
+                
+                if import_type == 'students' and grade:
+                    user_data['grade'] = grade
+                
+                result = supabase.table('users').insert(user_data).execute()
+                if result.data:
+                    imported_count += 1
+                else:
+                    errors.append(f"Line {i}: Failed to create user '{username}'")
+            
+            if imported_count > 0:
+                flash(f'Successfully imported {imported_count} users!', 'success')
+            if errors:
+                flash_errors = '\n'.join(errors[:5])  # Show first 5 errors
+                if len(errors) > 5:
+                    flash_errors += f'\n... and {len(errors) - 5} more errors'
+                flash(f'Import completed with errors:\n{flash_errors}', 'warning')
+            
+            return redirect(url_for('school_admin_dashboard'))
+        
+        return render_template('bulk_import.html')
+        
+    except Exception as e:
+        logger.error(f"Bulk import error: {e}")
+        flash('Error during bulk import.', 'danger')
+        return redirect(url_for('school_admin_dashboard'))
+
+@app.route('/school/admin/settings', methods=['GET', 'POST'])
+@school_admin_required
+def school_settings():
+    """School settings management"""
+    supabase = get_supabase()
+    if not supabase:
+        flash('Database connection error.', 'danger')
+        return redirect(url_for('school_admin_dashboard'))
+    
+    try:
+        # Get current user and school
+        user_response = supabase.table('users').select('*').eq('username', session['user_id']).execute()
+        user = user_response.data[0] if user_response.data else None
+        
+        if not user or not user.get('is_admin'):
+            flash('School admin access required.', 'danger')
+            return redirect(url_for('teacher_dashboard'))
+        
+        school_response = supabase.table('schools').select('*').eq('id', user['school_id']).execute()
+        school = school_response.data[0] if school_response.data else None
+        
+        if request.method == 'POST':
+            school_name = request.form.get('school_name', '').strip()
+            contact_person = request.form.get('contact_person', '').strip()
+            contact_phone = request.form.get('contact_phone', '').strip()
+            
+            if school_name:
+                # Update school info
+                update_data = {'name': school_name}
+                if contact_person:
+                    update_data['contact_person'] = contact_person
+                if contact_phone:
+                    update_data['contact_phone'] = contact_phone
+                
+                result = supabase.table('schools').update(update_data).eq('id', user['school_id']).execute()
+                if result.data:
+                    flash('School settings updated successfully!', 'success')
+                    return redirect(url_for('school_admin_dashboard'))
+                else:
+                    flash('Failed to update school settings.', 'danger')
+            else:
+                flash('School name is required.', 'danger')
+        
+        return render_template('school_settings.html', school=school)
+        
+    except Exception as e:
+        logger.error(f"School settings error: {e}")
+        flash('Error loading school settings.', 'danger')
+        return redirect(url_for('school_admin_dashboard'))
+    
 
 if __name__ == '__main__':
     app.run(debug=True)

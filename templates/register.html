@@ -8,35 +8,54 @@
 
         <div class="feature-card" style="max-width: 500px; margin: 0 auto;">
             <form method="POST">
+
                 <!-- Username -->
                 <div class="mb-3">
                     <label for="username" class="form-label text-white">Username</label>
-                    <input type="text" class="form-control" id="username" name="username" 
+                    <input type="text" class="form-control" id="username" name="username"
                            placeholder="Choose your username" required>
                 </div>
 
                 <!-- Password -->
                 <div class="mb-3">
                     <label for="password" class="form-label text-white">Password</label>
-                    <input type="password" class="form-control" id="password" name="password" 
+                    <input type="password" class="form-control" id="password" name="password"
                            placeholder="Create a password" required minlength="6">
                 </div>
 
                 <!-- Role Selection -->
                 <div class="mb-3">
                     <label class="form-label text-white">I am a:</label>
+
                     <div class="form-check">
                         <input class="form-check-input" type="radio" name="role" id="teacher" value="teacher" required>
                         <label class="form-check-label text-white" for="teacher">
                             👨‍🏫 Teacher
                         </label>
                     </div>
+
                     <div class="form-check">
                         <input class="form-check-input" type="radio" name="role" id="student" value="student">
                         <label class="form-check-label text-white" for="student">
                             👨‍🎓 Student
                         </label>
                     </div>
+                </div>
+
+                <!-- School Selection -->
+                <div class="mb-3" id="schoolSection">
+                    <label for="school_id" class="form-label text-white">Select School</label>
+                    <select class="form-control" id="school_id" name="school_id" required>
+                        <option value="">Select your school</option>
+                        {% for school in schools %}
+                            <option value="{{ school.id }}">{{ school.name }}</option>
+                        {% endfor %}
+                        <!-- Schools will be populated dynamically -->
+                    </select>
+                    <small class="text-white-50">
+                        Don't see your school?
+                        <a href="{{ url_for('school_register') }}">Register a new school</a>
+                    </small>
                 </div>
 
                 <!-- Grade Level (Students Only) -->
@@ -50,7 +69,6 @@
                         <option value="10">Grade 10</option>
                         <option value="11">Grade 11</option>
                         <option value="12">Grade 12</option>
-
                     </select>
                 </div>
 
@@ -69,7 +87,7 @@
 
                     <div class="mt-2">
                         <label for="security_answer" class="form-label text-white">Security Answer</label>
-                        <input type="text" class="form-control" id="security_answer" name="security_answer" 
+                        <input type="text" class="form-control" id="security_answer" name="security_answer"
                                placeholder="Your answer (remember this for password reset)">
                     </div>
                 </div>
@@ -80,7 +98,8 @@
             </form>
 
             <div class="text-center mt-3">
-                <p class="text-white-50">Already have an account? 
+                <p class="text-white-50">
+                    Already have an account?
                     <a href="{{ url_for('login') }}" class="text-warning">Login here</a>
                 </p>
             </div>
@@ -124,7 +143,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     teacherRadio.addEventListener('change', toggleStudentSections);
     studentRadio.addEventListener('change', toggleStudentSections);
-    
+
     // Initialize on page load
     toggleStudentSections();
 });

@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">⚙️ School Settings</h4>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        <div class="mb-3">
+                            <label class="form-label">School Name</label>
+                            <input type="text" class="form-control" name="school_name" value="{{ school.name }}" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Contact Person</label>
+                            <input type="text" class="form-control" name="contact_person" value="{{ school.contact_person or '' }}" placeholder="Principal or admin contact">
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Contact Phone</label>
+                            <input type="text" class="form-control" name="contact_phone" value="{{ school.contact_phone or '' }}" placeholder="Phone number">
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">School ID</label>
+                            <input type="text" class="form-control" value="{{ school.id }}" readonly>
+                            <div class="form-text">This is your unique school identifier</div>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-success">💾 Save Settings</button>
+                            <a href="{{ url_for('school_admin_dashboard') }}" class="btn btn-secondary">← Back to Dashboard</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.card {
+    border: none;
+    border-radius: 15px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+}
+
+.form-control:read-only {
+    background-color: #f8f9fa;
+}
+</style>
+{% endblock %}
