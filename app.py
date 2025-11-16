@@ -855,6 +855,30 @@ def delete_student(username):
         flash('Error deleting student.', 'danger')
     
     return redirect(url_for('manage_students'))
+@app.route('/fix-database')
+def fix_database():
+    """Debug and fix database schema issues"""
+    supabase = get_supabase()
+    if not supabase:
+        return "Database connection failed"
+    
+    try:
+        # Check schools table structure
+        schools_response = supabase.table('schools').select('*').limit(1).execute()
+        print("Schools table:", schools_response.data)
+        
+        # Check users table structure  
+        users_response = supabase.table('users').select('*').limit(1).execute()
+        print("Users table:", users_response.data)
+        
+        return f"""
+        <h3>Database Check</h3>
+        <p>Schools: {len(schools_response.data) if schools_response.data else 0} records</p>
+        <p>Users: {len(users_response.data) if users_response.data else 0} records</p>
+        <p>If you see errors above, you need to create the schools table in Supabase.</p>
+        """
+    except Exception as e:
+        return f"Database error: {str(e)}"
 
 @app.route('/student/dashboard')
 @login_required
@@ -1374,8 +1398,9 @@ def school_register():
         admin_username = request.form.get('admin_username', '').strip()
         admin_password = request.form.get('admin_password', '').strip()
         admin_email = request.form.get('admin_email', '').strip()
-        contact_person = request.form.get('contact_person', '').strip()
-        contact_phone = request.form.get('contact_phone', '').strip()
+        
+        # Debug: Print form data
+        print(f"Form data: {school_name}, {admin_username}, {admin_email}")
         
         # Validation
         if not all([school_name, admin_username, admin_password, admin_email]):
@@ -1403,12 +1428,11 @@ def school_register():
             school_data = {
                 'id': school_id,
                 'name': school_name,
-                'contact_person': contact_person,
-                'contact_phone': contact_phone,
-                'status': 'pending',  # Requires super-admin approval
+                'status': 'pending',
                 'created_at': datetime.now().isoformat()
             }
             
+            print(f"Creating school: {school_data}")
             school_result = supabase.table('schools').insert(school_data).execute()
             
             if not school_result.data:
@@ -1421,12 +1445,13 @@ def school_register():
                 'password_hash': generate_password_hash(admin_password),
                 'email': admin_email,
                 'role': 'teacher',
-                'approval_status': 'pending',  # Will be approved when school is approved
+                'approval_status': 'pending',
                 'school_id': school_id,
                 'is_admin': True,
                 'created_at': datetime.now().isoformat()
             }
             
+            print(f"Creating admin user: {user_data}")
             user_result = supabase.table('users').insert(user_data).execute()
             
             if user_result.data:
@@ -1439,7 +1464,7 @@ def school_register():
                 
         except Exception as e:
             logger.error(f"School registration error: {e}")
-            flash('Error during school registration. Please try again.', 'danger')
+            flash(f'Error during school registration: {str(e)}', 'danger')
     
     return render_template('school_register.html')
 
@@ -1525,32 +1550,6 @@ def reject_school(school_id):
     
     return redirect(url_for('super_admin_schools'))
 
-@app.route('/init-default-school')
-def init_default_school():
-    """Create a default school for testing - RUN ONCE"""
-    supabase = get_supabase()
-    if not supabase:
-        return "Database connection error"
-    
-    try:
-        # Check if default school already exists
-        school_response = supabase.table('schools').select('*').eq('name', 'Demo Academy').execute()
-        if school_response.data:
-            return "Default school already exists"
-        
-        # Create default school
-        school_data = {
-            'id': 'school_demo_academy',
-            'name': 'Demo Academy',
-            'status': 'active',
-            'created_at': datetime.now().isoformat()
-        }
-        supabase.table('schools').insert(school_data).execute()
-        
-        return "Default school created successfully!"
-        
-    except Exception as e:
-        return f"Error: {e}"
 
 @app.route('/school/admin/dashboard')
 @school_admin_required
@@ -1745,29 +1744,29 @@ def super_admin_dashboard():
         return redirect(url_for('index'))
     
     try:
-        # Get all schools
-        schools_response = supabase.table('schools').select('*').order('created_at', desc=True).execute()
+        # Get all schools with error handling
+        schools_response = supabase.table('schools').select('*').execute()
         schools = schools_response.data if schools_response.data else []
         
         # Get all users for platform stats
         users_response = supabase.table('users').select('*').execute()
         all_users = users_response.data if users_response.data else []
         
-        # Calculate stats
-        pending_schools = [s for s in schools if s['status'] == 'pending']
-        active_schools = [s for s in schools if s['status'] == 'active']
+        # Calculate stats safely
+        pending_schools = [s for s in schools if s.get('status') == 'pending']
+        active_schools = [s for s in schools if s.get('status') == 'active']
         
         stats = {
             'total_schools': len(schools),
             'pending_schools': len(pending_schools),
             'active_schools': len(active_schools),
             'total_users': len(all_users),
-            'active_sessions': 0,  # You can implement session tracking later
-            'storage_used': '2.3 GB'  # Placeholder
+            'active_sessions': 0,
+            'storage_used': '0 GB'
         }
         
         # Get recent schools (last 5)
-        recent_schools = schools[:5]
+        recent_schools = sorted(schools, key=lambda x: x.get('created_at', ''), reverse=True)[:5]
         
         return render_template('super_admin_dashboard.html',
                              stats=stats,
@@ -1775,8 +1774,12 @@ def super_admin_dashboard():
                              
     except Exception as e:
         logger.error(f"Super admin dashboard error: {e}")
-        flash('Error loading super admin dashboard.', 'danger')
-        return redirect(url_for('index'))
+        # Provide helpful error message
+        error_msg = f"Database error: {str(e)}. Please check if schools table exists."
+        flash(error_msg, 'danger')
+        return render_template('super_admin_dashboard.html',
+                             stats={'total_schools': 0, 'pending_schools': 0, 'active_schools': 0, 'total_users': 0, 'active_sessions': 0, 'storage_used': '0 GB'},
+                             recent_schools=[])
     
 
 if __name__ == '__main__':
