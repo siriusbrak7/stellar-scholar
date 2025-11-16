@@ -89,7 +89,7 @@
                                             ✅ Approve School
                                         </button>
                                     </form>
-                                    <form method="POST" action="{{ url_for('reject_school', school_id=school.id) }}" class="d-inline">
+                                    <form method="POST" action="{{ url_for('super_admin_reject_school', school_id=school.id) }}" class="d-inline">
                                         <button type="submit" class="btn btn-danger" 
                                                 onclick="return confirm('Are you sure you want to reject and delete this school? This action cannot be undone.')">
                                             ❌ Reject & Delete

@@ -1959,7 +1959,7 @@ def reject_school(school_id):
 
 @app.route('/super/admin/reject_school/<school_id>', methods=['POST'])
 @super_admin_required
-def reject_school(school_id):
+def super_admin_reject_school(school_id):  # Unique name
     """Reject a school registration"""
     supabase = get_supabase()
     if not supabase:

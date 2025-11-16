@@ -106,7 +106,7 @@
                                     <form method="POST" action="{{ url_for('approve_school', school_id=school.id) }}" class="d-inline">
                                         <button type="submit" class="btn btn-success btn-sm">✅ Approve</button>
                                     </form>
-                                    <form method="POST" action="{{ url_for('reject_school', school_id=school.id) }}" class="d-inline">
+                                    <form method="POST" action="{{ url_for('super_admin_reject_school', school_id=school.id) }}" class="d-inline">
                                         <button type="submit" class="btn btn-danger btn-sm" 
                                                 onclick="return confirm('Delete this school?')">❌ Reject</button>
                                     </form>
