@@ -1826,5 +1826,41 @@ def debug_data():
     except Exception as e:
         return f"Error: {str(e)}"
 
+@app.route('/create-demo-school')
+def create_demo_school():
+    """Quickly create a demo school for testing"""
+    supabase = get_supabase()
+    if not supabase:
+        return "Database connection failed"
+    
+    try:
+        # Check if demo school already exists
+        existing = supabase.table('schools').select('*').eq('name', 'Newel Academy').execute()
+        if existing.data:
+            return "Demo school already exists!"
+        
+        # Create demo school
+        school_data = {
+            'id': 'school_demo_academy',
+            'name': 'Newel Academy', 
+            'status': 'active',
+            'created_at': datetime.now().isoformat()
+        }
+        school_result = supabase.table('schools').insert(school_data).execute()
+        
+        if school_result.data:
+            return """
+            <h3>✅ Demo School Created!</h3>
+            <p><strong>School Name:</strong> Newel Academy</p>
+            <p><strong>School ID:</strong> school_demo_academy</p>
+            <p>You can now register teachers and students for this school.</p>
+            <a href="/register" class="btn btn-primary">Register Users</a>
+            """
+        else:
+            return "Failed to create demo school"
+            
+    except Exception as e:
+        return f"Error: {str(e)}"
+
 if __name__ == '__main__':
     app.run(debug=True)
