@@ -71,7 +71,7 @@ def school_admin_required(f):
 
 # ===== NEW DECORATORS =====
 def school_admin_required(f):
-    """For school-level admins only (teachers with is_admin=True)"""
+    """For school-level admins only (teachers with admin permissions)"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if 'user_id' not in session:
@@ -92,7 +92,8 @@ def school_admin_required(f):
             user_response = supabase.table('users').select('*').eq('username', session['user_id']).execute()
             user = user_response.data[0] if user_response.data else None
             
-            if not user or user['role'] != 'teacher' or not user.get('is_admin'):
+            # UPDATED: Check teacher_permissions instead of just is_admin
+            if not user or user['role'] != 'teacher' or user.get('teacher_permissions') != 'admin':
                 flash('School admin access required.', 'danger')
                 return redirect(url_for('teacher_dashboard'))
             return f(*args, **kwargs)
@@ -174,22 +175,27 @@ def login_required(f):
 
 @app.context_processor
 def inject_user_info():
-    """Inject user info into all templates"""
+    """Inject user info into all templates - UPDATED for teacher permissions"""
     if 'user_id' in session:
         supabase = get_supabase()
         if supabase:
             try:
-                user_response = supabase.table('users').select('is_admin, school_id').eq('username', session['user_id']).execute()
+                user_response = supabase.table('users').select('is_admin, school_id, teacher_permissions').eq('username', session['user_id']).execute()
                 user = user_response.data[0] if user_response.data else None
                 if user:
+                    is_school_admin = user.get('is_admin', False) and session.get('role') == 'teacher'
+                    teacher_permissions = user.get('teacher_permissions', 'classroom')
+                    
                     return {
-                        'is_school_admin': user.get('is_admin', False) and session.get('role') == 'teacher',
-                        'user_school_id': user.get('school_id')
+                        'is_school_admin': is_school_admin,
+                        'user_school_id': user.get('school_id'),
+                        'teacher_permissions': teacher_permissions,
+                        'is_classroom_teacher': teacher_permissions == 'classroom'
                     }
             except Exception as e:
                 logger.error(f"Context processor error: {e}")
     
-    return {'is_school_admin': False, 'user_school_id': None}
+    return {'is_school_admin': False, 'user_school_id': None, 'teacher_permissions': 'classroom', 'is_classroom_teacher': True}
 
 # ===== DATABASE FIX ROUTES =====
 @app.route('/fix-schools-table')
@@ -2514,6 +2520,116 @@ def take_assessment(prompt_id):
         logger.error(f"Take assessment error: {e}")
         flash('Error loading assessment.', 'danger')
         return redirect(url_for('student_dashboard'))
+    
+@app.route('/migrate-teacher-permissions')
+@super_admin_required
+def migrate_teacher_permissions():
+    """Add teacher_permissions field to users table"""
+    supabase = get_supabase()
+    if not supabase:
+        return "Database connection failed"
+    
+    try:
+        # Check if teacher_permissions column exists
+        test_user = supabase.table('users').select('username').limit(1).execute()
+        if test_user.data:
+            user_columns = list(test_user.data[0].keys())
+            
+            if 'teacher_permissions' in user_columns:
+                return """
+                <h3>✅ Teacher Permissions Column Already Exists</h3>
+                <p>The <code>teacher_permissions</code> column is already in the users table.</p>
+                <p>Current columns: <pre>{}</pre></p>
+                <a href="/debug-data" class="btn btn-primary">Check Database</a>
+                """.format(user_columns)
+        
+        # Column doesn't exist - provide SQL to run
+        return """
+        <h3>📋 Database Migration Required</h3>
+        <p>You need to add the <code>teacher_permissions</code> column to your users table.</p>
+        
+        <p>Go to <strong>Supabase → SQL Editor</strong> and run this SQL:</p>
+        
+        <pre>
+-- Add teacher_permissions column
+ALTER TABLE users ADD COLUMN IF NOT EXISTS teacher_permissions TEXT DEFAULT 'classroom';
+
+-- Update existing teachers: school admins keep admin, others become classroom teachers
+UPDATE users 
+SET teacher_permissions = CASE 
+    WHEN is_admin = true THEN 'admin' 
+    ELSE 'classroom' 
+END
+WHERE role = 'teacher';
+
+-- Verify the update
+SELECT username, role, is_admin, teacher_permissions 
+FROM users 
+WHERE role = 'teacher';
+        </pre>
+        
+        <p>After running the SQL, <a href="/migrate-teacher-permissions">refresh this page</a> to verify.</p>
+        """
+                
+    except Exception as e:
+        error_msg = str(e)
+        if 'teacher_permissions' in error_msg:
+            return """
+            <h3>❌ Missing teacher_permissions Column</h3>
+            <p>The SQL above needs to be executed in Supabase.</p>
+            <p>Error: {}</p>
+            """.format(error_msg)
+        return f"Error checking database: {error_msg}"
+
+@app.route('/verify-teacher-roles')
+@super_admin_required
+def verify_teacher_roles():
+    """Verify teacher permissions are set correctly"""
+    supabase = get_supabase()
+    if not supabase:
+        return "Database connection failed"
+    
+    try:
+        # Get all teachers with their permissions
+        teachers_response = supabase.table('users').select('username, role, is_admin, teacher_permissions').eq('role', 'teacher').execute()
+        teachers = teachers_response.data if teachers_response.data else []
+        
+        html = """
+        <h3>👨‍🏫 Teacher Permissions Verification</h3>
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Username</th>
+                    <th>Is Admin</th>
+                    <th>Teacher Permissions</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+        """
+        
+        for teacher in teachers:
+            status = "✅ OK" if teacher.get('teacher_permissions') else "❌ Missing"
+            html += f"""
+                <tr>
+                    <td>{teacher['username']}</td>
+                    <td>{'✅' if teacher.get('is_admin') else '❌'}</td>
+                    <td>{teacher.get('teacher_permissions', 'MISSING')}</td>
+                    <td>{status}</td>
+                </tr>
+            """
+        
+        html += """
+            </tbody>
+        </table>
+        <a href="/migrate-teacher-permissions" class="btn btn-primary">Run Migration</a>
+        <a href="/debug-data" class="btn btn-secondary">Database Debug</a>
+        """
+        
+        return html
+        
+    except Exception as e:
+        return f"Error: {str(e)}"
 
 
 if __name__ == '__main__':
