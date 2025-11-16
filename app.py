@@ -1070,41 +1070,48 @@ def fix_database():
 @login_required
 def student_dashboard():
     supabase = get_supabase()
+
     # GET CURRENT USER FIRST
     user_response = supabase.table('users').select('*').eq('username', session['user_id']).execute()
     user = user_response.data[0] if user_response.data else None
-    
+
     if not supabase:
         flash('Database connection error.', 'danger')
-        return redirect(url_for('index'))    
+        return redirect(url_for('index'))
+
     try:
-        # Get current user
+        # Get current user again (your original logic)
         user_response = supabase.table('users').select('*').eq('username', session['user_id']).execute()
         user = user_response.data[0] if user_response.data else None
-        
+
         if not user or user['role'] != 'student':
             return redirect(url_for('teacher_dashboard'))
-        
-        # Get prompts for student's grade level - ORDER BY created_at DESC (NEWEST FIRST)
-        prompts_response = supabase.table('prompts').select('*').eq('grade_level', user['grade']).order('created_at', desc=True).execute()
+
+        # Get prompts for student's grade level ORDER BY newest first
+        prompts_response = supabase.table('prompts').select('*') \
+            .eq('grade_level', user['grade']) \
+            .order('created_at', desc=True).execute()
+
         prompts_data = prompts_response.data if prompts_response.data else []
-        
-        
+
         # Get student's submissions
-        submissions_response = supabase.table('submissions').select('*').eq('student_id', session['user_id']).execute()
+        submissions_response = supabase.table('submissions').select('*') \
+            .eq('student_id', session['user_id']).execute()
+
         submissions_data = submissions_response.data if submissions_response.data else []
-        
+
+        # Build prompt list with submission info
         available_prompts = []
         for prompt in prompts_data:
-            # Check if student has already submitted
             has_submitted = False
             submission_data = None
+
             for sub in submissions_data:
                 if sub['prompt_id'] == prompt['id']:
                     has_submitted = True
                     submission_data = sub
                     break
-            
+
             available_prompts.append({
                 'id': prompt['id'],
                 'title': prompt['title'],
@@ -1114,16 +1121,53 @@ def student_dashboard():
                 'due_date': prompt.get('due_date'),
                 'category': prompt.get('category', 'general')
             })
-        
-        return render_template('student_dashboard.html', 
-                             prompts=available_prompts,
-                             user=user,
-                             now=datetime.now())
+
+        # ---------------------------------------------------------------------
+        # 📌 STUDENT ANALYTICS (Your requested additions)
+        # ---------------------------------------------------------------------
+
+        # Count completed / pending assignments
+        completed_assignments = len([p for p in available_prompts if p['has_submitted']])
+        pending_assignments = len([p for p in available_prompts if not p['has_submitted']])
+
+        # Completion rate (0 when no prompts exist)
+        completion_rate = round(
+            (completed_assignments / len(available_prompts) * 100)
+            if available_prompts else 0
+        )
+
+        # Average grade (only for graded submissions)
+        graded_submissions = [
+            p for p in available_prompts
+            if p.get('submission') and p['submission'].get('grade') is not None
+        ]
+
+        average_grade = round(
+            sum(p['submission']['grade'] for p in graded_submissions) / len(graded_submissions)
+        ) if graded_submissions else 0
+
+        # Mock leaderboard rank (replace later with real logic)
+        leaderboard_rank = 3
+
+        # ---------------------------------------------------------------------
+
+        return render_template(
+            'student_dashboard.html',
+            prompts=available_prompts,
+            user=user,
+            now=datetime.now(),
+            completed_assignments=completed_assignments,
+            pending_assignments=pending_assignments,
+            completion_rate=completion_rate,
+            average_grade=average_grade,
+            leaderboard_rank=leaderboard_rank
+        )
 
     except Exception as e:
         logger.error(f"Student dashboard error: {e}")
         flash('Error loading dashboard.', 'danger')
         return redirect(url_for('index'))
+
 
 @app.route('/student/history')
 @login_required
