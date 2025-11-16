@@ -1,116 +1,129 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="cosmic-homepage">
-    <div class="cosmic-content">
-        <h1 class="stellar-main-title">🚀 Join Stellar Scholar</h1>
-        <p class="hero-subtitle">Begin your cosmic learning journey</p>
-
-        <div class="feature-card" style="max-width: 500px; margin: 0 auto;">
-            <form method="POST">
-
-                <!-- Username -->
-                <div class="mb-3">
-                    <label for="username" class="form-label text-white">Username</label>
-                    <input type="text" class="form-control" id="username" name="username"
-                           placeholder="Choose your username" required>
+<div class="universal-register">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <!-- Header -->
+                <div class="register-header text-center mb-4">
+                    <h1 class="register-title">🚀 Join Stellar Scholar</h1>
+                    <p class="register-subtitle">Begin your educational journey</p>
                 </div>
 
-                <!-- Password -->
-                <div class="mb-3">
-                    <label for="password" class="form-label text-white">Password</label>
-                    <input type="password" class="form-control" id="password" name="password"
-                           placeholder="Create a password" required minlength="6">
-                </div>
+                <!-- Registration Card -->
+                <div class="register-card">
+                    <form method="POST">
 
-                <!-- Role Selection -->
-                <div class="mb-3">
-                    <label class="form-label text-white">I am a:</label>
+                        <!-- Username -->
+                        <div class="mb-3">
+                            <label for="username" class="form-label">Username</label>
+                            <input type="text" class="form-control" id="username" name="username"
+                                   placeholder="Choose your username" required>
+                        </div>
 
-                    <div class="form-check">
-                        <input class="form-check-input" type="radio" name="role" id="teacher" value="teacher" required>
-                        <label class="form-check-label text-white" for="teacher">
-                            👨‍🏫 Teacher
-                        </label>
+                        <!-- Password -->
+                        <div class="mb-3">
+                            <label for="password" class="form-label">Password</label>
+                            <input type="password" class="form-control" id="password" name="password"
+                                   placeholder="Create a password" required minlength="6">
+                        </div>
+
+                        <!-- Role Selection -->
+                        <div class="mb-3">
+                            <label class="form-label">I am a:</label>
+                            <div class="role-selection">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="role" id="teacher" value="teacher" required>
+                                    <label class="form-check-label" for="teacher">
+                                        👨‍🏫 Teacher
+                                    </label>
+                                </div>
+
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="role" id="student" value="student">
+                                    <label class="form-check-label" for="student">
+                                        👨‍🎓 Student
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- School Selection -->
+                        <div class="mb-3">
+                            <label for="school_id" class="form-label">Select School</label>
+                            <select class="form-control" id="school_id" name="school_id" required>
+                                <option value="">Select your school</option>
+                                {% for school in schools %}
+                                    <option value="{{ school.id }}">{{ school.name }}</option>
+                                {% endfor %}
+                            </select>
+                            <div class="form-text">
+                                Don't see your school?
+                                <a href="{{ url_for('school_register') }}">Register a new school</a>
+                            </div>
+                        </div>
+
+                        <!-- Grade Level (Students Only) -->
+                        <div class="mb-3" id="gradeSection" style="display: none;">
+                            <label for="grade" class="form-label">Grade Level</label>
+                            <select class="form-control" id="grade" name="grade">
+                                <option value="">Select your grade</option>
+                                <option value="7">Grade 7</option>
+                                <option value="8">Grade 8</option>
+                                <option value="9">Grade 9</option>
+                                <option value="10">Grade 10</option>
+                                <option value="11">Grade 11</option>
+                                <option value="12">Grade 12</option>
+                            </select>
+                        </div>
+
+                        <!-- Security Questions (FOR ALL USERS) -->
+                        <div class="mb-3">
+                            <label for="security_question" class="form-label">Security Question</label>
+                            <select class="form-control" id="security_question" name="security_question" required>
+                                <option value="">Select a security question</option>
+                                <option value="What is your favorite subject?">What is your favorite subject?</option>
+                                <option value="What is your pet's name?">What is your pet's name?</option>
+                                <option value="What city were you born in?">What city were you born in?</option>
+                                <option value="What is your mother's maiden name?">What is your mother's maiden name?</option>
+                                <option value="What was your first school?">What was your first school?</option>
+                                <option value="What is your favorite book?">What is your favorite book?</option>
+                                <option value="What was your first car?">What was your first car?</option>
+                                <option value="What is your favorite movie?">What is your favorite movie?</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="security_answer" class="form-label">Security Answer</label>
+                            <input type="text" class="form-control" id="security_answer" name="security_answer"
+                                   placeholder="Your answer (remember this for password reset)" required>
+                            <div class="form-text">
+                                This will be used to verify your identity if you forget your password.
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100 py-2">
+                            🚀 Create Account
+                        </button>
+                    </form>
+
+                    <div class="text-center mt-3">
+                        <p class="text-muted">
+                            Already have an account?
+                            <a href="{{ url_for('login') }}">Login here</a>
+                        </p>
                     </div>
-
-                    <div class="form-check">
-                        <input class="form-check-input" type="radio" name="role" id="student" value="student">
-                        <label class="form-check-label text-white" for="student">
-                            👨‍🎓 Student
-                        </label>
-                    </div>
                 </div>
 
-                <!-- School Selection -->
-                <div class="mb-3" id="schoolSection">
-                    <label for="school_id" class="form-label text-white">Select School</label>
-                    <select class="form-control" id="school_id" name="school_id" required>
-                        <option value="">Select your school</option>
-                        {% for school in schools %}
-                            <option value="{{ school.id }}">{{ school.name }}</option>
-                        {% endfor %}
-                        <!-- Schools will be populated dynamically -->
-                    </select>
-                    <small class="text-white-50">
-                        Don't see your school?
-                        <a href="{{ url_for('school_register') }}">Register a new school</a>
+                <!-- Registration Info -->
+                <div class="alert alert-info mt-4">
+                    <small>
+                        <strong>Note:</strong> All accounts require admin approval.<br>
+                        You will be able to login once your account is approved.
                     </small>
                 </div>
-
-                <!-- Grade Level (Students Only) -->
-                <div class="mb-3" id="gradeSection" style="display: none;">
-                    <label for="grade" class="form-label text-white">Grade Level</label>
-                    <select class="form-control" id="grade" name="grade">
-                        <option value="">Select your grade</option>
-                        <option value="7">Grade 7</option>
-                        <option value="8">Grade 8</option>
-                        <option value="9">Grade 9</option>
-                        <option value="10">Grade 10</option>
-                        <option value="11">Grade 11</option>
-                        <option value="12">Grade 12</option>
-                    </select>
-                </div>
-
-                <!-- Security Questions (Students Only) -->
-                <div class="mb-3" id="securitySection" style="display: none;">
-                    <label for="security_question" class="form-label text-white">Security Question</label>
-                    <select class="form-control" id="security_question" name="security_question">
-                        <option value="">Select a security question</option>
-                        <option value="What is your favorite subject?">What is your favorite subject?</option>
-                        <option value="What is your pet's name?">What is your pet's name?</option>
-                        <option value="What city were you born in?">What city were you born in?</option>
-                        <option value="What is your mother's maiden name?">What is your mother's maiden name?</option>
-                        <option value="What was your first school?">What was your first school?</option>
-                        <option value="What is your favorite book?">What is your favorite book?</option>
-                    </select>
-
-                    <div class="mt-2">
-                        <label for="security_answer" class="form-label text-white">Security Answer</label>
-                        <input type="text" class="form-control" id="security_answer" name="security_answer"
-                               placeholder="Your answer (remember this for password reset)">
-                    </div>
-                </div>
-
-                <button type="submit" class="btn btn-primary-cta w-100">
-                    🚀 Create Account
-                </button>
-            </form>
-
-            <div class="text-center mt-3">
-                <p class="text-white-50">
-                    Already have an account?
-                    <a href="{{ url_for('login') }}" class="text-warning">Login here</a>
-                </p>
             </div>
-        </div>
-
-        <!-- Registration Info -->
-        <div class="alert alert-info mt-4" style="max-width: 500px; margin: 0 auto;">
-            <small>
-                <strong>Note:</strong> All accounts require admin approval.<br>
-                You will be able to login once your account is approved.
-            </small>
         </div>
     </div>
 </div>
@@ -120,24 +133,16 @@ document.addEventListener('DOMContentLoaded', function() {
     const teacherRadio = document.getElementById('teacher');
     const studentRadio = document.getElementById('student');
     const gradeSection = document.getElementById('gradeSection');
-    const securitySection = document.getElementById('securitySection');
     const gradeSelect = document.getElementById('grade');
-    const securityQuestion = document.getElementById('security_question');
-    const securityAnswer = document.getElementById('security_answer');
 
     function toggleStudentSections() {
         if (studentRadio.checked) {
             gradeSection.style.display = 'block';
-            securitySection.style.display = 'block';
             gradeSelect.required = true;
-            securityQuestion.required = true;
-            securityAnswer.required = true;
         } else {
             gradeSection.style.display = 'none';
-            securitySection.style.display = 'none';
             gradeSelect.required = false;
-            securityQuestion.required = false;
-            securityAnswer.required = false;
+            gradeSelect.value = '';
         }
     }
 
@@ -150,84 +155,142 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 <style>
-.cosmic-homepage {
-    background: linear-gradient(135deg, #0a0e27 0%, #16213e 50%, #1a1a2e 100%);
+.universal-register {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     min-height: 100vh;
-    padding: 2rem;
+    padding: 2rem 0;
     display: flex;
     align-items: center;
-    justify-content: center;
 }
 
-.cosmic-content {
-    text-align: center;
-    max-width: 900px;
-    width: 100%;
+.register-header {
+    color: white;
 }
 
-.stellar-main-title {
+.register-title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
     font-family: 'Dancing Script', cursive;
-    font-size: 3rem;
-    background: linear-gradient(45deg, #FFD700, #32CD32);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    margin-bottom: 1rem;
 }
 
-.hero-subtitle {
-    color: #FFD700;
-    font-size: 1.2rem;
-    margin-bottom: 2rem;
+.register-subtitle {
+    font-size: 1.1rem;
+    opacity: 0.9;
+    margin-bottom: 0;
 }
 
-.feature-card {
-    background: rgba(255, 255, 255, 0.08);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 20px;
+.register-card {
+    background: white;
+    border-radius: 15px;
     padding: 2rem;
-    transition: all 0.3s ease;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    border: 1px solid #e0e0e0;
 }
 
-.feature-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+.form-label {
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 0.5rem;
 }
 
 .form-control {
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    color: white;
-    border-radius: 10px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
     padding: 0.75rem;
-}
-
-.form-control:focus {
-    background: rgba(255, 255, 255, 0.15);
-    border-color: #FFD700;
-    color: white;
-    box-shadow: 0 0 0 2px rgba(255, 215, 0, 0.2);
-}
-
-.form-check-input:checked {
-    background-color: #FFD700;
-    border-color: #FFD700;
-}
-
-.btn-primary-cta {
-    background: linear-gradient(45deg, #FFD700, #32CD32);
-    color: black;
-    border: none;
-    padding: 0.75rem 2rem;
-    border-radius: 50px;
-    font-weight: 600;
     transition: all 0.3s ease;
 }
 
-.btn-primary-cta:hover {
+.form-control:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.role-selection {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.form-check {
+    flex: 1;
+    min-width: 120px;
+}
+
+.form-check-input {
+    margin-right: 0.5rem;
+}
+
+.form-check-label {
+    font-weight: 500;
+    color: #555;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 1.1rem;
+    transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
     transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(255, 215, 0, 0.4);
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+}
+
+.alert-info {
+    background: rgba(102, 126, 234, 0.1);
+    border: 1px solid rgba(102, 126, 234, 0.2);
+    border-radius: 8px;
+}
+
+.form-text {
+    font-size: 0.875rem;
+    color: #6c757d;
+}
+
+.form-text a {
+    color: #667eea;
+    text-decoration: none;
+}
+
+.form-text a:hover {
+    text-decoration: underline;
+}
+
+.text-muted a {
+    color: #667eea;
+    text-decoration: none;
+}
+
+.text-muted a:hover {
+    text-decoration: underline;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .universal-register {
+        padding: 1rem;
+    }
+    
+    .register-title {
+        font-size: 2rem;
+    }
+    
+    .register-card {
+        padding: 1.5rem;
+    }
+    
+    .role-selection {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .form-check {
+        min-width: auto;
+    }
 }
 </style>
 {% endblock %}
