@@ -34,26 +34,42 @@ def get_supabase():
 
 # ===== ENHANCED DECORATORS =====
 def super_admin_required(f):
-    """Only for sirius - the platform owner"""
+    """Only for sirius - the platform owner - STRICT CHECK"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if 'user_id' not in session or session['user_id'] != 'sirius':
             flash('Super admin access required.', 'danger')
             return redirect(url_for('index'))
+        
+        # Additional security: Verify sirius role in database
+        supabase = get_supabase()
+        if supabase:
+            try:
+                user_response = supabase.table('users').select('school_id').eq('username', 'sirius').execute()
+                if user_response.data:
+                    user = user_response.data[0]
+                    # Ensure sirius has no school association (pure super admin)
+                    if user.get('school_id'):
+                        flash('Super admin configuration error.', 'danger')
+                        return redirect(url_for('index'))
+            except Exception as e:
+                logger.error(f"Super admin verification error: {e}")
+        
         return f(*args, **kwargs)
     return decorated_function
 
 def school_admin_required(f):
-    """For school-level admins only - INCLUDES sirius"""
+    """For school-level admins only - EXCLUDES sirius access to school admin features"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if 'user_id' not in session:
             flash('Please log in first.', 'warning')
             return redirect(url_for('login'))
         
-        # Allow sirius to access school admin features
+        # STRICT: sirius should not access school admin features
         if session['user_id'] == 'sirius':
-            return f(*args, **kwargs)
+            flash('Super admin cannot access school admin features.', 'danger')
+            return redirect(url_for('super_admin_dashboard'))
         
         supabase = get_supabase()
         if not supabase:
