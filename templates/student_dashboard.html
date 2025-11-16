@@ -63,7 +63,7 @@
                                 <div class="mb-3">
                                     {% if prompt.has_submitted %}
                                         <span class="badge bg-success">✅ Submitted</span>
-                                        {% if prompt.submission.grade is not none %}
+                                        {% if prompt.submission and prompt.submission.grade is not none %}
                                             <span class="badge bg-info">Grade: {{ prompt.submission.grade }}/{{ prompt.total_points }}</span>
                                         {% else %}
                                             <span class="badge bg-warning">⏳ Awaiting Grade</span>
@@ -85,10 +85,16 @@
                                         {% endif %}
                                     </a>
                                 {% else %}
-                                    <a href="{{ url_for('view_feedback', submission_id=prompt.submission.id) }}" 
-                                       class="btn btn-outline-info btn-sm">
-                                        📖 View Feedback
-                                    </a>
+                                    {% if prompt.submission and prompt.submission.id %}
+                                        <a href="{{ url_for('view_feedback', submission_id=prompt.submission.id) }}" 
+                                           class="btn btn-outline-info btn-sm">
+                                            📖 View Feedback
+                                        </a>
+                                    {% else %}
+                                        <button class="btn btn-outline-secondary btn-sm" disabled title="Feedback not available">
+                                            📖 No Feedback
+                                        </button>
+                                    {% endif %}
                                 {% endif %}
                             </div>
                         </div>
@@ -103,6 +109,23 @@
                     </div>
                 </div>
                 {% endif %}
+
+                <!-- Debug Info (Remove this section after testing) -->
+                <div class="card mt-4 bg-dark text-white" style="display: none;">
+                    <div class="card-header">
+                        <h6>🐛 Debug Info</h6>
+                    </div>
+                    <div class="card-body">
+                        <pre>Total Prompts: {{ prompts|length }}
+{% for prompt in prompts %}
+Prompt: {{ prompt.title }}
+Has Submitted: {{ prompt.has_submitted }}
+Submission Object: {{ prompt.submission }}
+Submission ID: {{ prompt.submission.id if prompt.submission else 'None' }}
+---
+{% endfor %}</pre>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -120,19 +143,14 @@ body, html {
 .student-dashboard-container {
     min-height: 100vh;
     overflow-y: auto !important;
+    background: linear-gradient(135deg, #0a0e27 0%, #16213e 50%, #1a1a2e 100%);
+    padding: 2rem 0;
 }
 
 .container-fluid {
     min-height: auto !important;
     height: auto !important;
     overflow-y: visible !important;
-}
-
-.student-dashboard-container {
-    min-height: 100vh;
-    background: linear-gradient(135deg, #0a0e27 0%, #16213e 50%, #1a1a2e 100%);
-    padding: 2rem 0;
-    overflow-y: auto;
 }
 
 .prompt-card {
