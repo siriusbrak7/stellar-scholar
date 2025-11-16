@@ -1,1066 +1,151 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="student-dashboard">
-    <!-- Stars Background -->
-    <div class="stars-container">
-        <div class="star star-1"></div>
-        <div class="star star-2"></div>
-        <div class="star star-3"></div>
-    </div>
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2 class="text-white">📚 Student Dashboard</h2>
+                <span class="badge bg-primary">Grade {{ user.grade }}</span>
+            </div>
 
-    <div class="dashboard-content">
-        <!-- Header -->
-        <div class="student-header">
-            <div class="header-info">
-                <h1 class="welcome-title">🚀 Learning Missions</h1>
-                <p class="welcome-subtitle">Welcome back, <strong>{{ user.username }}</strong>! Ready for your next challenge?</p>
-                <div class="student-badge">
-                    <span class="badge-icon">🎓</span>
-                    Grade {{ user.grade }} Scholar
-                </div>
-            </div>
-            <div class="header-actions">
-                <a href="{{ url_for('student_history') }}" class="btn btn-history">
-                    <span class="btn-icon">📚</span>
-                    My History
-                </a>
-                <a href="{{ url_for('leaderboard') }}" class="btn btn-leaderboard">
-                    <span class="btn-icon">🏆</span>
-                    Leaderboard
-                </a>
-            </div>
-        </div>
-
-        <!-- Notifications Section -->
-        <div class="notifications-section">
-            <h3 class="section-title">🔔 Notifications</h3>
-            
-            <!-- Due Date Reminders -->
-            {% set upcoming_due_dates = [] %}
-            {% for prompt in prompts if not prompt.has_submitted and prompt.due_date %}
-                {% set due_date = prompt.due_date[:10] %}
-                {% set today = now.strftime('%Y-%m-%d') if now else '2024-01-01' %}
-                {% if due_date >= today %}
-                    {% set _ = upcoming_due_dates.append(prompt) %}
-                {% endif %}
-            {% endfor %}
-            
-            {% if upcoming_due_dates %}
-            <div class="notification-card reminder">
-                <div class="notification-icon">📅</div>
-                <div class="notification-content">
-                    <div class="notification-title">Upcoming Due Dates</div>
-                    <div class="notification-message">
-                        You have {{ upcoming_due_dates|length }} mission(s) due soon
-                    </div>
-                </div>
-            </div>
-            {% endif %}
-
-            <!-- Recently Graded Submissions -->
-            {% set recent_grades = [] %}
-            {% for prompt in prompts if prompt.has_submitted and prompt.submission.grade is not none %}
-                {% if prompt.submission.graded_at %}
-                    {% set graded_date = prompt.submission.graded_at[:10] %}
-                    {% set today = now.strftime('%Y-%m-%d') if now else '2024-01-01' %}
-                    {% if graded_date == today %}
-                        {% set _ = recent_grades.append(prompt) %}
-                    {% endif %}
-                {% endif %}
-            {% endfor %}
-            
-            {% if recent_grades %}
-            <div class="notification-card success">
-                <div class="notification-icon">✅</div>
-                <div class="notification-content">
-                    <div class="notification-title">New Grades Available</div>
-                    <div class="notification-message">
-                        {{ recent_grades|length }} submission(s) graded today
-                    </div>
-                </div>
-            </div>
-            {% endif %}
-
-            <!-- New Available Missions -->
-            {% set new_prompts = prompts|rejectattr('has_submitted')|list %}
-            {% if new_prompts %}
-            <div class="notification-card info">
-                <div class="notification-icon">🚀</div>
-                <div class="notification-content">
-                    <div class="notification-title">New Missions Available</div>
-                    <div class="notification-message">
-                        {{ new_prompts|length }} mission(s) waiting for your response
-                    </div>
-                </div>
-            </div>
-            {% endif %}
-
-            <!-- No Notifications -->
-            {% if not upcoming_due_dates and not recent_grades and not new_prompts %}
-            <div class="notification-card empty">
-                <div class="notification-icon">🌌</div>
-                <div class="notification-content">
-                    <div class="notification-title">All Caught Up!</div>
-                    <div class="notification-message">
-                        No new notifications at this time
-                    </div>
-                </div>
-            </div>
-            {% endif %}
-        </div>
-
-        <!-- Progress Stats -->
-        <div class="stats-grid">
-            {% set total_prompts = prompts|length %}
-            {% set completed_prompts = prompts|selectattr('has_submitted')|list|length %}
-            {% set pending_prompts = prompts|rejectattr('has_submitted')|list|length %}
-            {% set completion_rate = (completed_prompts / total_prompts * 100)|round(1) if total_prompts > 0 else 0 %}
-            
-            <!-- Calculate average grade -->
-            {% set graded_submissions = [] %}
-            {% for prompt in prompts %}
-                {% if prompt.has_submitted and prompt.submission and prompt.submission.grade is not none %}
-                    {% set _ = graded_submissions.append(prompt.submission.grade) %}
-                {% endif %}
-            {% endfor %}
-            {% set average_grade = (graded_submissions|sum / graded_submissions|length)|round(1) if graded_submissions else 0 %}
-
-            <div class="stat-card">
-                <div class="stat-icon">📊</div>
-                <div class="stat-info">
-                    <div class="stat-number">{{ completion_rate }}%</div>
-                    <div class="stat-label">Completion Rate</div>
-                </div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon">✅</div>
-                <div class="stat-info">
-                    <div class="stat-number">{{ completed_prompts }}/{{ total_prompts }}</div>
-                    <div class="stat-label">Missions Done</div>
-                </div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon">⭐</div>
-                <div class="stat-info">
-                    <div class="stat-number">{{ average_grade if graded_submissions else 'N/A' }}</div>
-                    <div class="stat-label">Avg Grade</div>
-                </div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon">🚀</div>
-                <div class="stat-info">
-                    <div class="stat-number">{{ pending_prompts }}</div>
-                    <div class="stat-label">New Missions</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Available Missions - ORGANIZED BY SUBJECT -->
-        <div class="missions-section">
-            <div class="section-header">
-                <h2 class="section-title">🎯 Your Missions</h2>
-                <div class="section-subtitle">Complete these challenges to level up your skills!</div>
-            </div>
-            
             {% if prompts %}
-                <!-- Group prompts by category -->
-                {% set biology_prompts = prompts|selectattr('category', 'equalto', 'biology')|list %}
-                {% set physics_prompts = prompts|selectattr('category', 'equalto', 'physics')|list %}
-                {% set general_prompts = prompts|selectattr('category', 'equalto', 'general')|list %}
-                
-                <!-- Biology Section -->
-                {% if biology_prompts %}
-                <div class="subject-group">
-                    <h3 class="subject-title">🧬 Biology Missions</h3>
-                    <div class="missions-grid">
-                        {% for prompt in biology_prompts %}
-                        <div class="mission-card {% if prompt.has_submitted %}completed{% else %}pending{% endif %}">
-                            <div class="mission-header">
-                                <h3 class="mission-title">{{ prompt.title }}</h3>
-                                <div class="mission-status">
-                                    {% if prompt.has_submitted %}
-                                    <span class="status-badge completed-badge">
-                                        <span class="badge-icon">✅</span>
-                                        Completed
-                                    </span>
-                                    {% else %}
-                                    <span class="status-badge pending-badge">
-                                        <span class="badge-icon">🚀</span>
-                                        Available
-                                    </span>
-                                    {% endif %}
-                                </div>
+            <div class="row">
+                {% for prompt in prompts %}
+                <div class="col-md-6 col-lg-4 mb-4">
+                    <div class="card prompt-card {% if prompt.has_submitted %}submitted-card{% endif %}">
+                        <div class="card-header">
+                            <h5 class="card-title mb-1">{{ prompt.title }}</h5>
+                            <div class="prompt-meta">
+                                <small class="text-muted">
+                                    📝 {{ prompt.assessment_type|upper }} • 
+                                    {% if prompt.subject != 'general' %}{{ prompt.subject|title }} • {% endif %}
+                                    {{ prompt.total_points }} points
+                                </small>
                             </div>
+                        </div>
+                        
+                        <div class="card-body">
+                            <p class="card-text">{{ prompt.description[:100] }}{% if prompt.description|length > 100 %}...{% endif %}</p>
                             
-                            <p class="mission-description">{{ prompt.description }}</p>
-                            
-                            <!-- Due Date Display -->
-                            {% if prompt.due_date %}
-                            <div class="due-date-section">
-                                <div class="due-date-label">
-                                    <span class="due-icon">📅</span>
-                                    Due Date:
-                                </div>
-                                <div class="due-date-value">
-                                    {{ prompt.due_date[:16]|replace('T', ' at ') }}
-                                </div>
+                            {% if prompt.instructions %}
+                            <div class="alert alert-info py-2">
+                                <small><strong>📋 Instructions:</strong> {{ prompt.instructions }}</small>
                             </div>
                             {% endif %}
-                            
-                            {% if prompt.has_submitted %}
-                            <div class="submission-result">
-                                <div class="result-header">
-                                    <span class="result-icon">📋</span>
-                                    Your Submission
-                                </div>
-                                {% if prompt.submission.grade is not none %}
-                                <div class="grade-display">
-                                    <span class="grade-label">Grade:</span>
-                                    <span class="grade-value">{{ prompt.submission.grade }}/100</span>
-                                </div>
-                                {% if prompt.submission.feedback %}
-                                <div class="feedback-section">
-                                    <span class="feedback-label">Teacher's Feedback:</span>
-                                    <p class="feedback-text">{{ prompt.submission.feedback }}</p>
-                                </div>
-                                {% endif %}
+
+                            <!-- Assessment Type Badge -->
+                            <div class="mb-2">
+                                <span class="badge 
+                                    {% if prompt.assessment_type == 'written' %}bg-primary
+                                    {% elif prompt.assessment_type == 'mcq' %}bg-success
+                                    {% else %}bg-warning{% endif %}">
+                                    {% if prompt.assessment_type == 'written' %}✍️ Written
+                                    {% elif prompt.assessment_type == 'mcq' %}🔠 Multiple Choice
+                                    {% else %}📝 Mixed Assessment{% endif %}
+                                </span>
+                            </div>
+
+                            <!-- Due Date -->
+                            {% if prompt.due_date %}
+                            <div class="mb-2">
+                                <small class="text-muted">
+                                    📅 Due: {{ prompt.due_date[:16]|replace('T', ' at ') }}
+                                    {% if prompt.due_date < now.isoformat() %}
+                                    <span class="badge bg-danger">Overdue</span>
+                                    {% endif %}
+                                </small>
+                            </div>
+                            {% endif %}
+
+                            <!-- Submission Status -->
+                            <div class="mb-3">
+                                {% if prompt.has_submitted %}
+                                    <span class="badge bg-success">✅ Submitted</span>
+                                    {% if prompt.submission.grade is not none %}
+                                        <span class="badge bg-info">Grade: {{ prompt.submission.grade }}/{{ prompt.total_points }}</span>
+                                    {% else %}
+                                        <span class="badge bg-warning">⏳ Awaiting Grade</span>
+                                    {% endif %}
                                 {% else %}
-                                <div class="awaiting-grade">
-                                    <span class="awaiting-icon">⏳</span>
-                                    Awaiting teacher's evaluation
-                                </div>
+                                    <span class="badge bg-warning">📝 Not Submitted</span>
                                 {% endif %}
                             </div>
+                        </div>
+
+                        <div class="card-footer">
+                            {% if not prompt.has_submitted %}
+                                <a href="{{ url_for('take_assessment', prompt_id=prompt.id) }}" 
+                                   class="btn btn-primary btn-sm">
+                                    {% if prompt.assessment_type == 'written' %}
+                                        ✍️ Write Response
+                                    {% else %}
+                                        🎯 Take Assessment
+                                    {% endif %}
+                                </a>
                             {% else %}
-                            <!-- Simple Written Answer Form -->
-                            <form method="POST" action="{{ url_for('submit_response', prompt_id=prompt.id) }}" class="submission-form">
-                                <div class="form-group">
-                                    <label for="response_{{ prompt.id }}" class="form-label">
-                                        <span class="label-icon">✏️</span>
-                                        Your Mission Response:
-                                    </label>
-                                    <textarea class="form-input" id="response_{{ prompt.id }}" 
-                                              name="response" rows="4" required 
-                                              placeholder="Share your thoughts, ideas, or solutions here..."></textarea>
-                                </div>
-                                <button type="submit" class="btn btn-submit">
-                                    <span class="btn-icon">🚀</span>
-                                    Submit Mission
-                                </button>
-                            </form>
+                                <a href="{{ url_for('view_feedback', submission_id=prompt.submission.id) }}" 
+                                   class="btn btn-outline-info btn-sm">
+                                    📖 View Feedback
+                                </a>
                             {% endif %}
                         </div>
-                        {% endfor %}
                     </div>
                 </div>
-                {% endif %}
-                
-                <!-- Physics Section -->
-                {% if physics_prompts %}
-                <div class="subject-group">
-                    <h3 class="subject-title">⚛️ Physics Missions</h3>
-                    <div class="missions-grid">
-                        {% for prompt in physics_prompts %}
-                        <div class="mission-card {% if prompt.has_submitted %}completed{% else %}pending{% endif %}">
-                            <div class="mission-header">
-                                <h3 class="mission-title">{{ prompt.title }}</h3>
-                                <div class="mission-status">
-                                    {% if prompt.has_submitted %}
-                                    <span class="status-badge completed-badge">
-                                        <span class="badge-icon">✅</span>
-                                        Completed
-                                    </span>
-                                    {% else %}
-                                    <span class="status-badge pending-badge">
-                                        <span class="badge-icon">🚀</span>
-                                        Available
-                                    </span>
-                                    {% endif %}
-                                </div>
-                            </div>
-                            
-                            <p class="mission-description">{{ prompt.description }}</p>
-                            
-                            <!-- Due Date Display -->
-                            {% if prompt.due_date %}
-                            <div class="due-date-section">
-                                <div class="due-date-label">
-                                    <span class="due-icon">📅</span>
-                                    Due Date:
-                                </div>
-                                <div class="due-date-value">
-                                    {{ prompt.due_date[:16]|replace('T', ' at ') }}
-                                </div>
-                            </div>
-                            {% endif %}
-                            
-                            {% if prompt.has_submitted %}
-                            <div class="submission-result">
-                                <div class="result-header">
-                                    <span class="result-icon">📋</span>
-                                    Your Submission
-                                </div>
-                                {% if prompt.submission.grade is not none %}
-                                <div class="grade-display">
-                                    <span class="grade-label">Grade:</span>
-                                    <span class="grade-value">{{ prompt.submission.grade }}/100</span>
-                                </div>
-                                {% if prompt.submission.feedback %}
-                                <div class="feedback-section">
-                                    <span class="feedback-label">Teacher's Feedback:</span>
-                                    <p class="feedback-text">{{ prompt.submission.feedback }}</p>
-                                </div>
-                                {% endif %}
-                                {% else %}
-                                <div class="awaiting-grade">
-                                    <span class="awaiting-icon">⏳</span>
-                                    Awaiting teacher's evaluation
-                                </div>
-                                {% endif %}
-                            </div>
-                            {% else %}
-                            <!-- Simple Written Answer Form -->
-                            <form method="POST" action="{{ url_for('submit_response', prompt_id=prompt.id) }}" class="submission-form">
-                                <div class="form-group">
-                                    <label for="response_{{ prompt.id }}" class="form-label">
-                                        <span class="label-icon">✏️</span>
-                                        Your Mission Response:
-                                    </label>
-                                    <textarea class="form-input" id="response_{{ prompt.id }}" 
-                                              name="response" rows="4" required 
-                                              placeholder="Share your thoughts, ideas, or solutions here..."></textarea>
-                                </div>
-                                <button type="submit" class="btn btn-submit">
-                                    <span class="btn-icon">🚀</span>
-                                    Submit Mission
-                                </button>
-                            </form>
-                            {% endif %}
-                        </div>
-                        {% endfor %}
-                    </div>
-                </div>
-                {% endif %}
-                
-                <!-- General Section -->
-                {% if general_prompts %}
-                <div class="subject-group">
-                    <h3 class="subject-title">🌟 General Missions</h3>
-                    <div class="missions-grid">
-                        {% for prompt in general_prompts %}
-                        <div class="mission-card {% if prompt.has_submitted %}completed{% else %}pending{% endif %}">
-                            <div class="mission-header">
-                                <h3 class="mission-title">{{ prompt.title }}</h3>
-                                <div class="mission-status">
-                                    {% if prompt.has_submitted %}
-                                    <span class="status-badge completed-badge">
-                                        <span class="badge-icon">✅</span>
-                                        Completed
-                                    </span>
-                                    {% else %}
-                                    <span class="status-badge pending-badge">
-                                        <span class="badge-icon">🚀</span>
-                                        Available
-                                    </span>
-                                    {% endif %}
-                                </div>
-                            </div>
-                            
-                            <p class="mission-description">{{ prompt.description }}</p>
-                            
-                            <!-- Due Date Display -->
-                            {% if prompt.due_date %}
-                            <div class="due-date-section">
-                                <div class="due-date-label">
-                                    <span class="due-icon">📅</span>
-                                    Due Date:
-                                </div>
-                                <div class="due-date-value">
-                                    {{ prompt.due_date[:16]|replace('T', ' at ') }}
-                                </div>
-                            </div>
-                            {% endif %}
-                            
-                            {% if prompt.has_submitted %}
-                            <div class="submission-result">
-                                <div class="result-header">
-                                    <span class="result-icon">📋</span>
-                                    Your Submission
-                                </div>
-                                {% if prompt.submission.grade is not none %}
-                                <div class="grade-display">
-                                    <span class="grade-label">Grade:</span>
-                                    <span class="grade-value">{{ prompt.submission.grade }}/100</span>
-                                </div>
-                                {% if prompt.submission.feedback %}
-                                <div class="feedback-section">
-                                    <span class="feedback-label">Teacher's Feedback:</span>
-                                    <p class="feedback-text">{{ prompt.submission.feedback }}</p>
-                                </div>
-                                {% endif %}
-                                {% else %}
-                                <div class="awaiting-grade">
-                                    <span class="awaiting-icon">⏳</span>
-                                    Awaiting teacher's evaluation
-                                </div>
-                                {% endif %}
-                            </div>
-                            {% else %}
-                            <!-- Simple Written Answer Form -->
-                            <form method="POST" action="{{ url_for('submit_response', prompt_id=prompt.id) }}" class="submission-form">
-                                <div class="form-group">
-                                    <label for="response_{{ prompt.id }}" class="form-label">
-                                        <span class="label-icon">✏️</span>
-                                        Your Mission Response:
-                                    </label>
-                                    <textarea class="form-input" id="response_{{ prompt.id }}" 
-                                              name="response" rows="4" required 
-                                              placeholder="Share your thoughts, ideas, or solutions here..."></textarea>
-                                </div>
-                                <button type="submit" class="btn btn-submit">
-                                    <span class="btn-icon">🚀</span>
-                                    Submit Mission
-                                </button>
-                            </form>
-                            {% endif %}
-                        </div>
-                        {% endfor %}
-                    </div>
-                </div>
-                {% endif %}
-                
+                {% endfor %}
+            </div>
             {% else %}
-            <div class="empty-state">
-                <div class="empty-icon">🌌</div>
-                <h3>No Missions Available</h3>
-                <p>Your teacher hasn't created any missions for Grade {{ user.grade }} yet.</p>
-                <div class="empty-tip">
-                    <span class="tip-icon">💡</span>
-                    Check back soon for exciting new challenges!
+            <div class="text-center py-5">
+                <div class="empty-state">
+                    <h3 class="text-white">🎉 No Assignments!</h3>
+                    <p class="text-muted">You're all caught up. Check back later for new assignments.</p>
                 </div>
             </div>
             {% endif %}
-        </div>
-
-        <!-- Quick Actions -->
-        <div class="quick-actions">
-            <h3 class="section-title">🚀 Mission Control</h3>
-            <div class="actions-grid">
-                <a href="{{ url_for('student_history') }}" class="action-card">
-                    <div class="action-icon">📊</div>
-                    <h4>Mission History</h4>
-                    <p>Review all your past submissions and progress</p>
-                </a>
-                <a href="{{ url_for('leaderboard') }}" class="action-card">
-                    <div class="action-icon">🏆</div>
-                    <h4>Scholar Rankings</h4>
-                    <p>See where you stand among fellow astronauts</p>
-                </a>
-                <div class="action-card">
-                    <div class="action-icon">📈</div>
-                    <h4>Your Progress</h4>
-                    <p>{{ completion_rate }}% complete • {{ average_grade if graded_submissions else 'N/A' }} avg grade</p>
-                </div>
-            </div>
         </div>
     </div>
 </div>
 
 <style>
-.student-dashboard {
-    min-height: 100vh;
-    background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
-    position: relative;
-}
-
-.dashboard-content {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 2rem;
-    position: relative;
-    z-index: 2;
-}
-
-/* Header */
-.student-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 2rem;
-    flex-wrap: wrap;
-    gap: 1rem;
-}
-
-.welcome-title {
-    background: linear-gradient(45deg, #FFD700, #32CD32);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-    font-size: 2.5rem;
-    margin-bottom: 0.5rem;
-}
-
-.welcome-subtitle {
-    color: #b0b8c9;
-    font-size: 1.1rem;
-    margin-bottom: 1rem;
-}
-
-.student-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    background: rgba(255, 215, 0, 0.2);
-    color: #FFD700;
-    padding: 0.5rem 1rem;
-    border-radius: 20px;
-    border: 1px solid rgba(255, 215, 0, 0.3);
-    font-weight: 600;
-}
-
-.header-actions {
-    display: flex;
-    gap: 1rem;
-}
-
-.btn-history, .btn-leaderboard {
-    background: rgba(255, 255, 255, 0.1);
-    color: white;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    padding: 0.75rem 1.5rem;
-    border-radius: 10px;
-    text-decoration: none;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    transition: all 0.3s ease;
-}
-
-.btn-history:hover, .btn-leaderboard:hover {
-    background: rgba(255, 255, 255, 0.2);
-    transform: translateY(-2px);
-}
-
-/* Stats Grid */
-.stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1rem;
-    margin-bottom: 2rem;
-}
-
-.stat-card {
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 15px;
-    padding: 1.5rem;
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    transition: all 0.3s ease;
-}
-
-.stat-card:hover {
-    transform: translateY(-3px);
-    border-color: rgba(255, 215, 0, 0.3);
-}
-
-.stat-icon {
-    font-size: 2rem;
-}
-
-.stat-number {
-    font-size: 1.8rem;
-    font-weight: bold;
-    background: linear-gradient(45deg, #FFD700, #32CD32);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-}
-
-.stat-label {
-    color: #b0b8c9;
-    font-size: 0.9rem;
-}
-
-/* Missions Section */
-.missions-section {
-    margin-bottom: 2rem;
-}
-
-.section-header {
-    text-align: center;
-    margin-bottom: 2rem;
-}
-
-.section-title {
-    color: #FFD700;
-    font-size: 2rem;
-    margin-bottom: 0.5rem;
-}
-
-.section-subtitle {
-    color: #b0b8c9;
-    font-size: 1.1rem;
-}
-
-/* Subject Group Styles */
-.subject-group {
-    margin-bottom: 3rem;
-}
-
-.subject-title {
-    color: #FFD700;
-    font-size: 1.5rem;
-    margin-bottom: 1.5rem;
-    padding-bottom: 0.5rem;
-    border-bottom: 2px solid rgba(255, 215, 0, 0.3);
-}
-
-.missions-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(500px, 1fr));
-    gap: 1.5rem;
-}
-
-.mission-card {
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 15px;
-    padding: 1.5rem;
-    transition: all 0.3s ease;
-}
-
-.mission-card:hover {
-    transform: translateY(-5px);
-    border-color: rgba(255, 215, 0, 0.4);
-}
-
-.mission-card.completed {
-    border-left: 4px solid #32CD32;
-}
-
-.mission-card.pending {
-    border-left: 4px solid #FFD700;
-}
-
-.mission-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 1rem;
-    gap: 1rem;
-}
-
-.mission-title {
-    color: white;
-    font-size: 1.3rem;
-    font-weight: 600;
-    margin: 0;
-    flex: 1;
-}
-
-.mission-status {
-    flex-shrink: 0;
-}
-
-.status-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem 1rem;
-    border-radius: 20px;
-    font-size: 0.8rem;
-    font-weight: 600;
-}
-
-.completed-badge {
-    background: rgba(50, 205, 50, 0.2);
-    color: #32CD32;
-    border: 1px solid rgba(50, 205, 50, 0.3);
-}
-
-.pending-badge {
-    background: rgba(255, 215, 0, 0.2);
-    color: #FFD700;
-    border: 1px solid rgba(255, 215, 0, 0.3);
-}
-
-.mission-description {
-    color: #b0b8c9;
-    line-height: 1.5;
-    margin-bottom: 1.5rem;
-}
-
-/* Due Date Section */
-.due-date-section {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    margin-bottom: 1.5rem;
-    padding: 1rem;
-    background: rgba(106, 17, 203, 0.1);
-    border-radius: 10px;
-    border-left: 3px solid #6a11cb;
-}
-
-.due-date-label {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    color: #6a11cb;
-    font-weight: 600;
-}
-
-.due-date-value {
-    color: white;
-    font-weight: 500;
-}
-
-/* Submission Results */
-.submission-result {
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 10px;
-    padding: 1rem;
-    margin-top: 1rem;
-}
-
-.result-header {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    color: #FFD700;
-    font-weight: 600;
-    margin-bottom: 1rem;
-}
-
-.grade-display {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    margin-bottom: 1rem;
-}
-
-.grade-label {
-    color: #b0b8c9;
-}
-
-.grade-value {
-    color: #32CD32;
-    font-weight: bold;
-    font-size: 1.2rem;
-}
-
-.feedback-section {
-    margin-top: 1rem;
-}
-
-.feedback-label {
-    color: #FFD700;
-    font-weight: 600;
-    display: block;
-    margin-bottom: 0.5rem;
-}
-
-.feedback-text {
-    color: #b0b8c9;
-    margin: 0;
-    padding: 1rem;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 8px;
-    border-left: 3px solid #FFD700;
-}
-
-.awaiting-grade {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    color: #FFD700;
-    font-style: italic;
-}
-
-/* Submission Form */
-.submission-form {
-    margin-top: 1.5rem;
-}
-
-.form-group {
-    margin-bottom: 1.5rem;
-}
-
-.form-label {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    color: #FFD700;
-    font-weight: 600;
-    margin-bottom: 0.5rem;
-}
-
-.form-input {
-    width: 100%;
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 10px;
-    padding: 1rem;
-    color: white;
-    font-size: 1rem;
-    resize: vertical;
-    min-height: 120px;
-}
-
-.form-input:focus {
-    outline: none;
-    border-color: #FFD700;
-    box-shadow: 0 0 0 2px rgba(255, 215, 0, 0.2);
-}
-
-.btn-submit {
-    background: linear-gradient(45deg, #FFD700, #32CD32);
-    color: #1a1a2e;
+.prompt-card {
     border: none;
-    padding: 1rem 2rem;
-    border-radius: 10px;
-    font-weight: 600;
-    font-size: 1.1rem;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    width: 100%;
-    justify-content: center;
-}
-
-.btn-submit:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(255, 215, 0, 0.3);
-}
-
-/* Notifications Section */
-.notifications-section {
-    margin-bottom: 2rem;
-}
-
-.notification-card {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 12px;
-    padding: 1rem 1.5rem;
-    margin-bottom: 0.75rem;
-    transition: all 0.3s ease;
-}
-
-.notification-card:hover {
-    transform: translateX(5px);
-    border-color: rgba(255, 215, 0, 0.3);
-}
-
-.notification-card.reminder {
-    border-left: 4px solid #FFA500;
-}
-
-.notification-card.success {
-    border-left: 4px solid #32CD32;
-}
-
-.notification-card.info {
-    border-left: 4px solid #007bff;
-}
-
-.notification-card.empty {
-    border-left: 4px solid #6a11cb;
-    opacity: 0.7;
-}
-
-.notification-icon {
-    font-size: 1.5rem;
-    flex-shrink: 0;
-}
-
-.notification-content {
-    flex: 1;
-}
-
-.notification-title {
-    color: white;
-    font-weight: 600;
-    font-size: 1rem;
-    margin-bottom: 0.25rem;
-}
-
-.notification-message {
-    color: #b0b8c9;
-    font-size: 0.9rem;
-}
-
-/* Quick Actions */
-.quick-actions {
-    margin-top: 3rem;
-}
-
-.actions-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 1.5rem;
-}
-
-.action-card {
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.15);
     border-radius: 15px;
-    padding: 1.5rem;
-    text-decoration: none;
-    color: inherit;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
     transition: all 0.3s ease;
-}
-
-.action-card:hover {
-    transform: translateY(-3px);
-    border-color: rgba(255, 215, 0, 0.4);
-}
-
-.action-icon {
-    font-size: 2.5rem;
-    margin-bottom: 1rem;
-    text-align: center;
-}
-
-.action-card h4 {
-    color: white;
-    font-size: 1.2rem;
-    margin-bottom: 0.5rem;
-    text-align: center;
-}
-
-.action-card p {
-    color: #b0b8c9;
-    text-align: center;
-    margin: 0;
-}
-
-/* Empty State */
-.empty-state {
-    text-align: center;
-    padding: 3rem 2rem;
-    background: rgba(255, 255, 255, 0.05);
-    border: 2px dashed rgba(255, 255, 255, 0.2);
-    border-radius: 15px;
-    color: #b0b8c9;
-}
-
-.empty-icon {
-    font-size: 4rem;
-    margin-bottom: 1rem;
-    opacity: 0.7;
-}
-
-.empty-state h3 {
-    color: white;
-    margin-bottom: 0.5rem;
-}
-
-.empty-state p {
-    margin-bottom: 1.5rem;
-}
-
-.empty-tip {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    background: rgba(255, 215, 0, 0.1);
-    color: #FFD700;
-    padding: 0.75rem 1.5rem;
-    border-radius: 10px;
-    border: 1px solid rgba(255, 215, 0, 0.2);
-}
-
-/* Stars */
-.stars-container {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
     height: 100%;
-    pointer-events: none;
-    z-index: 1;
 }
 
-.star {
-    position: absolute;
-    background: white;
-    border-radius: 50%;
-    animation: twinkle linear infinite;
+.prompt-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.2);
 }
 
-.star-1 { width: 2px; height: 2px; top: 20%; left: 10%; animation-duration: 3s; }
-.star-2 { width: 1px; height: 1px; top: 60%; left: 80%; animation-duration: 4s; }
-.star-3 { width: 1.5px; height: 1.5px; top: 40%; left: 50%; animation-duration: 5s; }
-
-@keyframes twinkle {
-    0%, 100% { opacity: 0.2; }
-    50% { opacity: 1; }
+.submitted-card {
+    border-left: 4px solid #28a745;
 }
 
-/* Responsive */
-@media (max-width: 768px) {
-    .dashboard-content {
-        padding: 1rem;
-    }
-    
-    .student-header {
-        flex-direction: column;
-        text-align: center;
-    }
-    
-    .header-actions {
-        justify-content: center;
-    }
-    
-    .missions-grid {
-        grid-template-columns: 1fr;
-    }
-    
-    .stats-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
-    
-    .actions-grid {
-        grid-template-columns: 1fr;
-    }
-    
-    .notification-card {
-        padding: 0.75rem 1rem;
-        gap: 0.75rem;
-    }
-    
-    .notification-icon {
-        font-size: 1.25rem;
-    }
-    
-    .notification-title {
-        font-size: 0.9rem;
-    }
-    
-    .notification-message {
-        font-size: 0.8rem;
-    }
+.prompt-meta {
+    font-size: 0.8rem;
 }
 
-@media (max-width: 480px) {
-    .stats-grid {
-        grid-template-columns: 1fr;
-    }
-    
-    .mission-header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 0.5rem;
-    }
+.card-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 15px 15px 0 0 !important;
+}
+
+.card-title {
+    font-weight: 600;
+}
+
+.empty-state {
+    padding: 3rem;
+}
+
+.alert-info {
+    background: rgba(102, 126, 234, 0.1);
+    border: 1px solid rgba(102, 126, 234, 0.2);
+    border-radius: 8px;
 }
 </style>
 {% endblock %}

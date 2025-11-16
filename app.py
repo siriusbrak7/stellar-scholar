@@ -2028,6 +2028,124 @@ def fix_admin_roles():
         """
     except Exception as e:
         return f"Error: {str(e)}"
+    
+@app.route('/student/assessment/<prompt_id>', methods=['GET', 'POST'])
+@login_required
+def take_assessment(prompt_id):
+    """Student interface for taking assessments"""
+    supabase = get_supabase()
+    if not supabase:
+        flash('Database connection error.', 'danger')
+        return redirect(url_for('student_dashboard'))
+    
+    try:
+        # Get current user
+        user_response = supabase.table('users').select('*').eq('username', session['user_id']).execute()
+        user = user_response.data[0] if user_response.data else None
+        
+        if not user or user['role'] != 'student':
+            flash('Access denied.', 'danger')
+            return redirect(url_for('index'))
+
+        # Get prompt details
+        prompt_response = supabase.table('prompts').select('*').eq('id', prompt_id).execute()
+        prompt = prompt_response.data[0] if prompt_response.data else None
+        
+        if not prompt:
+            flash('Assessment not found.', 'danger')
+            return redirect(url_for('student_dashboard'))
+
+        # Check if already submitted
+        existing_response = supabase.table('submissions').select('*').eq('prompt_id', prompt_id).eq('student_id', session['user_id']).execute()
+        if existing_response.data:
+            flash('You have already submitted this assessment.', 'warning')
+            return redirect(url_for('student_dashboard'))
+
+        # Get MCQ questions if applicable
+        questions = []
+        if prompt.get('assessment_type') in ['mcq', 'mixed']:
+            questions_response = supabase.table('mcq_questions').select('*').eq('prompt_id', prompt_id).order('sort_order').execute()
+            questions = questions_response.data if questions_response.data else []
+
+        if request.method == 'POST':
+            # Handle assessment submission
+            written_response = request.form.get('written_response', '').strip()
+            
+            # Validate written response for written/mixed assessments
+            if prompt.get('assessment_type') in ['written', 'mixed'] and not written_response:
+                flash('Written response is required.', 'danger')
+                return render_template('take_assessment.html', prompt=prompt, questions=questions, user=user)
+
+            # Create submission
+            submission_id = f"sub_{datetime.now().strftime('%Y%m%d%H%M%S')}_{session['user_id']}"
+            submission_data = {
+                'id': submission_id,
+                'prompt_id': prompt_id,
+                'student_id': session['user_id'],
+                'response': written_response,
+                'submitted_at': datetime.now().isoformat()
+            }
+
+            # Insert submission
+            submission_result = supabase.table('submissions').insert(submission_data).execute()
+            
+            if not submission_result.data:
+                flash('Failed to submit assessment.', 'danger')
+                return render_template('take_assessment.html', prompt=prompt, questions=questions, user=user)
+
+            # Handle MCQ responses
+            if prompt.get('assessment_type') in ['mcq', 'mixed'] and questions:
+                question_responses = []
+                total_score = 0
+                
+                for question in questions:
+                    response_key = f"question_{question['id']}"
+                    student_answer = request.form.get(response_key, '').strip()
+                    
+                    if student_answer:
+                        # Auto-grade MCQ and True/False questions
+                        is_correct = False
+                        auto_graded = False
+                        points_earned = 0
+                        
+                        if question['question_type'] in ['mcq', 'true_false']:
+                            auto_graded = True
+                            is_correct = (student_answer == question['correct_answer'])
+                            points_earned = question['points'] if is_correct else 0
+                            total_score += points_earned
+                        
+                        response_data = {
+                            'id': f"resp_{question['id']}_{session['user_id']}",
+                            'question_id': question['id'],
+                            'student_id': session['user_id'],
+                            'prompt_id': prompt_id,
+                            'response_text': student_answer,
+                            'is_correct': is_correct,
+                            'auto_graded': auto_graded,
+                            'points_earned': points_earned,
+                            'submitted_at': datetime.now().isoformat()
+                        }
+                        question_responses.append(response_data)
+                
+                if question_responses:
+                    supabase.table('question_responses').insert(question_responses).execute()
+                    
+                    # Update submission with auto-graded score for MCQ-only assessments
+                    if prompt.get('assessment_type') == 'mcq' and total_score > 0:
+                        supabase.table('submissions').update({
+                            'grade': total_score,
+                            'graded_at': datetime.now().isoformat()
+                        }).eq('id', submission_id).execute()
+
+            flash('Assessment submitted successfully!', 'success')
+            return redirect(url_for('student_dashboard'))
+
+        return render_template('take_assessment.html', prompt=prompt, questions=questions, user=user)
+        
+    except Exception as e:
+        logger.error(f"Take assessment error: {e}")
+        flash('Error loading assessment.', 'danger')
+        return redirect(url_for('student_dashboard'))
 
 
 if __name__ == '__main__':
