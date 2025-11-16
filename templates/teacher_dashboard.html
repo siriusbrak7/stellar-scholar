@@ -91,18 +91,15 @@
                         <div class="col-md-4">
                             <label class="form-label">Assessment Types:</label>
                             <div class="btn-group w-100">
-                                <a href="{{ url_for('teacher_dashboard', grade=current_grade_filter, category=current_category_filter) }}" 
-                                   class="btn btn-outline-success">
+                                <button class="btn btn-outline-success" disabled>
                                     📝 Written: {{ written_count }}
-                                </a>
-                                <a href="{{ url_for('teacher_dashboard', grade=current_grade_filter, category=current_category_filter) }}" 
-                                   class="btn btn-outline-warning">
+                                </button>
+                                <button class="btn btn-outline-warning" disabled>
                                     🔠 MCQ: {{ mcq_count }}
-                                </a>
-                                <a href="{{ url_for('teacher_dashboard', grade=current_grade_filter, category=current_category_filter) }}" 
-                                   class="btn btn-outline-secondary">
+                                </button>
+                                <button class="btn btn-outline-secondary" disabled>
                                     📊 Mixed: {{ mixed_count }}
-                                </a>
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -133,7 +130,8 @@
                             <!-- Assessment Stats -->
                             <div class="assessment-stats mb-3">
                                 <div class="progress mb-2" style="height: 8px;">
-                                    <div class="progress-bar bg-success" style="width: {{ (prompt_stats[prompt_id].graded / prompt_stats[prompt_id].total * 100) if prompt_stats[prompt_id].total > 0 else 0 }}%">
+                                    <div class="progress-bar bg-success" 
+                                         style="width: {{ (prompt_stats[prompt_id].graded / prompt_stats[prompt_id].total * 100) if prompt_stats[prompt_id].total > 0 else 0 }}%">
                                     </div>
                                 </div>
                                 <small class="text-muted">
@@ -142,7 +140,6 @@
                                 </small>
                             </div>
 
-                            <!-- Auto-graded indicator for MCQ -->
                             {% if prompt.assessment_type == 'mcq' %}
                             <div class="mb-2">
                                 <span class="badge bg-success">✅ Auto-graded</span>
@@ -153,7 +150,6 @@
                             </div>
                             {% endif %}
 
-                            <!-- Due Date -->
                             {% if prompt.due_date %}
                             <div class="mb-2">
                                 <small class="text-muted">
@@ -198,7 +194,6 @@
             </div>
             {% endif %}
 
-            <!-- Student Progress Section -->
             {% if student_progress %}
             <div class="card mt-4">
                 <div class="card-header">
@@ -254,7 +249,10 @@
     </div>
 </div>
 
+<!-- INLINE-SAFE CSS (VS CODE WILL NOT FLAG ERRORS) -->
 <style>
+/* css-ignore-start */
+
 .prompt-card {
     border: none;
     border-radius: 15px;
@@ -300,5 +298,8 @@
 .progress {
     border-radius: 10px;
 }
+
+/* css-ignore-end */
 </style>
+
 {% endblock %}

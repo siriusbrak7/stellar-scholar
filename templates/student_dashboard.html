@@ -4,15 +4,12 @@
 <div class="student-dashboard">
     <!-- Cosmic Header -->
     <div class="cosmic-header">
-        <div class="stars"></div>
-        <div class="twinkling"></div>
         <div class="container">
             <div class="header-content">
                 <h1 class="welcome-title">🚀 Welcome, {{ session.user_id }}!</h1>
                 <p class="welcome-subtitle">Your Cosmic Learning Journey Awaits</p>
                 <div class="student-badge">
                     <span class="grade-badge">Grade {{ user.grade }} Explorer</span>
-                    <span class="streak-badge">🔥 5-day streak</span>
                 </div>
             </div>
         </div>
@@ -51,6 +48,20 @@
             </div>
         </div>
 
+        <!-- Science Fact of the Moment -->
+        <div class="science-fact-container">
+            <div class="science-fact-header">
+                <span class="fact-icon">🧬</span>
+                <h3>Science Fact of the Moment</h3>
+            </div>
+            <div class="science-fact-content" id="scienceFact">
+                <p class="fact-text">Loading amazing science fact...</p>
+            </div>
+            <div class="fact-footer">
+                <span class="rotation-indicator">Rotates every 11 minutes</span>
+            </div>
+        </div>
+
         <!-- Progress Section -->
         <div class="progress-section">
             <h2 class="section-title">📈 Your Progress</h2>
@@ -66,27 +77,21 @@
                 <div class="progress-card">
                     <h4>Subject Mastery</h4>
                     <div class="subject-bars">
-                        <div class="subject-bar">
-                            <span>Math</span>
-                            <div class="bar">
-                                <div class="fill" style="width: 85%"></div>
+                        {% if subject_averages %}
+                            {% for subject, average in subject_averages.items() %}
+                            <div class="subject-bar">
+                                <span>{{ subject|title }}</span>
+                                <div class="bar">
+                                    <div class="fill" style="width: {{ average }}%"></div>
+                                </div>
+                                <span>{{ average }}%</span>
                             </div>
-                            <span>85%</span>
-                        </div>
-                        <div class="subject-bar">
-                            <span>Science</span>
-                            <div class="bar">
-                                <div class="fill" style="width: 72%"></div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="no-data">
+                                <p>📚 Complete assignments to see your subject mastery!</p>
                             </div>
-                            <span>72%</span>
-                        </div>
-                        <div class="subject-bar">
-                            <span>English</span>
-                            <div class="bar">
-                                <div class="fill" style="width: 91%"></div>
-                            </div>
-                            <span>91%</span>
-                        </div>
+                        {% endif %}
                     </div>
                 </div>
             </div>
@@ -191,10 +196,6 @@
                     <span class="action-icon">📖</span>
                     <span class="action-text">My History</span>
                 </a>
-                <div class="action-card">
-                    <span class="action-icon">🎯</span>
-                    <span class="action-text">Set Goals</span>
-                </div>
             </div>
         </div>
     </div>
@@ -244,7 +245,7 @@
     flex-wrap: wrap;
 }
 
-.grade-badge, .streak-badge {
+.grade-badge {
     background: rgba(255, 255, 255, 0.2);
     padding: 0.5rem 1rem;
     border-radius: 25px;
@@ -290,6 +291,79 @@
 .stat-info p {
     opacity: 0.8;
     margin: 0;
+}
+
+/* Science Fact Container */
+.science-fact-container {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.2), rgba(118, 75, 162, 0.2));
+    backdrop-filter: blur(10px);
+    border: 2px solid rgba(255, 215, 0, 0.3);
+    border-radius: 20px;
+    padding: 2rem;
+    margin-bottom: 3rem;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+}
+
+.science-fact-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    border-bottom: 2px solid rgba(255, 215, 0, 0.3);
+    padding-bottom: 0.75rem;
+}
+
+.fact-icon {
+    font-size: 2rem;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+}
+
+.science-fact-header h3 {
+    font-size: 1.5rem;
+    margin: 0;
+    background: linear-gradient(45deg, #FFD700, #FFA500);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.science-fact-content {
+    min-height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.fact-text {
+    font-size: 1.1rem;
+    line-height: 1.6;
+    text-align: center;
+    margin: 0;
+    opacity: 0;
+    animation: fadeIn 1s ease-in forwards;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.fact-footer {
+    text-align: center;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.rotation-indicator {
+    font-size: 0.85rem;
+    opacity: 0.6;
+    font-style: italic;
 }
 
 /* Progress Section */
@@ -363,7 +437,7 @@
 }
 
 .subject-bar span:first-child {
-    min-width: 60px;
+    min-width: 80px;
     font-size: 0.9rem;
 }
 
@@ -380,6 +454,12 @@
     background: linear-gradient(90deg, #4CAF50, #8BC34A);
     border-radius: 4px;
     transition: width 1s ease;
+}
+
+.no-data {
+    text-align: center;
+    padding: 2rem;
+    opacity: 0.7;
 }
 
 /* Assignments */
@@ -643,8 +723,78 @@
 </style>
 
 <script>
+// 33 Science Facts
+const scienceFacts = [
+    "Your brain uses about 20% of your body's total energy, even though it only makes up 2% of your body weight! 🧠",
+    "Neurons in your brain can fire signals at speeds up to 268 miles per hour! ⚡",
+    "The human brain contains approximately 86 billion neurons, each connected to thousands of others! 🌟",
+    "When you learn something new, the structure of your brain changes. This is called neuroplasticity! 🔄",
+    "Your brain generates enough electricity to power a small light bulb! 💡",
+    "Dopamine, the 'reward chemical,' plays a crucial role in motivation, learning, and addiction! 🎯",
+    "The average human brain weighs about 3 pounds (1.4 kg), roughly the size of a cantaloupe! 🍈",
+    "Your brain is 73% water - even 2% dehydration can affect attention and memory! 💧",
+    "The brain's left hemisphere controls the right side of your body, and vice versa! 🔀",
+    "Chronic stress can actually shrink the size of your prefrontal cortex! 😰",
+    "The amygdala, your brain's 'fear center,' is about the size of an almond! 🌰",
+    "Your brain continues developing until you're about 25 years old! 🌱",
+    "Dreams occur during REM sleep when your brain is almost as active as when you're awake! 😴",
+    "The human brain can process images in as little as 13 milliseconds! 📸",
+    "Multitasking is a myth - your brain actually switches rapidly between tasks! 🔄",
+    "Music activates more areas of the brain than any other stimulus! 🎵",
+    "The hippocampus, crucial for memory, can generate new neurons throughout life! 🆕",
+    "Laughing activates multiple regions across your whole brain! 😂",
+    "Your brain uses about 20 watts of power - the same as a dim light bulb! 💡",
+    "The cerebellum, only 10% of brain volume, contains over 50% of its neurons! 🎯",
+    "Exercise increases blood flow to the brain and can improve cognitive function! 🏃",
+    "The brain's prefrontal cortex is responsible for personality and decision-making! 🤔",
+    "Neurons communicate through synapses using both electrical and chemical signals! ⚡",
+    "Your brain can't feel pain - it has no pain receptors! 🧠",
+    "The blood-brain barrier protects your brain from harmful substances! 🛡️",
+    "Memories are stored distributed across multiple brain regions, not in one place! 📚",
+    "The brain's reward system can create addictive behaviors for anything pleasurable! 🎰",
+    "Sleep is essential for memory consolidation - learning literally happens while you sleep! 😴",
+    "The corpus callosum connects left and right hemispheres with 200-300 million axons! 🌉",
+    "Your brain generates new neurons in the hippocampus even in old age! 👴",
+    "The visual cortex processes information from your eyes using about 30% of brain power! 👁️",
+    "Artificial neural networks in AI are inspired by biological neural networks in brains! 🤖",
+    "The gut-brain connection is so strong that your gut is sometimes called your 'second brain'! 🍽️"
+];
+
+let currentFactIndex = 0;
+
+function rotateFact() {
+    const factElement = document.getElementById('scienceFact');
+    const factText = factElement.querySelector('.fact-text');
+    
+    // Fade out
+    factText.style.opacity = '0';
+    factText.style.transform = 'translateY(10px)';
+    
+    setTimeout(() => {
+        // Update text
+        currentFactIndex = (currentFactIndex + 1) % scienceFacts.length;
+        factText.textContent = scienceFacts[currentFactIndex];
+        
+        // Fade in
+        factText.style.opacity = '1';
+        factText.style.transform = 'translateY(0)';
+    }, 500);
+}
+
 // Filter assignments
 document.addEventListener('DOMContentLoaded', function() {
+    // Initialize first science fact
+    const factElement = document.getElementById('scienceFact');
+    if (factElement) {
+        const factText = factElement.querySelector('.fact-text');
+        currentFactIndex = Math.floor(Math.random() * scienceFacts.length);
+        factText.textContent = scienceFacts[currentFactIndex];
+        factText.style.opacity = '1';
+        
+        // Rotate every 11 minutes (660,000 milliseconds)
+        setInterval(rotateFact, 660000);
+    }
+    
     const filterBtns = document.querySelectorAll('.filter-btn');
     const assignmentCards = document.querySelectorAll('.assignment-card');
     
