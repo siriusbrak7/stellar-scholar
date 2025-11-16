@@ -2749,5 +2749,147 @@ def switch_teacher(teacher_id):
     
     return redirect(request.referrer or url_for('teacher_dashboard'))
 
+@app.route('/school/admin/analytics')
+@school_admin_required
+def school_admin_analytics():
+    """School-wide analytics dashboard"""
+    supabase = get_supabase()
+    if not supabase:
+        flash('Database connection error.', 'danger')
+        return redirect(url_for('school_admin_dashboard'))
+    
+    try:
+        # Get current user and school
+        user_response = supabase.table('users').select('*').eq('username', session['user_id']).execute()
+        user = user_response.data[0] if user_response.data else None
+        
+        if not user or not user.get('is_admin'):
+            flash('School admin access required.', 'danger')
+            return redirect(url_for('teacher_dashboard'))
+        
+        school_id = user['school_id']
+        
+        # Get comprehensive school data
+        # 1. Student and teacher counts
+        users_response = supabase.table('users').select('*').eq('school_id', school_id).execute()
+        school_users = users_response.data if users_response.data else []
+        
+        # 2. All prompts and submissions
+        prompts_response = supabase.table('prompts').select('*').eq('school_id', school_id).execute()
+        school_prompts = prompts_response.data if prompts_response.data else []
+        
+        submissions_response = supabase.table('submissions').select('*').execute()
+        all_submissions = submissions_response.data if submissions_response.data else []
+        
+        # CALCULATE ANALYTICS
+        
+        # User Statistics
+        teachers = [u for u in school_users if u['role'] == 'teacher']
+        students = [u for u in school_users if u['role'] == 'student']
+        active_teachers = len([t for t in teachers if t.get('approval_status') == 'approved'])
+        active_students = len([s for s in students if s.get('approval_status') == 'approved'])
+        
+        # Assessment Statistics
+        written_assessments = len([p for p in school_prompts if p.get('assessment_type') == 'written'])
+        mcq_assessments = len([p for p in school_prompts if p.get('assessment_type') == 'mcq'])
+        mixed_assessments = len([p for p in school_prompts if p.get('assessment_type') == 'mixed'])
+        
+        # Submission Statistics
+        total_submissions = len([s for s in all_submissions if any(p['id'] == s['prompt_id'] for p in school_prompts)])
+        graded_submissions = len([s for s in all_submissions if s.get('grade') is not None and any(p['id'] == s['prompt_id'] for p in school_prompts)])
+        
+        # Grade Distribution
+        grade_distribution = {}
+        for student in students:
+            if student.get('approval_status') == 'approved':
+                grade = student.get('grade', 'Unknown')
+                grade_distribution[grade] = grade_distribution.get(grade, 0) + 1
+        
+        # Subject Performance
+        subject_performance = {}
+        for prompt in school_prompts:
+            subject = prompt.get('subject', 'general')
+            if subject not in subject_performance:
+                subject_performance[subject] = {'prompts': 0, 'submissions': 0, 'total_grade': 0, 'count': 0}
+            subject_performance[subject]['prompts'] += 1
+            
+            # Calculate average grade for this subject
+            prompt_submissions = [s for s in all_submissions if s['prompt_id'] == prompt['id'] and s.get('grade') is not None]
+            for sub in prompt_submissions:
+                subject_performance[subject]['submissions'] += 1
+                subject_performance[subject]['total_grade'] += sub['grade']
+                subject_performance[subject]['count'] += 1
+        
+        # Calculate subject averages
+        for subject, data in subject_performance.items():
+            if data['count'] > 0:
+                data['average_grade'] = round(data['total_grade'] / data['count'], 1)
+            else:
+                data['average_grade'] = 0
+        
+        # Teacher Activity
+        teacher_activity = {}
+        for teacher in teachers:
+            if teacher.get('approval_status') == 'approved':
+                teacher_prompts = [p for p in school_prompts if p['created_by'] == teacher['username']]
+                teacher_activity[teacher['username']] = {
+                    'prompts_created': len(teacher_prompts),
+                    'total_points': sum(p.get('total_points', 0) for p in teacher_prompts),
+                    'submissions_count': len([s for s in all_submissions if any(p['id'] == s['prompt_id'] for p in teacher_prompts)])
+                }
+        
+        # Student Performance by Grade
+        grade_performance = {}
+        for student in students:
+            if student.get('approval_status') == 'approved':
+                grade = student.get('grade', 'Unknown')
+                if grade not in grade_performance:
+                    grade_performance[grade] = {'students': 0, 'total_grade': 0, 'submission_count': 0}
+                
+                grade_performance[grade]['students'] += 1
+                student_subs = [s for s in all_submissions if s['student_id'] == student['username'] and s.get('grade') is not None]
+                for sub in student_subs:
+                    grade_performance[grade]['total_grade'] += sub['grade']
+                    grade_performance[grade]['submission_count'] += 1
+        
+        # Calculate grade averages
+        for grade, data in grade_performance.items():
+            if data['submission_count'] > 0:
+                data['average_grade'] = round(data['total_grade'] / data['submission_count'], 1)
+            else:
+                data['average_grade'] = 0
+        
+        analytics_data = {
+            'user_stats': {
+                'total_teachers': len(teachers),
+                'active_teachers': active_teachers,
+                'total_students': len(students),
+                'active_students': active_students,
+                'teacher_admins': len([t for t in teachers if t.get('teacher_permissions') == 'admin'])
+            },
+            'assessment_stats': {
+                'total_assessments': len(school_prompts),
+                'written_assessments': written_assessments,
+                'mcq_assessments': mcq_assessments,
+                'mixed_assessments': mixed_assessments,
+                'total_submissions': total_submissions,
+                'graded_submissions': graded_submissions,
+                'completion_rate': round((total_submissions / (len(school_prompts) * active_students)) * 100, 1) if active_students > 0 else 0
+            },
+            'grade_distribution': grade_distribution,
+            'subject_performance': subject_performance,
+            'teacher_activity': teacher_activity,
+            'grade_performance': grade_performance
+        }
+        
+        return render_template('school_analytics.html',
+                             analytics=analytics_data,
+                             school_id=school_id)
+                             
+    except Exception as e:
+        logger.error(f"School analytics error: {e}")
+        flash('Error loading analytics dashboard.', 'danger')
+        return redirect(url_for('school_admin_dashboard'))
+
 if __name__ == '__main__':
     app.run(debug=True)

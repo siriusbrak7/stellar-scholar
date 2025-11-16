@@ -1,0 +1,247 @@
+{% extends "base.html" %}
+
+{% block title %}School Analytics - Stellar Scholar{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="h3 mb-0">📊 School Analytics Dashboard</h1>
+            <p class="text-muted">Comprehensive performance and activity insights</p>
+        </div>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body text-center">
+                    <h3 class="card-title">{{ analytics.user_stats.active_teachers }}/{{ analytics.user_stats.total_teachers }}</h3>
+                    <p class="card-text">Active Teachers</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card bg-success text-white">
+                <div class="card-body text-center">
+                    <h3 class="card-title">{{ analytics.user_stats.active_students }}/{{ analytics.user_stats.total_students }}</h3>
+                    <p class="card-text">Active Students</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card bg-info text-white">
+                <div class="card-body text-center">
+                    <h3 class="card-title">{{ analytics.assessment_stats.total_assessments }}</h3>
+                    <p class="card-text">Total Assessments</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body text-center">
+                    <h3 class="card-title">{{ analytics.assessment_stats.completion_rate }}%</h3>
+                    <p class="card-text">Completion Rate</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Assessment Types -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">📈 Assessment Overview</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-4">
+                            <div class="border rounded p-3">
+                                <h4 class="text-primary">{{ analytics.assessment_stats.written_assessments }}</h4>
+                                <p class="text-muted mb-0">Written</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="border rounded p-3">
+                                <h4 class="text-success">{{ analytics.assessment_stats.mcq_assessments }}</h4>
+                                <p class="text-muted mb-0">MCQ</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="border rounded p-3">
+                                <h4 class="text-info">{{ analytics.assessment_stats.mixed_assessments }}</h4>
+                                <p class="text-muted mb-0">Mixed</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <div class="d-flex justify-content-between">
+                                <span>Total Submissions: <strong>{{ analytics.assessment_stats.total_submissions }}</strong></span>
+                                <span>Graded: <strong>{{ analytics.assessment_stats.graded_submissions }}</strong></span>
+                                <span>Pending: <strong>{{ analytics.assessment_stats.total_submissions - analytics.assessment_stats.graded_submissions }}</strong></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">🎯 Grade Distribution</h5>
+                </div>
+                <div class="card-body">
+                    {% if analytics.grade_distribution %}
+                        <div class="list-group list-group-flush">
+                            {% for grade, count in analytics.grade_distribution.items() %}
+                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                                Grade {{ grade }}
+                                <span class="badge bg-primary rounded-pill">{{ count }}</span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="text-muted">No student data available</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Subject Performance -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">📚 Subject Performance</h5>
+                </div>
+                <div class="card-body">
+                    {% if analytics.subject_performance %}
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Subject</th>
+                                    <th>Assessments</th>
+                                    <th>Submissions</th>
+                                    <th>Average Grade</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for subject, data in analytics.subject_performance.items() %}
+                                <tr>
+                                    <td><strong>{{ subject|title }}</strong></td>
+                                    <td>{{ data.prompts }}</td>
+                                    <td>{{ data.submissions }}</td>
+                                    <td>
+                                        <span class="badge bg-{{ 'success' if data.average_grade >= 80 else 'warning' if data.average_grade >= 60 else 'danger' }}">
+                                            {{ data.average_grade }}%
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted">No subject performance data available</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Teacher Activity -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">👨‍🏫 Teacher Activity</h5>
+                </div>
+                <div class="card-body">
+                    {% if analytics.teacher_activity %}
+                    <div class="list-group list-group-flush">
+                        {% for teacher, data in analytics.teacher_activity.items() %}
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>{{ teacher }}</strong>
+                                    <br>
+                                    <small class="text-muted">
+                                        {{ data.prompts_created }} assessments • {{ data.submissions_count }} submissions
+                                    </small>
+                                </div>
+                                <span class="badge bg-info">{{ data.total_points }} points</span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-muted">No teacher activity data</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Grade Performance -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">📊 Grade Performance</h5>
+                </div>
+                <div class="card-body">
+                    {% if analytics.grade_performance %}
+                    <div class="list-group list-group-flush">
+                        {% for grade, data in analytics.grade_performance.items() %}
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>Grade {{ grade }}</strong>
+                                    <br>
+                                    <small class="text-muted">
+                                        {{ data.students }} students • {{ data.submission_count }} submissions
+                                    </small>
+                                </div>
+                                <span class="badge bg-{{ 'success' if data.average_grade >= 80 else 'warning' if data.average_grade >= 60 else 'danger' }}">
+                                    {{ data.average_grade }}%
+                                </span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-muted">No grade performance data</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.card {
+    border: none;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: 1rem;
+}
+
+.card-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-bottom: none;
+}
+
+.card-title {
+    font-weight: 600;
+}
+
+.list-group-item {
+    border: none;
+    padding: 0.75rem 0;
+}
+</style>
+{% endblock %}
