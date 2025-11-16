@@ -1,0 +1,252 @@
+{% extends "base.html" %}
+
+{% block title %}{{ school.name }} - Stellar Scholar{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="h3 mb-0">🏫 {{ school.name }}</h1>
+                    <p class="text-muted">School ID: {{ school.id }}</p>
+                </div>
+                <a href="{{ url_for('super_admin_schools') }}" class="btn btn-secondary">
+                    ← Back to Schools
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- School Status Alert -->
+    {% if school.status == 'pending' %}
+    <div class="alert alert-warning">
+        <strong>⚠️ Pending Approval:</strong> This school is waiting for approval.
+    </div>
+    {% endif %}
+
+    <!-- School Information Card -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">📋 School Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <table class="table table-sm">
+                                <tr>
+                                    <th>School Name:</th>
+                                    <td>{{ school.name }}</td>
+                                </tr>
+                                <tr>
+                                    <th>School ID:</th>
+                                    <td><code>{{ school.id }}</code></td>
+                                </tr>
+                                <tr>
+                                    <th>Status:</th>
+                                    <td>
+                                        <span class="badge bg-{{ 'success' if school.status == 'active' else 'warning' if school.status == 'pending' else 'secondary' }}">
+                                            {{ school.status|title }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Created:</th>
+                                    <td>{{ school.created_at[:16] if school.created_at else 'Unknown' }}</td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <table class="table table-sm">
+                                <tr>
+                                    <th>Contact Person:</th>
+                                    <td>{{ school.contact_person or 'Not specified' }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Contact Phone:</th>
+                                    <td>{{ school.contact_phone or 'Not specified' }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Last Updated:</th>
+                                    <td>{{ school.updated_at[:16] if school.updated_at else 'Never' }}</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Approval Actions -->
+                    {% if school.status == 'pending' %}
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <div class="border-top pt-3">
+                                <h6>🎯 School Approval</h6>
+                                <div class="btn-group">
+                                    <form method="POST" action="{{ url_for('approve_school', school_id=school.id) }}" class="d-inline">
+                                        <button type="submit" class="btn btn-success">
+                                            ✅ Approve School
+                                        </button>
+                                    </form>
+                                    <form method="POST" action="{{ url_for('reject_school', school_id=school.id) }}" class="d-inline">
+                                        <button type="submit" class="btn btn-danger" 
+                                                onclick="return confirm('Are you sure you want to reject and delete this school? This action cannot be undone.')">
+                                            ❌ Reject & Delete
+                                        </button>
+                                    </form>
+                                </div>
+                                <small class="text-muted d-block mt-2">
+                                    Approving will activate the school and allow the admin to manage users.
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Statistics Card -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">📊 School Statistics</h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group list-group-flush">
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            Total Users
+                            <span class="badge bg-primary rounded-pill">{{ stats.total_users }}</span>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            Teachers
+                            <span class="badge bg-info rounded-pill">{{ stats.teachers }}</span>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            Students
+                            <span class="badge bg-success rounded-pill">{{ stats.students }}</span>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            Active Teachers
+                            <span class="badge bg-info rounded-pill">{{ stats.active_teachers }}</span>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            Active Students
+                            <span class="badge bg-success rounded-pill">{{ stats.active_students }}</span>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            Pending Approvals
+                            <span class="badge bg-warning rounded-pill">{{ stats.pending_approvals }}</span>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            Total Assessments
+                            <span class="badge bg-secondary rounded-pill">{{ stats.total_prompts }}</span>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            Total Submissions
+                            <span class="badge bg-dark rounded-pill">{{ stats.total_submissions }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Users Table -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="card-title mb-0">👥 School Users ({{ users|length }})</h5>
+            <small class="text-muted">Sorted by most recent</small>
+        </div>
+        <div class="card-body">
+            {% if users %}
+            <div class="table-responsive">
+                <table class="table table-sm table-hover">
+                    <thead>
+                        <tr>
+                            <th>Username</th>
+                            <th>Role</th>
+                            <th>Status</th>
+                            <th>Admin</th>
+                            <th>Grade</th>
+                            <th>Registered</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user in users %}
+                        <tr>
+                            <td>
+                                <strong>{{ user.username }}</strong>
+                                {% if user.email %}
+                                <br><small class="text-muted">{{ user.email }}</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge bg-{{ 'info' if user.role == 'teacher' else 'success' }}">
+                                    {{ user.role|title }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge bg-{{ 'success' if user.approval_status == 'approved' else 'warning' if user.approval_status == 'pending' else 'secondary' }}">
+                                    {{ user.approval_status|title }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if user.is_admin %}
+                                <span class="badge bg-warning">Admin</span>
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if user.grade %}
+                                Grade {{ user.grade }}
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <small>{{ user.created_at[:10] }}</small>
+                            </td>
+                            <td>
+                                {% if user.approval_status == 'pending' %}
+                                <form method="POST" action="{{ url_for('approve_user', username=user.username) }}" class="d-inline">
+                                    <button type="submit" class="btn btn-success btn-sm">Approve</button>
+                                </form>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-4">
+                <p class="text-muted">No users found in this school.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+.card {
+    border: none;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.table th {
+    border-top: none;
+    font-weight: 600;
+    color: #6c757d;
+    font-size: 0.875rem;
+}
+
+.list-group-item {
+    border: none;
+    padding: 0.75rem 0;
+}
+</style>
+{% endblock %}

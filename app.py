@@ -1782,60 +1782,178 @@ def school_register():
 @app.route('/super/admin/schools')
 @super_admin_required
 def super_admin_schools():
-    """Super admin dashboard for managing schools"""
+    """Enhanced school management with user counts"""
     supabase = get_supabase()
     if not supabase:
         flash('Database connection error.', 'danger')
         return redirect(url_for('index'))
     
     try:
-        # Get all schools
+        # Get all schools with user counts
         schools_response = supabase.table('schools').select('*').order('created_at', desc=True).execute()
         schools = schools_response.data if schools_response.data else []
         
+        # Get user counts for each school
+        schools_with_stats = []
+        for school in schools:
+            users_response = supabase.table('users').select('id').eq('school_id', school['id']).execute()
+            user_count = len(users_response.data) if users_response.data else 0
+            
+            # Count by role
+            teachers_response = supabase.table('users').select('id').eq('school_id', school['id']).eq('role', 'teacher').execute()
+            students_response = supabase.table('users').select('id').eq('school_id', school['id']).eq('role', 'student').execute()
+            
+            school_with_stats = {
+                **school,
+                'total_users': user_count,
+                'teacher_count': len(teachers_response.data) if teachers_response.data else 0,
+                'student_count': len(students_response.data) if students_response.data else 0,
+                'admin_user': None
+            }
+            
+            # Find school admin
+            admin_response = supabase.table('users').select('username').eq('school_id', school['id']).eq('is_admin', True).execute()
+            if admin_response.data:
+                school_with_stats['admin_user'] = admin_response.data[0]['username']
+            
+            schools_with_stats.append(school_with_stats)
+        
         # Get stats
-        pending_schools = [s for s in schools if s['status'] == 'pending']
-        active_schools = [s for s in schools if s['status'] == 'active']
+        pending_schools = [s for s in schools_with_stats if s['status'] == 'pending']
+        active_schools = [s for s in schools_with_stats if s['status'] == 'active']
         
         stats = {
-            'total_schools': len(schools),
+            'total_schools': len(schools_with_stats),
             'pending_schools': len(pending_schools),
-            'active_schools': len(active_schools)
+            'active_schools': len(active_schools),
+            'total_users': sum(s['total_users'] for s in schools_with_stats)
         }
         
         return render_template('super_admin_schools.html',
-                             schools=schools,
+                             schools=schools_with_stats,
                              stats=stats)
                              
     except Exception as e:
         logger.error(f"Super admin schools error: {e}")
         flash('Error loading school management.', 'danger')
-        return redirect(url_for('index'))
+        return redirect(url_for('super_admin_dashboard'))
 
-@app.route('/super/admin/approve_school/<school_id>', methods=['POST'])
+@app.route('/super/admin/school/<school_id>')
 @super_admin_required
-def approve_school(school_id):
-    """Approve a school and activate its admin"""
+def super_admin_school_detail(school_id):
+    """Detailed view of a specific school"""
     supabase = get_supabase()
     if not supabase:
         flash('Database connection error.', 'danger')
         return redirect(url_for('super_admin_schools'))
     
     try:
-        # Update school status
-        school_result = supabase.table('schools').update({'status': 'active'}).eq('id', school_id).execute()
+        # Get school details
+        school_response = supabase.table('schools').select('*').eq('id', school_id).execute()
+        school = school_response.data[0] if school_response.data else None
         
-        # Activate the school admin user
-        user_result = supabase.table('users').update({'approval_status': 'approved'}).eq('school_id', school_id).eq('is_admin', True).execute()
+        if not school:
+            flash('School not found.', 'danger')
+            return redirect(url_for('super_admin_schools'))
+        
+        # Get all users in school
+        users_response = supabase.table('users').select('*').eq('school_id', school_id).order('created_at', desc=True).execute()
+        users = users_response.data if users_response.data else []
+        
+        # Get school prompts and submissions
+        prompts_response = supabase.table('prompts').select('*').eq('school_id', school_id).execute()
+        prompts = prompts_response.data if prompts_response.data else []
+        
+        submissions_response = supabase.table('submissions').select('*').execute()
+        all_submissions = submissions_response.data if submissions_response.data else []
+        
+        # Calculate school statistics
+        teachers = [u for u in users if u['role'] == 'teacher']
+        students = [u for u in users if u['role'] == 'student']
+        pending_users = [u for u in users if u.get('approval_status') == 'pending']
+        
+        school_stats = {
+            'total_users': len(users),
+            'teachers': len(teachers),
+            'students': len(students),
+            'pending_approvals': len(pending_users),
+            'total_prompts': len(prompts),
+            'total_submissions': len(all_submissions),
+            'active_teachers': len([t for t in teachers if t.get('approval_status') == 'approved']),
+            'active_students': len([s for s in students if s.get('approval_status') == 'approved'])
+        }
+        
+        return render_template('super_admin_school_detail.html',
+                             school=school,
+                             users=users,
+                             stats=school_stats)
+        
+    except Exception as e:
+        logger.error(f"School detail error: {e}")
+        flash('Error loading school details.', 'danger')
+        return redirect(url_for('super_admin_schools'))
+
+@app.route('/super/admin/approve_school/<school_id>', methods=['POST'])
+@super_admin_required
+def approve_school(school_id):
+    """Enhanced school approval with activation"""
+    supabase = get_supabase()
+    if not supabase:
+        flash('Database connection error.', 'danger')
+        return redirect(url_for('super_admin_schools'))
+    
+    try:
+        # Update school status to active
+        school_result = supabase.table('schools').update({
+            'status': 'active',
+            'updated_at': datetime.now().isoformat()
+        }).eq('id', school_id).execute()
+        
+        # Activate all users in the school
+        user_result = supabase.table('users').update({
+            'approval_status': 'approved'
+        }).eq('school_id', school_id).execute()
         
         if school_result.data and user_result.data:
-            flash('School approved successfully! The school admin can now log in.', 'success')
+            # Get school name for notification
+            school_response = supabase.table('schools').select('name').eq('id', school_id).execute()
+            school_name = school_response.data[0]['name'] if school_response.data else 'Unknown School'
+            
+            flash(f'✅ School "{school_name}" approved successfully! All users have been activated.', 'success')
         else:
             flash('Error approving school.', 'danger')
             
     except Exception as e:
         logger.error(f"Approve school error: {e}")
         flash('Error approving school.', 'danger')
+    
+    return redirect(url_for('super_admin_schools'))
+
+@app.route('/super/admin/reject_school/<school_id>', methods=['POST'])
+@super_admin_required
+def reject_school(school_id):
+    """Enhanced school rejection with cleanup"""
+    supabase = get_supabase()
+    if not supabase:
+        flash('Database connection error.', 'danger')
+        return redirect(url_for('super_admin_schools'))
+    
+    try:
+        # Get school name before deletion
+        school_response = supabase.table('schools').select('name').eq('id', school_id).execute()
+        school_name = school_response.data[0]['name'] if school_response.data else 'Unknown School'
+        
+        # Delete all users in the school first
+        supabase.table('users').delete().eq('school_id', school_id).execute()
+        
+        # Delete the school
+        supabase.table('schools').delete().eq('id', school_id).execute()
+        
+        flash(f'❌ School "{school_name}" has been rejected and removed from the platform.', 'success')
+            
+    except Exception as e:
+        logger.error(f"Reject school error: {e}")
+        flash('Error rejecting school.', 'danger')
     
     return redirect(url_for('super_admin_schools'))
 
