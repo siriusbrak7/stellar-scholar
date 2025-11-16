@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="admin-container">
+    <div class="admin-header">
+        <h1 class="admin-title">👥 Platform User Approvals</h1>
+        <p class="admin-subtitle">Manage all pending users across all schools</p>
+    </div>
+
+    {% if pending_users %}
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">⏳ Pending Approvals ({{ pending_users|length }})</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Username</th>
+                            <th>Role</th>
+                            <th>School</th>
+                            <th>Grade</th>
+                            <th>Registered</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user in pending_users %}
+                        <tr>
+                            <td><strong>{{ user.username }}</strong></td>
+                            <td>
+                                <span class="badge {% if user.role == 'teacher' %}bg-primary{% else %}bg-success{% endif %}">
+                                    {{ user.role|title }}
+                                </span>
+                                {% if user.is_admin %}
+                                <span class="badge bg-warning">Admin</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if user.schools %}
+                                    {{ user.schools.name }}
+                                {% else %}
+                                    <span class="text-muted">No school</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ user.grade or '-' }}</td>
+                            <td>{{ user.created_at[:16]|replace('T', ' ') }}</td>
+                            <td>
+                                <form method="POST" action="{{ url_for('super_approve_user', username=user.username) }}" class="d-inline">
+                                    <button type="submit" class="btn btn-success btn-sm">✅ Approve</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-success">
+        <h4>🎉 No Pending Approvals!</h4>
+        <p class="mb-0">All registration requests have been processed.</p>
+    </div>
+    {% endif %}
+
+    <a href="{{ url_for('super_admin_dashboard') }}" class="btn btn-secondary">← Back to Dashboard</a>
+</div>
+{% endblock %}

@@ -1901,7 +1901,53 @@ def super_admin_analytics():
     """Placeholder - Platform analytics"""
     return "Platform Analytics - Coming Soon"
 
+@app.route('/super/admin/approvals')
+@super_admin_required
+def super_admin_approvals():
+    """Super admin view of ALL pending users across all schools"""
+    supabase = get_supabase()
+    if not supabase:
+        flash('Database connection error.', 'danger')
+        return redirect(url_for('super_admin_dashboard'))
+    
+    try:
+        # Get ALL pending users from ALL schools
+        pending_users = supabase.table('users').select('*, schools(name)').eq('approval_status', 'pending').execute()
+        
+        # Get ALL users for reference
+        all_users = supabase.table('users').select('*, schools(name)').order('created_at', desc=True).execute()
+        
+        return render_template('super_admin_approvals.html',
+                             pending_users=pending_users.data if pending_users.data else [],
+                             all_users=all_users.data if all_users.data else [])
+    except Exception as e:
+        logger.error(f"Super admin approvals error: {e}")
+        flash('Error loading user approvals.', 'danger')
+        return redirect(url_for('super_admin_dashboard'))
 
+# Also update the approve_user route to work for super admin
+@app.route('/super/admin/approve_user/<username>', methods=['POST'])
+@super_admin_required
+def super_approve_user(username):
+    """Super admin approval for any user"""
+    supabase = get_supabase()
+    if not supabase:
+        flash('Database connection error.', 'danger')
+        return redirect(url_for('super_admin_approvals'))
+    
+    try:
+        # Update user approval status to 'approved'
+        result = supabase.table('users').update({'approval_status': 'approved'}).eq('username', username).execute()
+        
+        if result.data:
+            flash(f'✅ User {username} has been approved successfully!', 'success')
+        else:
+            flash('User not found.', 'warning')
+    except Exception as e:
+        logger.error(f"Super approve user error: {e}")
+        flash('Error approving user.', 'danger')
+    
+    return redirect(url_for('super_admin_approvals'))
 
 if __name__ == '__main__':
     app.run(debug=True)
