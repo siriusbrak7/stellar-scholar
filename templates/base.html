@@ -14,11 +14,52 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body class="stellar-bg">
+
     <!-- Navbar using Bootstrap classes -->
     <nav class="navbar navbar-expand-lg navbar-dark">
         <div class="container">
+
+            <!-- Navbar Brand -->
             <a class="navbar-brand stellar-brand" href="{{ url_for('index') }}">Stellar Scholar</a>
-            
+
+            <!-- School Switcher for Sirius -->
+            {% if session.user_id == 'sirius' %}
+            <div class="container">
+                <div class="row">
+                    <div class="col-12">
+                        <div class="alert alert-info py-2 mt-2 mb-0">
+                            <small>
+                                <strong>🌍 Platform View:</strong> 
+                                <select id="schoolSwitcher" class="form-select form-select-sm d-inline-block w-auto">
+                                    <option value="">All Schools (Super Admin)</option>
+                                    {% for school in available_schools %}
+                                    <option value="{{ school.id }}" 
+                                        {% if current_school_id == school.id %}selected{% endif %}>
+                                        {{ school.name }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                <span class="ms-2 text-muted">Viewing as: {{ current_school_name or 'Platform Admin' }}</span>
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <script>
+            // School switcher functionality
+            document.addEventListener('DOMContentLoaded', function() {
+                const schoolSwitcher = document.getElementById('schoolSwitcher');
+                if (schoolSwitcher) {
+                    schoolSwitcher.addEventListener('change', function() {
+                        const schoolId = this.value;
+                        window.location.href = '/switch-school/' + (schoolId || 'none');
+                    });
+                }
+            });
+            </script>
+            {% endif %}
+
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
@@ -32,24 +73,21 @@
                         <!-- Role-Based Links -->
                         {% if session.role == 'teacher' %}
                             <a class="nav-link" href="{{ url_for('teacher_dashboard') }}">📊 Dashboard</a>
-                            
-                            <!-- School Admin Links -->
+
                             {% if session.user_id == 'sirius' %}
                                 <a class="nav-link" href="{{ url_for('super_admin_dashboard') }}">🛡️ Super Admin</a>
                                 <a class="nav-link" href="{{ url_for('super_admin_schools') }}">🏫 Manage Schools</a>
                             {% elif is_school_admin %}
                                 <a class="nav-link" href="{{ url_for('school_admin_dashboard') }}">🏫 School Admin</a>
                             {% endif %}
-                            
-                            <!-- Regular Admin Link -->
+
                             <a class="nav-link" href="{{ url_for('admin_dashboard') }}">👥 Approve Users</a>
-                            
+
                         {% else %}
-                            <!-- Student Links -->
                             <a class="nav-link" href="{{ url_for('student_dashboard') }}">📚 Dashboard</a>
                             <a class="nav-link" href="{{ url_for('student_history') }}">📖 My History</a>
                         {% endif %}
-                        
+
                         <!-- User Info & Logout -->
                         <span class="nav-link text-warning">
                             <i class="fas fa-user"></i> {{ session.user_id }}
@@ -60,9 +98,8 @@
                         <a class="nav-link text-danger" href="{{ url_for('logout') }}">
                             <i class="fas fa-sign-out-alt"></i> Logout
                         </a>
-                        
+
                     {% else %}
-                        <!-- Public Links -->
                         <a class="nav-link" href="{{ url_for('school_register') }}">🏫 Register School</a>
                         <a class="nav-link" href="{{ url_for('login') }}">🔐 Login</a>
                         <a class="nav-link" href="{{ url_for('register') }}">📝 Register</a>
@@ -74,7 +111,6 @@
 
     <!-- Main Content -->
     <main class="container mt-4">
-        <!-- Flash Messages using Bootstrap alerts -->
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
@@ -105,49 +141,36 @@
         const flashMessages = document.querySelectorAll('.alert');
         
         flashMessages.forEach(function(alert) {
-            // Remove any existing Bootstrap close buttons
             const bsCloseButtons = alert.querySelector('[data-bs-dismiss="alert"]');
             if (bsCloseButtons) {
                 bsCloseButtons.remove();
             }
             
-            // Create custom close button
             const closeButton = document.createElement('button');
             closeButton.type = 'button';
             closeButton.className = 'btn-close';
             closeButton.setAttribute('aria-label', 'Close');
             closeButton.style.cssText = 'position: absolute; right: 15px; top: 15px; cursor: pointer;';
             
-            // Add close functionality
             closeButton.addEventListener('click', function() {
                 alert.style.opacity = '0';
                 alert.style.transition = 'opacity 0.5s ease';
-                setTimeout(() => {
-                    if (alert.parentNode) {
-                        alert.remove();
-                    }
-                }, 500);
+                setTimeout(() => alert.remove(), 500);
             });
             
             alert.style.position = 'relative';
             alert.style.paddingRight = '50px';
             alert.style.minHeight = '60px';
             alert.appendChild(closeButton);
-            
-            // Auto-remove after 5 minutes
+
             setTimeout(() => {
-                if (alert.parentNode) {
-                    alert.style.opacity = '0';
-                    alert.style.transition = 'opacity 0.5s ease';
-                    setTimeout(() => {
-                        if (alert.parentNode) {
-                            alert.remove();
-                        }
-                    }, 500);
-                }
+                alert.style.opacity = '0';
+                alert.style.transition = 'opacity 0.5s ease';
+                setTimeout(() => alert.remove(), 500);
             }, 300000);
         });
     });
     </script>
+
 </body>
 </html>
