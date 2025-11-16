@@ -698,21 +698,42 @@ def create_prompt():
             if due_date_str:
                 due_date = datetime.fromisoformat(due_date_str).isoformat()
             
-            # Create prompt
+            # Create prompt - only include columns that exist
             prompt_data = {
                 'id': prompt_id,
                 'title': title,
                 'description': description,
                 'grade_level': grade_level,
-                'subject': subject,
-                'assessment_type': assessment_type,
-                'total_points': int(total_points),
-                'instructions': instructions,
-                'due_date': due_date,
                 'created_by': session['user_id'],
                 'created_at': datetime.now().isoformat(),
                 'school_id': user['school_id'],
             }
+
+            # Safely add new columns if they exist
+            try:
+                prompt_data['subject'] = subject
+            except:
+                pass
+                
+            try:
+                prompt_data['assessment_type'] = assessment_type
+            except:
+                pass
+                
+            try:
+                prompt_data['total_points'] = int(total_points)
+            except:
+                pass
+                
+            try:
+                prompt_data['instructions'] = instructions
+            except:
+                pass
+                
+            try:
+                prompt_data['due_date'] = due_date
+            except:
+                pass
 
             prompt_result = supabase.table('prompts').insert(prompt_data).execute()
             
@@ -767,7 +788,7 @@ def create_prompt():
 
         except Exception as e:
             logger.error(f"Prompt creation error: {e}")
-            flash('Error creating assessment.', 'danger')
+            flash(f'Error creating assessment: {str(e)}', 'danger')
 
     return render_template('create_prompt.html')
 
