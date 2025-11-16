@@ -1,41 +1,122 @@
 {% extends "base.html" %}
 
+{% block title %}School Settings - Stellar Scholar{% endblock %}
+
 {% block content %}
-<div class="container-fluid">
-    <div class="row justify-content-center">
-        <div class="col-md-6">
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="h3 mb-4">⚙️ School Settings</h1>
+            
             <div class="card">
-                <div class="card-header bg-primary text-white">
-                    <h4 class="mb-0">⚙️ School Settings</h4>
+                <div class="card-header">
+                    <h5 class="card-title mb-0">School Information</h5>
                 </div>
                 <div class="card-body">
                     <form method="POST">
-                        <div class="mb-3">
-                            <label class="form-label">School Name</label>
-                            <input type="text" class="form-control" name="school_name" value="{{ school.name }}" required>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="school_name" class="form-label">School Name *</label>
+                                <input type="text" class="form-control" id="school_name" name="school_name" 
+                                       value="{{ school.name }}" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">School ID</label>
+                                <input type="text" class="form-control" value="{{ school.id }}" readonly 
+                                       style="background-color: #f8f9fa;">
+                                <div class="form-text">Unique identifier for your school</div>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label for="contact_person" class="form-label">Contact Person</label>
+                                <input type="text" class="form-control" id="contact_person" name="contact_person" 
+                                       value="{{ school.contact_person or '' }}" 
+                                       placeholder="Principal or Admin Name">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="contact_phone" class="form-label">Contact Phone</label>
+                                <input type="tel" class="form-control" id="contact_phone" name="contact_phone" 
+                                       value="{{ school.contact_phone or '' }}" 
+                                       placeholder="+1 (555) 123-4567">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="contact_email" class="form-label">Contact Email</label>
+                                <input type="email" class="form-control" id="contact_email" name="contact_email" 
+                                       value="{{ user.email }}" 
+                                       placeholder="admin@school.edu">
+                                <div class="form-text">Your admin email address</div>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-12">
+                                <div class="card bg-light">
+                                    <div class="card-body">
+                                        <h6 class="card-title">📊 School Statistics</h6>
+                                        <div class="row text-center">
+                                            <div class="col-md-3">
+                                                <small class="text-muted">Status</small>
+                                                <div>
+                                                    <span class="badge bg-{{ 'success' if school.status == 'active' else 'warning' }}">
+                                                        {{ school.status|title }}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <small class="text-muted">Registered</small>
+                                                <div><strong>{{ school.created_at[:10] if school.created_at }}</strong></div>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <small class="text-muted">Last Updated</small>
+                                                <div><strong>{{ school.updated_at[:10] if school.updated_at else 'Never' }}</strong></div>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <small class="text-muted">Admin</small>
+                                                <div><strong>{{ session.user_id }}</strong></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
-                        <div class="mb-3">
-                            <label class="form-label">Contact Person</label>
-                            <input type="text" class="form-control" name="contact_person" value="{{ school.contact_person or '' }}" placeholder="Principal or admin contact">
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label">Contact Phone</label>
-                            <input type="text" class="form-control" name="contact_phone" value="{{ school.contact_phone or '' }}" placeholder="Phone number">
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label">School ID</label>
-                            <input type="text" class="form-control" value="{{ school.id }}" readonly>
-                            <div class="form-text">This is your unique school identifier</div>
-                        </div>
-
-                        <div class="d-grid gap-2">
-                            <button type="submit" class="btn btn-success">💾 Save Settings</button>
-                            <a href="{{ url_for('school_admin_dashboard') }}" class="btn btn-secondary">← Back to Dashboard</a>
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="{{ url_for('school_admin_dashboard') }}" class="btn btn-secondary me-md-2">
+                                ← Back to Dashboard
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                💾 Save Changes
+                            </button>
                         </div>
                     </form>
+                </div>
+            </div>
+            
+            <!-- Danger Zone -->
+            <div class="card mt-4 border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="card-title mb-0">⚠️ Danger Zone</h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted mb-3">
+                        These actions are irreversible. Please proceed with caution.
+                    </p>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <button class="btn btn-outline-danger w-100" disabled>
+                                🗑️ Delete School
+                            </button>
+                            <small class="text-muted">Contact super admin to delete school</small>
+                        </div>
+                        <div class="col-md-6">
+                            <button class="btn btn-outline-warning w-100" disabled>
+                                🔄 Transfer Ownership
+                            </button>
+                            <small class="text-muted">Not yet implemented</small>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -45,12 +126,18 @@
 <style>
 .card {
     border: none;
-    border-radius: 15px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
-.form-control:read-only {
-    background-color: #f8f9fa;
+.card-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-bottom: none;
+}
+
+.bg-light {
+    background-color: #f8f9fa !important;
+    border: 1px solid #e9ecef;
 }
 </style>
 {% endblock %}

@@ -1,39 +1,80 @@
 {% extends "base.html" %}
 
+{% block title %}Bulk Import - Stellar Scholar{% endblock %}
+
 {% block content %}
-<div class="container-fluid">
-    <div class="row justify-content-center">
-        <div class="col-md-8">
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="h3 mb-4">📥 Bulk Import Users</h1>
+            
             <div class="card">
-                <div class="card-header bg-primary text-white">
-                    <h4 class="mb-0">📤 Bulk Import Users</h4>
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Import Instructions</h5>
                 </div>
                 <div class="card-body">
-                    <div class="alert alert-info">
-                        <h5>📋 Import Format</h5>
-                        <p class="mb-2"><strong>For Teachers:</strong> username,password,email</p>
-                        <p class="mb-0"><strong>For Students:</strong> username,password,email,grade</p>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>📋 CSV Format Requirements:</h6>
+                            <ul class="small">
+                                <li>First row must be header with column names</li>
+                                <li>Use commas to separate columns</li>
+                                <li>Required columns: <code>username,password,email</code></li>
+                                <li>For students, also include: <code>grade</code></li>
+                                <li>All users will be auto-approved</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>👥 Example Formats:</h6>
+                            <pre class="small bg-light p-2 rounded">
+<strong>For Teachers:</strong>
+username,password,email
+teacher_john,pass123,john@school.edu
+teacher_sarah,pass456,sarah@school.edu
+
+<strong>For Students:</strong>
+username,password,email,grade
+student_alice,pass789,alice@school.edu,10
+student_bob,pass101,bob@school.edu,11</pre>
+                        </div>
                     </div>
+                </div>
+            </div>
 
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Import Users</h5>
+                </div>
+                <div class="card-body">
                     <form method="POST">
-                        <div class="mb-3">
-                            <label class="form-label">Import Type</label>
-                            <select name="import_type" class="form-select" required>
-                                <option value="">Select type...</option>
-                                <option value="teachers">Teachers</option>
-                                <option value="students">Students</option>
-                            </select>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="import_type" class="form-label">User Type</label>
+                                <select class="form-select" id="import_type" name="import_type" required>
+                                    <option value="">Select user type...</option>
+                                    <option value="teachers">Teachers</option>
+                                    <option value="students">Students</option>
+                                </select>
+                            </div>
                         </div>
-
+                        
                         <div class="mb-3">
-                            <label class="form-label">CSV Data</label>
-                            <textarea name="csv_data" class="form-control" rows="10" placeholder="username,password,email,grade&#10;john_doe,password123,john@school.com,10&#10;jane_smith,password456,jane@school.com,11" required></textarea>
-                            <div class="form-text">Enter one user per line. Include header row: username,password,email,grade</div>
+                            <label for="csv_data" class="form-label">CSV Data</label>
+                            <textarea class="form-control" id="csv_data" name="csv_data" 
+                                      rows="10" placeholder="Paste your CSV data here..." 
+                                      required style="font-family: monospace;"></textarea>
+                            <div class="form-text">
+                                Copy and paste your CSV data exactly as shown in the examples above.
+                            </div>
                         </div>
-
-                        <div class="d-grid gap-2">
-                            <button type="submit" class="btn btn-success">🚀 Import Users</button>
-                            <a href="{{ url_for('school_admin_dashboard') }}" class="btn btn-secondary">← Back to Dashboard</a>
+                        
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="{{ url_for('school_admin_dashboard') }}" class="btn btn-secondary me-md-2">
+                                ← Back to Dashboard
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                📥 Import Users
+                            </button>
                         </div>
                     </form>
                 </div>
@@ -45,13 +86,18 @@
 <style>
 .card {
     border: none;
-    border-radius: 15px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
-.form-text {
-    font-size: 0.875rem;
-    color: #6c757d;
+.card-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-bottom: none;
+}
+
+pre {
+    white-space: pre-wrap;
+    word-wrap: break-word;
 }
 </style>
 {% endblock %}

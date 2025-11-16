@@ -1,124 +1,200 @@
 {% extends "base.html" %}
 
+{% block title %}School Admin Dashboard - Stellar Scholar{% endblock %}
+
 {% block content %}
-<div class="container-fluid">
-    <div class="row">
+<div class="school-admin-dashboard">
+    <div class="row mb-4">
         <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h2 class="text-white">🏫 School Admin Dashboard</h2>
-                <span class="badge bg-primary">{{ school.name }}</span>
-            </div>
-            
-            <!-- Statistics Cards -->
-            <div class="row mb-4">
-                <div class="col-md-3">
-                    <div class="card text-white bg-primary">
-                        <div class="card-body text-center">
-                            <h4 class="card-title">{{ stats.total_users }}</h4>
-                            <p class="card-text">Total Users</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="card text-white bg-success">
-                        <div class="card-body text-center">
-                            <h4 class="card-title">{{ stats.total_teachers }}</h4>
-                            <p class="card-text">Teachers</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="card text-white bg-info">
-                        <div class="card-body text-center">
-                            <h4 class="card-title">{{ stats.total_students }}</h4>
-                            <p class="card-text">Students</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="card text-white bg-warning">
-                        <div class="card-body text-center">
-                            <h4 class="card-title">{{ stats.pending_approvals }}</h4>
-                            <p class="card-text">Pending Approvals</p>
-                        </div>
-                    </div>
+            <h1 class="h3 mb-0">🏫 {{ school.name }} - Admin Dashboard</h1>
+            <p class="text-muted">School ID: {{ school.id }}</p>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h5 class="card-title">{{ stats.total_users }}</h5>
+                    <p class="card-text">Total Users</p>
                 </div>
             </div>
-            
-            <!-- Quick Actions -->
-            <div class="row mb-4">
-                <div class="col-12">
-                    <div class="card">
-                        <div class="card-header bg-dark text-white">
-                            <h5 class="mb-0">🚀 Quick Actions</h5>
-                        </div>
-                        <div class="card-body">
-                            <a href="{{ url_for('bulk_import_users') }}" class="btn btn-primary me-2 mb-2">
-                                📤 Bulk Import Users
-                            </a>
-                            <a href="{{ url_for('school_settings') }}" class="btn btn-secondary me-2 mb-2">
-                                ⚙️ School Settings
-                            </a>
-                            <a href="{{ url_for('admin_dashboard') }}" class="btn btn-info me-2 mb-2">
-                                👥 Manage Approvals
-                            </a>
-                            <a href="{{ url_for('teacher_dashboard') }}" class="btn btn-success mb-2">
-                                📊 Teacher Dashboard
-                            </a>
-                        </div>
-                    </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h5 class="card-title">{{ stats.active_teachers }}/{{ stats.total_teachers }}</h5>
+                    <p class="card-text">Active Teachers</p>
                 </div>
             </div>
-            
-            <!-- Users Table -->
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <h5 class="card-title">{{ stats.active_students }}/{{ stats.total_students }}</h5>
+                    <p class="card-text">Active Students</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <h5 class="card-title">{{ stats.pending_approvals }}</h5>
+                    <p class="card-text">Pending Approvals</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Second Row Stats -->
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card bg-dark text-white">
+                <div class="card-body">
+                    <h5 class="card-title">{{ stats.total_assessments }}</h5>
+                    <p class="card-text">Total Assessments</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card bg-secondary text-white">
+                <div class="card-body">
+                    <h5 class="card-title">{{ stats.total_submissions }}</h5>
+                    <p class="card-text">Total Submissions</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h5 class="card-title">{{ stats.avg_completion_rate }}%</h5>
+                    <p class="card-text">Avg Completion</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <h5 class="card-title">{{ stats.graded_submissions }}</h5>
+                    <p class="card-text">Graded Submissions</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Assessment Types -->
+    <div class="row mb-4">
+        <div class="col-12">
             <div class="card">
-                <div class="card-header bg-dark text-white">
-                    <h5 class="mb-0">👥 School Users</h5>
+                <div class="card-header">
+                    <h5 class="card-title mb-0">📊 Assessment Types</h5>
                 </div>
                 <div class="card-body">
-                    {% if users %}
-                    <div class="table-responsive">
-                        <table class="table table-striped">
-                            <thead>
-                                <tr>
-                                    <th>Username</th>
-                                    <th>Role</th>
-                                    <th>Grade</th>
-                                    <th>Status</th>
-                                    <th>Join Date</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for user in users %}
-                                <tr>
-                                    <td>
-                                        {{ user.username }}
+                    <div class="row text-center">
+                        <div class="col-md-4">
+                            <h4>{{ stats.written_assessments }}</h4>
+                            <p class="text-muted">Written Assessments</p>
+                        </div>
+                        <div class="col-md-4">
+                            <h4>{{ stats.mcq_assessments }}</h4>
+                            <p class="text-muted">MCQ Assessments</p>
+                        </div>
+                        <div class="col-md-4">
+                            <h4>{{ stats.mixed_assessments }}</h4>
+                            <p class="text-muted">Mixed Assessments</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">⚡ Quick Actions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4 mb-2">
+                            <a href="{{ url_for('bulk_import_users') }}" class="btn btn-primary w-100">
+                                📥 Bulk Import Users
+                            </a>
+                        </div>
+                        <div class="col-md-4 mb-2">
+                            <a href="{{ url_for('admin_dashboard') }}" class="btn btn-warning w-100">
+                                👥 Manage User Approvals
+                            </a>
+                        </div>
+                        <div class="col-md-4 mb-2">
+                            <a href="{{ url_for('school_settings') }}" class="btn btn-info w-100">
+                                ⚙️ School Settings
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Users & Grade Distribution -->
+    <div class="row">
+        <!-- Recent Users -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">🆕 Recent Registrations</h5>
+                </div>
+                <div class="card-body">
+                    {% if recent_users %}
+                        <div class="list-group">
+                            {% for user in recent_users %}
+                            <div class="list-group-item">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <strong>{{ user.username }}</strong>
+                                        <span class="badge bg-{{ 'success' if user.role == 'teacher' else 'info' }} ms-2">
+                                            {{ user.role }}
+                                        </span>
                                         {% if user.is_admin %}
                                         <span class="badge bg-warning ms-1">Admin</span>
                                         {% endif %}
-                                    </td>
-                                    <td>
-                                        <span class="badge {% if user.role == 'teacher' %}bg-success{% else %}bg-info{% endif %}">
-                                            {{ user.role }}
-                                        </span>
-                                    </td>
-                                    <td>{{ user.grade or '-' }}</td>
-                                    <td>
-                                        <span class="badge {% if user.approval_status == 'approved' %}bg-success{% else %}bg-warning{% endif %}">
-                                            {{ user.approval_status }}
-                                        </span>
-                                    </td>
-                                    <td>{{ user.created_at[:10] }}</td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
+                                    </div>
+                                    <small class="text-muted">
+                                        {{ user.approval_status }}
+                                    </small>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
                     {% else %}
-                    <div class="text-center py-4">
-                        <p class="text-muted">No users in your school yet.</p>
-                        <a href="{{ url_for('bulk_import_users') }}" class="btn btn-primary">Import Users</a>
-                    </div>
+                        <p class="text-muted">No users registered yet.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Grade Distribution -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">📚 Grade Distribution</h5>
+                </div>
+                <div class="card-body">
+                    {% if grade_distribution %}
+                        <div class="list-group">
+                            {% for grade, count in grade_distribution.items() %}
+                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                                Grade {{ grade }}
+                                <span class="badge bg-primary rounded-pill">{{ count }}</span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="text-muted">No students enrolled yet.</p>
                     {% endif %}
                 </div>
             </div>
@@ -127,21 +203,26 @@
 </div>
 
 <style>
-.card {
+.school-admin-dashboard .card {
+    transition: transform 0.2s;
     border: none;
-    border-radius: 15px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-    margin-bottom: 1.5rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
-.card-body {
-    padding: 1.5rem;
+.school-admin-dashboard .card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
 }
 
-.btn {
-    border-radius: 8px;
-    padding: 0.75rem 1.5rem;
-    font-weight: 500;
+.card-title {
+    font-size: 1.8rem;
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+}
+
+.card-text {
+    font-size: 0.9rem;
+    opacity: 0.9;
 }
 </style>
 {% endblock %}

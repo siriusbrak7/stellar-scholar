@@ -1865,7 +1865,7 @@ def reject_school(school_id):
 @app.route('/school/admin/dashboard')
 @school_admin_required
 def school_admin_dashboard():
-    """School admin dashboard for managing their school"""
+    """Enhanced school admin dashboard with real statistics"""
     supabase = get_supabase()
     if not supabase:
         flash('Database connection error.', 'danger')
@@ -1884,26 +1884,87 @@ def school_admin_dashboard():
         school_response = supabase.table('schools').select('*').eq('id', user['school_id']).execute()
         school = school_response.data[0] if school_response.data else None
         
-        # Get all users in the school
+        if not school:
+            flash('School not found.', 'danger')
+            return redirect(url_for('teacher_dashboard'))
+        
+        # Get all users in the school with detailed info
         users_response = supabase.table('users').select('*').eq('school_id', user['school_id']).execute()
         school_users = users_response.data if users_response.data else []
         
-        # Get statistics
+        # Get all prompts for the school
+        prompts_response = supabase.table('prompts').select('*').eq('school_id', user['school_id']).execute()
+        school_prompts = prompts_response.data if prompts_response.data else []
+        
+        # Get all submissions for the school
+        submissions_response = supabase.table('submissions').select('*').execute()
+        all_submissions = submissions_response.data if submissions_response.data else []
+        
+        # Calculate detailed statistics
         teachers = [u for u in school_users if u['role'] == 'teacher']
         students = [u for u in school_users if u['role'] == 'student']
         pending_users = [u for u in school_users if u.get('approval_status') == 'pending']
         
+        # Teacher statistics
+        active_teachers = len([t for t in teachers if t.get('approval_status') == 'approved'])
+        teacher_admins = len([t for t in teachers if t.get('is_admin')])
+        
+        # Student statistics
+        active_students = len([s for s in students if s.get('approval_status') == 'approved'])
+        
+        # Assessment statistics
+        written_assessments = len([p for p in school_prompts if p.get('assessment_type') == 'written'])
+        mcq_assessments = len([p for p in school_prompts if p.get('assessment_type') == 'mcq'])
+        mixed_assessments = len([p for p in school_prompts if p.get('assessment_type') == 'mixed'])
+        
+        # Submission statistics
+        total_submissions = len(all_submissions)
+        graded_submissions = len([s for s in all_submissions if s.get('grade') is not None])
+        
+        # Calculate average completion rate per student
+        student_completion = {}
+        for student in students:
+            if student.get('approval_status') == 'approved':
+                student_subs = [s for s in all_submissions if s['student_id'] == student['username']]
+                student_prompts = [p for p in school_prompts if p.get('grade_level') == student.get('grade')]
+                completion_rate = (len(student_subs) / len(student_prompts)) * 100 if student_prompts else 0
+                student_completion[student['username']] = completion_rate
+        
+        avg_completion_rate = round(sum(student_completion.values()) / len(student_completion)) if student_completion else 0
+        
         stats = {
             'total_teachers': len(teachers),
+            'active_teachers': active_teachers,
+            'teacher_admins': teacher_admins,
             'total_students': len(students),
+            'active_students': active_students,
             'pending_approvals': len(pending_users),
-            'total_users': len(school_users)
+            'total_users': len(school_users),
+            'total_assessments': len(school_prompts),
+            'written_assessments': written_assessments,
+            'mcq_assessments': mcq_assessments,
+            'mixed_assessments': mixed_assessments,
+            'total_submissions': total_submissions,
+            'graded_submissions': graded_submissions,
+            'avg_completion_rate': avg_completion_rate
         }
+        
+        # Recent activity (last 5 users registered)
+        recent_users = sorted(school_users, key=lambda x: x.get('created_at', ''), reverse=True)[:5]
+        
+        # Grade distribution
+        grade_distribution = {}
+        for student in students:
+            if student.get('approval_status') == 'approved':
+                grade = student.get('grade', 'Unknown')
+                grade_distribution[grade] = grade_distribution.get(grade, 0) + 1
         
         return render_template('school_admin_dashboard.html',
                              school=school,
                              users=school_users,
-                             stats=stats)
+                             stats=stats,
+                             recent_users=recent_users,
+                             grade_distribution=grade_distribution)
                              
     except Exception as e:
         logger.error(f"School admin dashboard error: {e}")
@@ -1913,7 +1974,7 @@ def school_admin_dashboard():
 @app.route('/school/admin/bulk_import', methods=['GET', 'POST'])
 @school_admin_required
 def bulk_import_users():
-    """Bulk import teachers/students for the school"""
+    """Enhanced bulk import with validation and error handling"""
     supabase = get_supabase()
     if not supabase:
         flash('Database connection error.', 'danger')
@@ -1936,21 +1997,51 @@ def bulk_import_users():
                 flash('Please provide CSV data.', 'danger')
                 return render_template('bulk_import.html')
             
-            lines = csv_data.split('\n')
+            lines = [line.strip() for line in csv_data.split('\n') if line.strip()]
+            if len(lines) < 2:
+                flash('CSV data must include header row and at least one data row.', 'danger')
+                return render_template('bulk_import.html')
+            
+            # Parse header
+            header = [col.strip().lower() for col in lines[0].split(',')]
+            required_columns = ['username', 'password', 'email']
+            if import_type == 'students':
+                required_columns.append('grade')
+            
+            # Validate header
+            missing_columns = [col for col in required_columns if col not in header]
+            if missing_columns:
+                flash(f'Missing required columns: {", ".join(missing_columns)}', 'danger')
+                return render_template('bulk_import.html')
+            
             imported_count = 0
             errors = []
+            success_users = []
             
-            for i, line in enumerate(lines[1:], start=2):  # Skip header row
+            for i, line in enumerate(lines[1:], start=2):
                 if not line.strip():
                     continue
                     
                 parts = [part.strip() for part in line.split(',')]
-                if len(parts) < 3:
-                    errors.append(f"Line {i}: Invalid format, expected username,password,email[,grade]")
+                if len(parts) != len(header):
+                    errors.append(f"Line {i}: Column count mismatch. Expected {len(header)} columns, got {len(parts)}")
                     continue
                 
-                username, password, email = parts[0], parts[1], parts[2]
-                grade = parts[3] if len(parts) > 3 and import_type == 'students' else None
+                # Create user data dictionary
+                user_data = dict(zip(header, parts))
+                username = user_data.get('username', '')
+                password = user_data.get('password', '')
+                email = user_data.get('email', '')
+                grade = user_data.get('grade', '') if import_type == 'students' else None
+                
+                # Validation
+                if not all([username, password, email]):
+                    errors.append(f"Line {i}: Username, password and email are required")
+                    continue
+                
+                if import_type == 'students' and not grade:
+                    errors.append(f"Line {i}: Grade is required for students")
+                    continue
                 
                 # Check if username already exists
                 existing_user = supabase.table('users').select('username').eq('username', username).execute()
@@ -1959,7 +2050,7 @@ def bulk_import_users():
                     continue
                 
                 # Create user
-                user_data = {
+                new_user = {
                     'username': username,
                     'password_hash': generate_password_hash(password),
                     'email': email,
@@ -1970,21 +2061,27 @@ def bulk_import_users():
                 }
                 
                 if import_type == 'students' and grade:
-                    user_data['grade'] = grade
+                    new_user['grade'] = grade
                 
-                result = supabase.table('users').insert(user_data).execute()
+                result = supabase.table('users').insert(new_user).execute()
                 if result.data:
                     imported_count += 1
+                    success_users.append(username)
                 else:
                     errors.append(f"Line {i}: Failed to create user '{username}'")
             
+            # Show results
             if imported_count > 0:
-                flash(f'Successfully imported {imported_count} users!', 'success')
+                flash(f'✅ Successfully imported {imported_count} users!', 'success')
+                if len(success_users) <= 10:  # Show first 10 usernames
+                    flash(f'Imported: {", ".join(success_users)}', 'info')
+            
             if errors:
-                flash_errors = '\n'.join(errors[:5])  # Show first 5 errors
-                if len(errors) > 5:
-                    flash_errors += f'\n... and {len(errors) - 5} more errors'
-                flash(f'Import completed with errors:\n{flash_errors}', 'warning')
+                error_count = len(errors)
+                error_preview = '\n'.join(errors[:5])  # Show first 5 errors
+                if error_count > 5:
+                    error_preview += f'\n... and {error_count - 5} more errors'
+                flash(f'❌ Import completed with {error_count} errors:\n{error_preview}', 'warning')
             
             return redirect(url_for('school_admin_dashboard'))
         
@@ -1998,7 +2095,7 @@ def bulk_import_users():
 @app.route('/school/admin/settings', methods=['GET', 'POST'])
 @school_admin_required
 def school_settings():
-    """School settings management"""
+    """Enhanced school settings with better error handling"""
     supabase = get_supabase()
     if not supabase:
         flash('Database connection error.', 'danger')
@@ -2016,29 +2113,50 @@ def school_settings():
         school_response = supabase.table('schools').select('*').eq('id', user['school_id']).execute()
         school = school_response.data[0] if school_response.data else None
         
+        if not school:
+            flash('School not found.', 'danger')
+            return redirect(url_for('school_admin_dashboard'))
+
         if request.method == 'POST':
             school_name = request.form.get('school_name', '').strip()
             contact_person = request.form.get('contact_person', '').strip()
             contact_phone = request.form.get('contact_phone', '').strip()
+            contact_email = request.form.get('contact_email', '').strip()
             
-            if school_name:
-                # Update school info
-                update_data = {'name': school_name}
-                if contact_person:
-                    update_data['contact_person'] = contact_person
-                if contact_phone:
-                    update_data['contact_phone'] = contact_phone
-                
-                result = supabase.table('schools').update(update_data).eq('id', user['school_id']).execute()
-                if result.data:
-                    flash('School settings updated successfully!', 'success')
-                    return redirect(url_for('school_admin_dashboard'))
-                else:
-                    flash('Failed to update school settings.', 'danger')
-            else:
+            if not school_name:
                 flash('School name is required.', 'danger')
+                return render_template('school_settings.html', school=school)
+            
+            # Check if school name already exists (excluding current school)
+            if school_name != school['name']:
+                existing_school = supabase.table('schools').select('name').eq('name', school_name).neq('id', school['id']).execute()
+                if existing_school.data:
+                    flash('A school with this name already exists.', 'danger')
+                    return render_template('school_settings.html', school=school)
+            
+            # Update school info
+            update_data = {
+                'name': school_name,
+                'contact_person': contact_person if contact_person else None,
+                'contact_phone': contact_phone if contact_phone else None,
+                'updated_at': datetime.now().isoformat()
+            }
+            
+            # Only update contact_email if provided and different
+            if contact_email and contact_email != user.get('email'):
+                # Update admin user's email as well
+                supabase.table('users').update({'email': contact_email}).eq('username', session['user_id']).execute()
+            
+            result = supabase.table('schools').update(update_data).eq('id', user['school_id']).execute()
+            if result.data:
+                flash('✅ School settings updated successfully!', 'success')
+                # Refresh school data
+                school_response = supabase.table('schools').select('*').eq('id', user['school_id']).execute()
+                school = school_response.data[0] if school_response.data else None
+            else:
+                flash('Failed to update school settings.', 'danger')
         
-        return render_template('school_settings.html', school=school)
+        return render_template('school_settings.html', school=school, user=user)
         
     except Exception as e:
         logger.error(f"School settings error: {e}")
