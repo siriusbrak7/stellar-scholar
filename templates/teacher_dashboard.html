@@ -1,1178 +1,304 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="cosmic-dashboard">
-    <!-- Animated Stars Background -->
-    <div class="stars-container">
-        <div class="star star-1"></div>
-        <div class="star star-2"></div>
-        <div class="star star-3"></div>
-        <div class="star star-4"></div>
-        <div class="star star-5"></div>
-    </div>
-    
-    <!-- Floating Planets -->
-    <div class="planet planet-1"></div>
-    <div class="planet planet-2"></div>
-
-    <div class="dashboard-content">
-        <!-- Header -->
-        <div class="dashboard-header">
-            <h1 class="cosmic-title">Teacher Mission Control</h1>
-            <p class="cosmic-subtitle">Guiding young minds through the cosmos of knowledge</p>
-            <a href="{{ url_for('create_prompt') }}" class="btn btn-teacher-action">+ Create New Mission</a>
-        </div>
-
-        <!-- Class Analytics Dashboard -->
-        <div class="analytics-section">
-            <h2 class="section-title">📊 Class Analytics</h2>
-            <div class="analytics-grid">
-                <div class="analytics-card">
-                    <div class="analytics-icon">👨‍🎓</div>
-                    <div class="analytics-info">
-                        <div class="analytics-number">{{ class_analytics.total_students }}</div>
-                        <div class="analytics-label">Total Students</div>
-                    </div>
-                </div>
-                <div class="analytics-card">
-                    <div class="analytics-icon">🚀</div>
-                    <div class="analytics-info">
-                        <div class="analytics-number">{{ class_analytics.active_students }}</div>
-                        <div class="analytics-label">Active Students</div>
-                    </div>
-                </div>
-                <div class="analytics-card">
-                    <div class="analytics-icon">📝</div>
-                    <div class="analytics-info">
-                        <div class="analytics-number">{{ class_analytics.total_submissions }}</div>
-                        <div class="analytics-label">Total Submissions</div>
-                    </div>
-                </div>
-                <div class="analytics-card">
-                    <div class="analytics-icon">📈</div>
-                    <div class="analytics-info">
-                        <div class="analytics-number">{{ class_analytics.average_completion_rate }}{{ '%' }}</div>
-                        <div class="analytics-label">Avg Completion</div>
-                    </div>
-                </div>
-                <div class="analytics-card">
-                    <div class="analytics-icon">⭐</div>
-                    <div class="analytics-info">
-                        <div class="analytics-number">{{ class_analytics.average_grade }}</div>
-                        <div class="analytics-label">Avg Grade</div>
-                    </div>
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2 class="text-white">📊 Teacher Dashboard</h2>
+                <div>
+                    <a href="{{ url_for('create_prompt') }}" class="btn btn-success me-2">
+                        ➕ Create Assessment
+                    </a>
+                    {% if is_school_admin %}
+                    <a href="{{ url_for('admin_dashboard') }}" class="btn btn-warning">
+                        👥 Approve Users
+                    </a>
+                    {% endif %}
                 </div>
             </div>
 
-            <!-- Grade Breakdown -->
-            <div class="grade-breakdown">
-                <h3>Grade Level Breakdown</h3>
-                <div class="breakdown-grid">
-                    {% for grade, data in class_analytics.grade_breakdown.items() %}
-                    <div class="breakdown-item">
-                        <div class="breakdown-grade">Grade {{ grade }}</div>
-                        <div class="breakdown-stats">
-                            <span>{{ data.students }} students</span>
-                            <span>{{ data.active }} active</span>
-                            <span>{{ (data.active / data.students * 100) | round(1) if data.students > 0 else 0 }}{{ '%' }} active</span>
+            <!-- Quick Stats -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card text-white bg-primary">
+                        <div class="card-body text-center">
+                            <h4 class="card-title">{{ class_analytics.total_students }}</h4>
+                            <p class="card-text">Total Students</p>
                         </div>
                     </div>
-                    {% endfor %}
                 </div>
-            </div>
-        </div>
-
-        <!-- Quick Stats -->
-        <div class="cosmic-stats-grid">
-            <div class="stat-card">
-                <div class="stat-icon">📚</div>
-                <div class="stat-info">
-                    <div class="stat-number">{{ prompts|length }}</div>
-                    <div class="stat-label">Active Missions</div>
-                </div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon">📝</div>
-                <div class="stat-info">
-                    <div class="stat-number">{{ prompt_stats.values()|sum(attribute='total') }}</div>
-                    <div class="stat-label">Total Submissions</div>
-                </div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon">✅</div>
-                <div class="stat-info">
-                    <div class="stat-number">{{ prompt_stats.values()|sum(attribute='graded') }}</div>
-                    <div class="stat-label">Graded</div>
-                </div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon">⏳</div>
-                <div class="stat-info">
-                    <div class="stat-number">{{ prompt_stats.values()|sum(attribute='total') - prompt_stats.values()|sum(attribute='graded') }}</div>
-                    <div class="stat-label">Awaiting Review</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Two Column Layout -->
-        <div class="dashboard-grid">
-            <!-- Missions Section -->
-            <div class="missions-section">
-                <div class="section-header">
-                    <h2 class="section-title">
-                        {% if current_grade_filter == 'all' %}
-                        🚀 All Cosmic Missions
-                        {% else %}
-                        🚀 Grade {{ current_grade_filter }} Missions
-                        {% endif %}
-                    </h2>
-                    <div class="filters">
-                        <a href="{{ url_for('teacher_dashboard', grade='all') }}" 
-                           class="filter-btn {% if current_grade_filter == 'all' %}active{% endif %}">
-                           All Grades
-                        </a>
-                        {% for grade in available_grades %}
-                        <a href="{{ url_for('teacher_dashboard', grade=grade) }}" 
-                           class="filter-btn {% if current_grade_filter == grade %}active{% endif %}">
-                           Grade {{ grade }}
-                        </a>
-                        {% endfor %}
+                <div class="col-md-3">
+                    <div class="card text-white bg-success">
+                        <div class="card-body text-center">
+                            <h4 class="card-title">{{ class_analytics.active_students }}</h4>
+                            <p class="card-text">Active Students</p>
+                        </div>
                     </div>
                 </div>
-                
-                {% if prompts %}
-                <div class="missions-grid">
-                    {% for prompt_id, prompt in prompts.items() %}
-                    <div class="mission-card">
-                        <div class="mission-header">
-                            <h3 class="mission-title">{{ prompt.title }}</h3>
-                            <div class="mission-meta">
-                                <span class="mission-grade">Grade {{ prompt.grade_level }}</span>
-                                <span class="mission-category {{ prompt.category }}">{{ prompt.category|title }}</span>
+                <div class="col-md-3">
+                    <div class="card text-white bg-info">
+                        <div class="card-body text-center">
+                            <h4 class="card-title">{{ class_analytics.total_submissions }}</h4>
+                            <p class="card-text">Total Submissions</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-white bg-warning">
+                        <div class="card-body text-center">
+                            <h4 class="card-title">{{ class_analytics.average_completion_rate }}%</h4>
+                            <p class="card-text">Avg Completion</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filters -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <label class="form-label">Filter by Grade:</label>
+                            <div class="btn-group w-100">
+                                <a href="{{ url_for('teacher_dashboard', grade='all', category=current_category_filter) }}" 
+                                   class="btn btn-outline-primary {% if current_grade_filter == 'all' %}active{% endif %}">
+                                    All Grades
+                                </a>
+                                {% for grade in available_grades %}
+                                <a href="{{ url_for('teacher_dashboard', grade=grade, category=current_category_filter) }}" 
+                                   class="btn btn-outline-primary {% if current_grade_filter == grade %}active{% endif %}">
+                                    Grade {{ grade }}
+                                </a>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Filter by Category:</label>
+                            <div class="btn-group w-100">
+                                <a href="{{ url_for('teacher_dashboard', grade=current_grade_filter, category='all') }}" 
+                                   class="btn btn-outline-info {% if current_category_filter == 'all' %}active{% endif %}">
+                                    All Types
+                                </a>
+                                {% for category in available_categories %}
+                                <a href="{{ url_for('teacher_dashboard', grade=current_grade_filter, category=category) }}" 
+                                   class="btn btn-outline-info {% if current_category_filter == category %}active{% endif %}">
+                                    {{ category|title }}
+                                </a>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Assessment Types:</label>
+                            <div class="btn-group w-100">
+                                <a href="{{ url_for('teacher_dashboard', grade=current_grade_filter, category=current_category_filter) }}" 
+                                   class="btn btn-outline-success">
+                                    📝 Written: {{ written_count }}
+                                </a>
+                                <a href="{{ url_for('teacher_dashboard', grade=current_grade_filter, category=current_category_filter) }}" 
+                                   class="btn btn-outline-warning">
+                                    🔠 MCQ: {{ mcq_count }}
+                                </a>
+                                <a href="{{ url_for('teacher_dashboard', grade=current_grade_filter, category=current_category_filter) }}" 
+                                   class="btn btn-outline-secondary">
+                                    📊 Mixed: {{ mixed_count }}
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Assessments Grid -->
+            <div class="row">
+                {% for prompt_id, prompt in prompts.items() %}
+                <div class="col-md-6 col-lg-4 mb-4">
+                    <div class="card prompt-card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-1">{{ prompt.title }}</h5>
+                            <div class="prompt-meta">
+                                <small class="text-white">
+                                    {% if prompt.assessment_type == 'written' %}✍️ Written
+                                    {% elif prompt.assessment_type == 'mcq' %}🔠 MCQ
+                                    {% else %}📊 Mixed{% endif %}
+                                    • Grade {{ prompt.grade_level }}
+                                    {% if prompt.subject != 'general' %}• {{ prompt.subject|title }}{% endif %}
+                                </small>
                             </div>
                         </div>
                         
-                        <p class="mission-description">{{ prompt.description[:120] }}{% if prompt.description|length > 120 %}...{% endif %}</p>
-                        
-                        <div class="mission-stats">
-                            <div class="mission-stat">
-                                <span class="stat-value">{{ prompt_stats[prompt_id].total }}</span>
-                                <span class="stat-label">Submissions</span>
-                            </div>
-                            <div class="mission-stat">
-                                <span class="stat-value">{{ prompt_stats[prompt_id].graded }}</span>
-                                <span class="stat-label">Graded</span>
-                            </div>
-                        </div>
-                        
-                        {% if prompt.due_date %}
-                        <div class="due-date-info">
-                            <span class="due-date-icon">📅</span>
-                            <span class="due-date-text">Due: {{ prompt.due_date[:16]|replace('T', ' ') }}</span>
-                        </div>
-                        {% endif %}
-                        
-                        <div class="mission-actions">
-                            {% if prompt_stats[prompt_id].total > 0 %}
-                            <a href="{{ url_for('grade_submissions', prompt_id=prompt_id) }}" class="btn btn-grade">
-                                Review Submissions
-                            </a>
-                            {% else %}
-                            <span class="no-submissions">Awaiting Astronauts</span>
-                            {% endif %}
+                        <div class="card-body">
+                            <p class="card-text">{{ prompt.description[:100] }}{% if prompt.description|length > 100 %}...{% endif %}</p>
                             
-                            <div class="action-buttons">
-                                <a href="{{ url_for('edit_prompt', prompt_id=prompt_id) }}" class="btn btn-warning btn-sm">Edit</a>
-                                
-                                {% if prompt_stats[prompt_id].total == 0 %}
-                                <form action="{{ url_for('delete_prompt', prompt_id=prompt_id) }}" method="POST" 
-                                      onsubmit="return confirm('Are you sure you want to delete this prompt? This cannot be undone.');">
-                                    <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                            <!-- Assessment Stats -->
+                            <div class="assessment-stats mb-3">
+                                <div class="progress mb-2" style="height: 8px;">
+                                    <div class="progress-bar bg-success" style="width: {{ (prompt_stats[prompt_id].graded / prompt_stats[prompt_id].total * 100) if prompt_stats[prompt_id].total > 0 else 0 }}%">
+                                    </div>
+                                </div>
+                                <small class="text-muted">
+                                    📊 {{ prompt_stats[prompt_id].graded }}/{{ prompt_stats[prompt_id].total }} graded
+                                    ({{ prompt.total_points }} points)
+                                </small>
+                            </div>
+
+                            <!-- Auto-graded indicator for MCQ -->
+                            {% if prompt.assessment_type == 'mcq' %}
+                            <div class="mb-2">
+                                <span class="badge bg-success">✅ Auto-graded</span>
+                            </div>
+                            {% elif prompt.assessment_type == 'mixed' %}
+                            <div class="mb-2">
+                                <span class="badge bg-warning">📊 Partially Auto-graded</span>
+                            </div>
+                            {% endif %}
+
+                            <!-- Due Date -->
+                            {% if prompt.due_date %}
+                            <div class="mb-2">
+                                <small class="text-muted">
+                                    📅 Due: {{ prompt.due_date[:16]|replace('T', ' at ') }}
+                                </small>
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="card-footer">
+                            <div class="btn-group w-100">
+                                <a href="{{ url_for('grade_submissions', prompt_id=prompt.id) }}" 
+                                   class="btn btn-primary btn-sm">
+                                    📝 Grade
+                                </a>
+                                <a href="{{ url_for('edit_prompt', prompt_id=prompt.id) }}" 
+                                   class="btn btn-outline-secondary btn-sm">
+                                    ✏️ Edit
+                                </a>
+                                <form method="POST" action="{{ url_for('delete_prompt', prompt_id=prompt.id) }}" 
+                                      class="d-inline" onsubmit="return confirm('Delete this assessment?');">
+                                    <button type="submit" class="btn btn-outline-danger btn-sm">
+                                        🗑️ Delete
+                                    </button>
                                 </form>
-                                {% endif %}
                             </div>
                         </div>
-                        
-                        <div class="mission-footer">
-                            <small>Launched: {{ prompt.created_at[:10] }}</small>
-                        </div>
                     </div>
-                    {% endfor %}
                 </div>
-                {% else %}
-                <div class="empty-state">
-                    <div class="empty-icon">🚀</div>
-                    <h3>No Missions Found</h3>
-                    <p>{% if current_grade_filter != 'all' %}No missions for Grade {{ current_grade_filter }}.{% else %}Create your first learning mission!{% endif %}</p>
-                    <a href="{{ url_for('create_prompt') }}" class="btn btn-teacher-action">Create Mission</a>
-                </div>
-                {% endif %}
+                {% endfor %}
             </div>
+
+            {% if not prompts %}
+            <div class="text-center py-5">
+                <div class="empty-state">
+                    <h3 class="text-white">📝 No Assessments Yet</h3>
+                    <p class="text-muted">Create your first assessment to get started!</p>
+                    <a href="{{ url_for('create_prompt') }}" class="btn btn-success btn-lg">
+                        ➕ Create First Assessment
+                    </a>
+                </div>
+            </div>
+            {% endif %}
 
             <!-- Student Progress Section -->
-            <div class="progress-section">
-                <h2 class="section-title">🎯 Student Progress</h2>
-                
-                {% if student_progress %}
-                <div class="progress-list">
-                    {% for username, progress in student_progress.items() %}
-                    <div class="progress-item">
-                        <div class="student-avatar">{{ progress.username[0]|upper }}</div>
-                        <div class="progress-info">
-                            <div class="student-name">{{ progress.username }}</div>
-                            <div class="progress-details">
-                                <span class="grade-badge">Grade {{ progress.grade_level }}</span>
-                                <span class="completion">{{ progress.completed_prompts }}/{{ progress.total_prompts }} done</span>
-                            </div>
-                            <div class="progress-bar-container">
-                                <div class="progress-bar" data-progress="{{ progress.completion_rate }}"></div>
-                                    <span class="progress-text">{{ progress.completion_rate }}{{ '%' }}</span>
-                            </div>
-                        </div>
-                        <div class="progress-grade">
-                            {% if progress.average_grade != 'N/A' %}
-                            <span class="grade-score">{{ progress.average_grade }}</span>
-                            <span class="grade-label">Avg</span>
-                            {% else %}
-                            <span class="no-grade">No grades</span>
-                            {% endif %}
-                        </div>
-                    </div>
-                    {% endfor %}
+            {% if student_progress %}
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="mb-0">📈 Student Progress</h5>
                 </div>
-                {% else %}
-                <div class="empty-progress">
-                    <div class="empty-icon">👨‍🎓</div>
-                    <p>No student progress data yet</p>
-                    <small>Progress will appear as students complete missions</small>
-                </div>
-                {% endif %}
-
-                <!-- Quick Actions -->
-                <div class="quick-actions">
-                    <h3 class="section-title">🚀 Mission Control</h3>
-                    <div class="actions-grid">
-                        <a href="{{ url_for('leaderboard') }}" class="action-card">
-                            <div class="action-icon">🏆</div>
-                            <h4>Scholar Rankings</h4>
-                            <p>View student leaderboard and performance analytics</p>
-                        </a>
-                        <a href="{{ url_for('create_prompt') }}" class="action-card">
-                            <div class="action-icon">🎯</div>
-                            <h4>New Mission</h4>
-                            <p>Create a new learning challenge for your scholars</p>
-                        </a>
-                        <a href="{{ url_for('manage_students') }}" class="action-card">
-                            <div class="action-icon">👨‍🎓</div>
-                            <h4>Manage Students</h4>
-                            <p>View and manage student accounts and progress</p>
-                        </a>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Student</th>
+                                    <th>Grade</th>
+                                    <th>Completed</th>
+                                    <th>Completion Rate</th>
+                                    <th>Avg Grade</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for username, progress in student_progress.items() %}
+                                <tr>
+                                    <td>{{ progress.username }}</td>
+                                    <td>Grade {{ progress.grade_level }}</td>
+                                    <td>{{ progress.completed_prompts }}/{{ progress.total_prompts }}</td>
+                                    <td>
+                                        <div class="progress" style="height: 10px;">
+                                            <div class="progress-bar bg-success" style="width: {{ progress.completion_rate }}%">
+                                            </div>
+                                        </div>
+                                        <small>{{ progress.completion_rate }}%</small>
+                                    </td>
+                                    <td>
+                                        {% if progress.average_grade != 'N/A' %}
+                                        <span class="badge bg-info">{{ progress.average_grade }}/100</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">N/A</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <a href="#" class="btn btn-outline-primary btn-sm">
+                                            📊 View Details
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
+            {% endif %}
         </div>
     </div>
 </div>
 
 <style>
-.cosmic-dashboard {
-    min-height: 100vh;
-    background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
-    position: relative;
-    overflow-x: hidden;
-}
-
-.dashboard-content {
-    max-width: 1400px;
-    margin: 0 auto;
-    padding: 2rem;
-    position: relative;
-    z-index: 2;
-}
-
-/* Stars Background */
-.stars-container {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
-    z-index: 1;
-}
-
-.star {
-    position: absolute;
-    background: white;
-    border-radius: 50%;
-    animation: twinkle linear infinite;
-}
-
-.star-1 { width: 2px; height: 2px; top: 20%; left: 10%; animation-duration: 3s; }
-.star-2 { width: 1px; height: 1px; top: 60%; left: 80%; animation-duration: 4s; }
-.star-3 { width: 1.5px; height: 1.5px; top: 40%; left: 50%; animation-duration: 5s; }
-.star-4 { width: 2px; height: 2px; top: 80%; left: 30%; animation-duration: 6s; }
-.star-5 { width: 1px; height: 1px; top: 30%; left: 70%; animation-duration: 7s; }
-
-@keyframes twinkle {
-    0%, 100% { opacity: 0.2; }
-    50% { opacity: 1; }
-}
-
-/* Planets */
-.planet {
-    position: absolute;
-    border-radius: 50%;
-    animation: float 8s ease-in-out infinite;
-    z-index: 1;
-}
-
-.planet-1 {
-    width: 120px;
-    height: 120px;
-    background: radial-gradient(circle at 30% 30%, #32CD32, #228B22);
-    top: 10%;
-    right: 5%;
-    animation-delay: 0s;
-}
-
-.planet-2 {
-    width: 80px;
-    height: 80px;
-    background: radial-gradient(circle at 30% 30%, #FFD700, #FF8C00);
-    bottom: 15%;
-    left: 5%;
-    animation-delay: 2s;
-}
-
-@keyframes float {
-    0%, 100% { transform: translateY(0px) rotate(0deg); }
-    50% { transform: translateY(-25px) rotate(5deg); }
-}
-
-/* Header */
-.dashboard-header {
-    text-align: center;
-    margin-bottom: 3rem;
-}
-
-.cosmic-title {
-    font-family: 'Dancing Script', cursive;
-    font-size: 3.5rem;
-    background: linear-gradient(45deg, #FFD700, #32CD32, #FFD700);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    text-shadow: 0 0 30px rgba(255, 215, 0, 0.5);
-    margin-bottom: 1rem;
-    animation: glow 3s ease-in-out infinite alternate;
-}
-
-@keyframes glow {
-    from { text-shadow: 0 0 20px rgba(255, 215, 0, 0.5); }
-    to { text-shadow: 0 0 30px rgba(255, 215, 0, 0.8), 0 0 40px rgba(50, 205, 50, 0.6); }
-}
-
-.cosmic-subtitle {
-    color: #b0b8c9;
-    font-size: 1.2rem;
-    margin-bottom: 2rem;
-}
-
-.btn-teacher-action {
-    background: linear-gradient(45deg, #FFD700, #32CD32);
-    color: #1a1a2e;
+.prompt-card {
     border: none;
-    padding: 1rem 2rem;
-    border-radius: 50px;
-    font-weight: 600;
-    text-decoration: none;
-    font-size: 1.1rem;
-    transition: all 0.3s ease;
-    display: inline-block;
-}
-
-.btn-teacher-action:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 10px 25px rgba(255, 215, 0, 0.4);
-}
-
-/* Analytics Section */
-.analytics-section {
-    margin-bottom: 2rem;
-}
-
-.section-title {
-    color: #FFD700;
-    font-size: 1.8rem;
-    margin-bottom: 1.5rem;
-    font-weight: 600;
-}
-
-.analytics-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1.5rem;
-    margin-bottom: 2rem;
-}
-
-.analytics-card {
-    background: rgba(255, 255, 255, 0.08);
-    -webkit-backdrop-filter: blur(10px);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.15);
     border-radius: 15px;
-    padding: 1.5rem;
-    display: flex;
-    align-items: center;
-    gap: 1rem;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
     transition: all 0.3s ease;
+    height: 100%;
 }
 
-.analytics-card:hover {
+.prompt-card:hover {
     transform: translateY(-5px);
-    border-color: rgba(255, 215, 0, 0.3);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.2);
 }
 
-.analytics-icon {
-    font-size: 2.5rem;
-    filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.3));
-}
-
-.analytics-number {
-    font-size: 2.2rem;
-    font-weight: bold;
-    background: linear-gradient(45deg, #FFD700, #32CD32);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    line-height: 1;
-}
-
-.analytics-label {
-    color: #b0b8c9;
-    font-size: 0.9rem;
-    margin-top: 0.25rem;
-}
-
-/* Grade Breakdown */
-.grade-breakdown {
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 15px;
-    padding: 1.5rem;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.grade-breakdown h3 {
-    color: #FFD700;
-    margin-bottom: 1rem;
-    font-size: 1.3rem;
-}
-
-.breakdown-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 1rem;
-}
-
-.breakdown-item {
-    background: rgba(255, 255, 255, 0.08);
-    border-radius: 10px;
-    padding: 1rem;
-}
-
-.breakdown-grade {
-    color: #FFD700;
-    font-weight: 600;
-    margin-bottom: 0.5rem;
-}
-
-.breakdown-stats {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-}
-
-.breakdown-stats span {
-    color: #b0b8c9;
-    font-size: 0.9rem;
-}
-
-/* Quick Stats */
-.cosmic-stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 1.5rem;
-    margin-bottom: 2rem;
-}
-
-.stat-card {
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 15px;
-    padding: 1.5rem;
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    transition: all 0.3s ease;
-}
-
-.stat-card:hover {
-    transform: translateY(-3px);
-    border-color: rgba(255, 215, 0, 0.3);
-}
-
-.stat-icon {
-    font-size: 2.2rem;
-}
-
-.stat-number {
-    font-size: 1.8rem;
-    font-weight: bold;
-    background: linear-gradient(45deg, #FFD700, #32CD32);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-}
-
-.stat-label {
-    color: #b0b8c9;
-    font-size: 0.9rem;
-}
-
-/* Dashboard Grid */
-.dashboard-grid {
-    display: grid;
-    grid-template-columns: 2fr 1fr;
-    gap: 2rem;
-}
-
-/* Missions Section */
-.missions-section {
-    margin-bottom: 2rem;
-}
-
-.section-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1.5rem;
-    flex-wrap: wrap;
-    gap: 1rem;
-}
-
-.section-header .section-title {
-    color: #FFD700;
-    font-size: 1.6rem;
-    font-weight: bold;
-    margin: 0;
-}
-
-.filters {
-    display: flex;
-    gap: 0.5rem;
-    flex-wrap: wrap;
-}
-
-.filter-btn {
-    padding: 0.5rem 1rem;
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 20px;
-    color: #b0b8c9;
-    text-decoration: none;
-    font-size: 0.9rem;
-    transition: all 0.3s ease;
-}
-
-.filter-btn:hover {
-    background: rgba(255, 215, 0, 0.2);
-    border-color: #FFD700;
-    color: #FFD700;
-    transform: translateY(-2px);
-}
-
-.filter-btn.active {
-    background: linear-gradient(45deg, #FFD700, #32CD32);
-    border-color: transparent;
-    color: #1a1a2e;
-    font-weight: 600;
-}
-
-.missions-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
-    gap: 1.5rem;
-}
-
-.mission-card {
-    background: rgba(255, 255, 255, 0.08);
-    -webkit-backdrop-filter: blur(10px);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 15px;
-    padding: 1.5rem;
-    transition: all 0.3s ease;
-    position: relative;
-    overflow: hidden;
-}
-
-.mission-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    background: linear-gradient(90deg, #FFD700, #32CD32, #6a11cb);
-    opacity: 0;
-    transition: opacity 0.3s ease;
-}
-
-.mission-card:hover {
-    transform: translateY(-5px);
-    border-color: rgba(255, 215, 0, 0.4);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-}
-
-.mission-card:hover::before {
-    opacity: 1;
-}
-
-.mission-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 1rem;
-    gap: 1rem;
-}
-
-.mission-title {
+.card-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
-    font-size: 1.3rem;
-    font-weight: 600;
-    margin: 0;
-    flex: 1;
-    line-height: 1.3;
+    border-radius: 15px 15px 0 0 !important;
 }
 
-.mission-meta {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    align-items: flex-end;
-}
-
-.mission-grade {
-    background: linear-gradient(45deg, #6a11cb, #2575fc);
-    color: white;
-    padding: 0.3rem 0.8rem;
-    border-radius: 12px;
+.prompt-meta {
     font-size: 0.8rem;
-    font-weight: 600;
-    white-space: nowrap;
+    opacity: 0.9;
 }
 
-.mission-category {
-    background: rgba(106, 17, 203, 0.3);
-    color: #6a11cb;
-    padding: 0.2rem 0.6rem;
-    border-radius: 8px;
-    font-size: 0.7rem;
-    font-weight: 600;
-    text-transform: uppercase;
-}
-
-.mission-category.biology { background: rgba(50, 205, 50, 0.3); color: #32CD32; }
-.mission-category.physics { background: rgba(255, 69, 0, 0.3); color: #FF4500; }
-
-.mission-description {
-    color: #b0b8c9;
-    line-height: 1.5;
-    margin-bottom: 1.5rem;
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    line-clamp: 3;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-}
-
-.mission-stats {
-    display: flex;
-    gap: 2rem;
-    margin-bottom: 1.5rem;
-    padding: 1rem;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 10px;
-}
-
-.mission-stat {
-    text-align: center;
-    flex: 1;
-}
-
-.stat-value {
-    display: block;
-    font-size: 1.5rem;
-    font-weight: bold;
-    background: linear-gradient(45deg, #FFD700, #32CD32);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-    line-height: 1;
-}
-
-.stat-label {
-    color: #b0b8c9;
-    font-size: 0.8rem;
-    margin-top: 0.25rem;
-}
-
-/* Due Date Display */
-.due-date-info {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    margin: 1rem 0;
+.assessment-stats {
+    background: #f8f9fa;
     padding: 0.5rem;
-    background: rgba(106, 17, 203, 0.1);
     border-radius: 8px;
-    border-left: 3px solid #6a11cb;
 }
 
-.due-date-icon {
-    font-size: 1rem;
-}
-
-.due-date-text {
-    color: #6a11cb;
-    font-size: 0.9rem;
-    font-weight: 500;
-}
-
-.mission-actions {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-}
-
-.btn-grade {
-    background: linear-gradient(45deg, #FFD700, #32CD32);
-    color: #1a1a2e;
-    border: none;
-    padding: 0.75rem 1.5rem;
-    border-radius: 10px;
-    font-weight: 600;
-    text-decoration: none;
-    text-align: center;
-    transition: all 0.3s ease;
-}
-
-.btn-grade:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(255, 215, 0, 0.3);
-}
-
-.no-submissions {
-    background: rgba(255, 255, 255, 0.1);
-    color: #b0b8c9;
-    padding: 0.75rem 1.5rem;
-    border-radius: 10px;
-    text-align: center;
-    font-style: italic;
-    border: 1px dashed rgba(255, 255, 255, 0.3);
-}
-
-.action-buttons {
-    display: flex;
-    gap: 0.5rem;
-    justify-content: center;
-}
-
-.btn-warning, .btn-danger {
-    padding: 0.5rem 1rem;
-    border: none;
-    border-radius: 8px;
-    font-size: 0.8rem;
-    font-weight: 600;
-    text-decoration: none;
-    transition: all 0.3s ease;
-    cursor: pointer;
-}
-
-.btn-warning {
-    background: rgba(255, 193, 7, 0.2);
-    color: #FFC107;
-    border: 1px solid rgba(255, 193, 7, 0.3);
-}
-
-.btn-warning:hover {
-    background: rgba(255, 193, 7, 0.3);
-    transform: translateY(-1px);
-}
-
-.btn-danger {
-    background: rgba(220, 53, 69, 0.2);
-    color: #DC3545;
-    border: 1px solid rgba(220, 53, 69, 0.3);
-}
-
-.btn-danger:hover {
-    background: rgba(220, 53, 69, 0.3);
-    transform: translateY(-1px);
-}
-
-.mission-footer {
-    margin-top: 1rem;
-    padding-top: 1rem;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-    text-align: center;
-}
-
-.mission-footer small {
-    color: #8a93aa;
-    font-size: 0.8rem;
-}
-
-/* Student Progress */
-.progress-section {
-    margin-bottom: 2rem;
-}
-
-.progress-list {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-    max-height: 400px;
-    overflow-y: auto;
-    margin-bottom: 2rem;
-}
-
-.progress-item {
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 10px;
-    padding: 1rem;
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-}
-
-.student-avatar {
-    width: 40px;
-    height: 40px;
-    background: linear-gradient(45deg, #6a11cb, #2575fc);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: bold;
-    color: white;
-    flex-shrink: 0;
-}
-
-.progress-info {
-    flex: 1;
-}
-
-.student-name {
-    color: white;
-    font-weight: 600;
-    margin-bottom: 0.25rem;
-}
-
-.progress-details {
-    display: flex;
-    gap: 1rem;
-    margin-bottom: 0.5rem;
-}
-
-.grade-badge, .completion {
-    background: rgba(106, 17, 203, 0.3);
-    color: #b0b8c9;
-    padding: 0.2rem 0.6rem;
-    border-radius: 8px;
-    font-size: 0.8rem;
-}
-
-.progress-bar-container {
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 10px;
-    height: 8px;
-    position: relative;
-    margin-top: 0.5rem;
-}
-
-.progress-bar {
-    background: linear-gradient(45deg, #FFD700, #32CD32);
-    border-radius: 10px;
-    height: 100%;
-    transition: width 0.3s ease;
-}
-
-.progress-text {
-    position: absolute;
-    right: 0;
-    top: -20px;
-    color: #b0b8c9;
-    font-size: 0.8rem;
-}
-
-.progress-grade {
-    text-align: center;
-    flex-shrink: 0;
-}
-
-.grade-score {
-    display: block;
-    font-size: 1.2rem;
-    font-weight: bold;
-    background: linear-gradient(45deg, #FFD700, #32CD32);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-}
-
-.grade-label {
-    color: #b0b8c9;
-    font-size: 0.8rem;
-}
-
-.no-grade {
-    color: #b0b8c9;
-    font-size: 0.8rem;
-    font-style: italic;
-}
-
-.empty-progress {
-    text-align: center;
-    padding: 2rem;
-    color: #b0b8c9;
-    margin-bottom: 2rem;
-}
-
-.empty-progress .empty-icon {
-    font-size: 2rem;
-    margin-bottom: 0.5rem;
-    opacity: 0.5;
-}
-
-/* Quick Actions */
-.quick-actions {
-    margin-top: 2rem;
-    padding: 1.5rem;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 15px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.quick-actions .section-title {
-    color: #FFD700;
-    font-size: 1.3rem;
-    margin-bottom: 1.5rem;
-    text-align: center;
-}
-
-.actions-grid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 1rem;
-}
-
-.action-card {
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 12px;
-    padding: 1.5rem;
-    text-decoration: none;
-    color: inherit;
-    transition: all 0.3s ease;
-    position: relative;
-    overflow: hidden;
-}
-
-.action-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
-    transition: left 0.5s ease;
-}
-
-.action-card:hover {
-    transform: translateY(-3px);
-    border-color: rgba(255, 215, 0, 0.4);
-    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
-}
-
-.action-card:hover::before {
-    left: 100%;
-}
-
-.action-icon {
-    font-size: 2.5rem;
-    margin-bottom: 1rem;
-    text-align: center;
-    filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.3));
-}
-
-.action-card h4 {
-    color: white;
-    font-size: 1.1rem;
-    margin-bottom: 0.5rem;
-    font-weight: 600;
-    text-align: center;
-}
-
-.action-card p {
-    color: #b0b8c9;
-    font-size: 0.9rem;
-    line-height: 1.4;
-    margin: 0;
-    text-align: center;
-}
-
-/* Empty State */
 .empty-state {
-    text-align: center;
-    padding: 3rem 2rem;
-    background: rgba(255, 255, 255, 0.05);
-    border: 2px dashed rgba(255, 255, 255, 0.2);
+    padding: 3rem;
+    background: rgba(255, 255, 255, 0.1);
     border-radius: 15px;
-    color: #b0b8c9;
+    backdrop-filter: blur(10px);
 }
 
-.empty-icon {
-    font-size: 4rem;
-    margin-bottom: 1rem;
-    opacity: 0.7;
+.btn-group .btn {
+    border-radius: 8px;
+    margin: 0 2px;
 }
 
-.empty-state h3 {
-    color: white;
-    margin-bottom: 0.5rem;
-}
-
-.empty-state p {
-    margin-bottom: 1.5rem;
-}
-
-/* Responsive Design */
-@media (max-width: 1200px) {
-    .dashboard-grid {
-        grid-template-columns: 1fr;
-    }
-    
-    .missions-grid {
-        grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-    }
-}
-
-@media (max-width: 768px) {
-    .dashboard-content {
-        padding: 1rem;
-    }
-    
-    .cosmic-title {
-        font-size: 2.5rem;
-    }
-    
-    .analytics-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
-    
-    .cosmic-stats-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
-    
-    .missions-grid {
-        grid-template-columns: 1fr;
-    }
-    
-    .section-header {
-        flex-direction: column;
-        align-items: stretch;
-    }
-    
-    .filters {
-        justify-content: center;
-    }
-    
-    .mission-header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 0.5rem;
-    }
-    
-    .mission-meta {
-        flex-direction: row;
-        align-items: center;
-        width: 100%;
-        justify-content: space-between;
-    }
-    
-    .mission-stats {
-        gap: 1rem;
-    }
-    
-    .action-buttons {
-        flex-direction: column;
-    }
-    
-    .breakdown-grid {
-        grid-template-columns: 1fr;
-    }
-}
-
-@media (max-width: 480px) {
-    .analytics-grid {
-        grid-template-columns: 1fr;
-    }
-    
-    .cosmic-stats-grid {
-        grid-template-columns: 1fr;
-    }
-    
-    .mission-card {
-        padding: 1rem;
-    }
-    
-    .mission-stats {
-        flex-direction: column;
-        gap: 0.5rem;
-    }
-    
-    .mission-stat {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-    
-    .stat-value {
-        font-size: 1.2rem;
-    }
-    
-    .progress-details {
-        flex-direction: column;
-        gap: 0.5rem;
-    }
+.progress {
+    border-radius: 10px;
 }
 </style>
-
-<script>
-// Set progress bar widths dynamically
-document.addEventListener('DOMContentLoaded', function () {
-    document.querySelectorAll('.progress-bar').forEach(function (el) {
-        var val = el.getAttribute('data-progress');
-        if (!val) return;
-        var n = Number(val);
-        if (isNaN(n)) n = 0;
-        n = Math.max(0, Math.min(100, n));
-        el.style.width = n + '%';
-    });
-});
-</script>
 {% endblock %}
