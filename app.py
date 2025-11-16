@@ -668,7 +668,7 @@ def create_prompt():
             flash('Database connection error.', 'danger')
             return render_template('create_prompt.html')
         
-        # ✅ GET CURRENT USER FIRST (required for school_id)
+        # Get current user for school_id
         user_response = supabase.table('users').select('*').eq('username', session['user_id']).execute()
         user = user_response.data[0] if user_response.data else None
 
@@ -676,14 +676,18 @@ def create_prompt():
             flash("User not found. Please log in again.", "danger")
             return redirect(url_for('logout'))
 
+        # Get basic prompt data
         title = request.form.get('title', '').strip()
         description = request.form.get('description', '').strip()
         grade_level = request.form.get('grade_level')
-        category = request.form.get('category', 'general')
+        subject = request.form.get('subject', 'general')
+        assessment_type = request.form.get('assessment_type', 'written')
+        total_points = request.form.get('total_points', 10)
+        instructions = request.form.get('instructions', '').strip()
         due_date_str = request.form.get('due_date', '').strip()
 
-        if not title or not description or not grade_level:
-            flash('All fields are required.', 'danger')
+        if not all([title, description, grade_level]):
+            flash('Title, description and grade level are required.', 'danger')
             return render_template('create_prompt.html')
 
         try:
@@ -692,36 +696,78 @@ def create_prompt():
             # Process due date
             due_date = None
             if due_date_str:
-                try:
-                    due_dt = datetime.fromisoformat(due_date_str)
-                    due_date = due_dt.isoformat()
-                except Exception:
-                    flash('Invalid due date format. Please provide a valid date/time.', 'danger')
-                    return render_template('create_prompt.html')
+                due_date = datetime.fromisoformat(due_date_str).isoformat()
             
-            # ✅ Now this works because user is defined
+            # Create prompt
             prompt_data = {
                 'id': prompt_id,
                 'title': title,
                 'description': description,
                 'grade_level': grade_level,
-                'category': category,
+                'subject': subject,
+                'assessment_type': assessment_type,
+                'total_points': int(total_points),
+                'instructions': instructions,
                 'due_date': due_date,
                 'created_by': session['user_id'],
                 'created_at': datetime.now().isoformat(),
-                'school_id': user['school_id'],   # <-- FIXED
+                'school_id': user['school_id'],
             }
 
-            result = supabase.table('prompts').insert(prompt_data).execute()
-            if result.data:
-                flash('Prompt created successfully!', 'success')
-                return redirect(url_for('teacher_dashboard'))
-            else:
-                flash('Failed to create prompt.', 'danger')
+            prompt_result = supabase.table('prompts').insert(prompt_data).execute()
+            
+            if not prompt_result.data:
+                flash('Failed to create assessment.', 'danger')
+                return render_template('create_prompt.html')
+
+            # Handle MCQ questions if assessment type includes them
+            if assessment_type in ['mcq', 'mixed']:
+                question_texts = request.form.getlist('question_text[]')
+                question_types = request.form.getlist('question_type[]')
+                question_points = request.form.getlist('question_points[]')
+                correct_answers = request.form.getlist('correct_answer[]')
+                option_as = request.form.getlist('option_a[]')
+                option_bs = request.form.getlist('option_b[]')
+                option_cs = request.form.getlist('option_c[]')
+                option_ds = request.form.getlist('option_d[]')
+                
+                mcq_questions = []
+                for i, (q_text, q_type, points, correct_ans) in enumerate(zip(
+                    question_texts, question_types, question_points, correct_answers
+                )):
+                    if q_text.strip():  # Only add if question text exists
+                        question_id = f"q_{prompt_id}_{i}"
+                        question_data = {
+                            'id': question_id,
+                            'prompt_id': prompt_id,
+                            'question_text': q_text.strip(),
+                            'question_type': q_type,
+                            'points': int(points),
+                            'sort_order': i,
+                            'correct_answer': correct_ans if q_type in ['mcq', 'true_false'] else None,
+                            'created_at': datetime.now().isoformat()
+                        }
+                        
+                        # Add options for MCQ and True/False questions
+                        if q_type in ['mcq', 'true_false']:
+                            question_data.update({
+                                'option_a': option_as[i] if i < len(option_as) else '',
+                                'option_b': option_bs[i] if i < len(option_bs) else '',
+                                'option_c': option_cs[i] if i < len(option_cs) and option_cs[i] else None,
+                                'option_d': option_ds[i] if i < len(option_ds) and option_ds[i] else None,
+                            })
+                        
+                        mcq_questions.append(question_data)
+                
+                if mcq_questions:
+                    supabase.table('mcq_questions').insert(mcq_questions).execute()
+
+            flash('Assessment created successfully!', 'success')
+            return redirect(url_for('teacher_dashboard'))
 
         except Exception as e:
             logger.error(f"Prompt creation error: {e}")
-            flash('Error creating prompt.', 'danger')
+            flash('Error creating assessment.', 'danger')
 
     return render_template('create_prompt.html')
 

@@ -1,185 +1,272 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container">
-    <div class="header">
-        <h1>Create New Prompt</h1>
-        <a href="{{ url_for('teacher_dashboard') }}" class="btn btn-secondary">← Back to Dashboard</a>
-    </div>
-
-    <div class="form-container">
-        <form method="POST" id="promptForm">
-            <!-- Basic Fields -->
-            <div class="form-group">
-                <label for="title">Title</label>
-                <input type="text" id="title" name="title" class="form-control" required>
-            </div>
-
-            <div class="form-group">
-                <label for="description">Description/Question</label>
-                <textarea id="description" name="description" class="form-control" rows="4" required></textarea>
-            </div>
-
-            <!-- New Category Dropdown -->
-            <div class="form-group">
-                <label for="category" class="form-label">Subject Category:</label>
-                <select class="form-control" id="category" name="category" required>
-                    <option value="">Select Category</option>
-                    <option value="general">General</option>
-                    <option value="biology">Biology</option>
-                    <option value="physics">Physics</option>
-                </select>
-            </div>
-
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="grade_level">Grade Level</label>
-                    <select id="grade_level" name="grade_level" class="form-control" required>
-                        <option value="">Select Grade</option>
-                        <option value="8">Grade 8</option>
-                        <option value="9">Grade 9</option>
-                        <option value="10">Grade 10</option>
-                        <option value="11">Grade 11</option>
-                        <option value="12">Grade 12</option>
-                    </select>
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">📝 Create Assessment</h4>
                 </div>
+                <div class="card-body">
+                    <form method="POST" id="promptForm">
+                        <!-- Basic Info -->
+                        <div class="mb-3">
+                            <label class="form-label">Assessment Title *</label>
+                            <input type="text" class="form-control" name="title" required>
+                        </div>
 
-                <div class="form-group">
-                    <label for="due_date">Due Date (Optional)</label>
-                    <input type="datetime-local" id="due_date" name="due_date" class="form-control">
+                        <div class="mb-3">
+                            <label class="form-label">Description *</label>
+                            <textarea class="form-control" name="description" rows="3" required></textarea>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">Grade Level *</label>
+                                    <select class="form-control" name="grade_level" required>
+                                        <option value="">Select Grade</option>
+                                        <option value="7">Grade 7</option>
+                                        <option value="8">Grade 8</option>
+                                        <option value="9">Grade 9</option>
+                                        <option value="10">Grade 10</option>
+                                        <option value="11">Grade 11</option>
+                                        <option value="12">Grade 12</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">Subject</label>
+                                    <select class="form-control" name="subject">
+                                        <option value="general">General</option>
+                                        <option value="math">Mathematics</option>
+                                        <option value="science">Science</option>
+                                        <option value="english">English</option>
+                                        <option value="history">History</option>
+                                        <option value="art">Art</option>
+                                        <option value="technology">Technology</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">Total Points</label>
+                                    <input type="number" class="form-control" name="total_points" value="10" min="1">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Assessment Type -->
+                        <div class="mb-3">
+                            <label class="form-label">Assessment Type *</label>
+                            <select class="form-control" name="assessment_type" id="assessmentType" required>
+                                <option value="written">Written Response Only</option>
+                                <option value="mcq">Multiple Choice Questions</option>
+                                <option value="mixed">Mixed Assessment (MCQ + Written)</option>
+                            </select>
+                        </div>
+
+                        <!-- Due Date -->
+                        <div class="mb-3">
+                            <label class="form-label">Due Date (Optional)</label>
+                            <input type="datetime-local" class="form-control" name="due_date">
+                        </div>
+
+                        <!-- MCQ Questions Section (Hidden by default) -->
+                        <div id="mcqSection" style="display: none;">
+                            <div class="mb-3">
+                                <h5>📋 Multiple Choice Questions</h5>
+                                <p class="text-muted">Add questions for automatic grading</p>
+                                
+                                <div id="questionsContainer">
+                                    <!-- Questions will be added here dynamically -->
+                                </div>
+                                
+                                <button type="button" class="btn btn-outline-primary btn-sm" onclick="addQuestion()">
+                                    ➕ Add Question
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Written Section (Always visible for instructions) -->
+                        <div class="mb-3">
+                            <label class="form-label">Instructions for Students</label>
+                            <textarea class="form-control" name="instructions" rows="2" 
+                                      placeholder="Additional instructions for students..."></textarea>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-success">🚀 Create Assessment</button>
+                            <a href="{{ url_for('teacher_dashboard') }}" class="btn btn-secondary">← Back to Dashboard</a>
+                        </div>
+                    </form>
                 </div>
             </div>
-
-            <div class="form-actions">
-                <button type="submit" class="btn btn-primary">Create Prompt</button>
-                <a href="{{ url_for('teacher_dashboard') }}" class="btn btn-secondary">Cancel</a>
-            </div>
-        </form>
+        </div>
     </div>
 </div>
 
+<!-- Question Template (Hidden) -->
+<div id="questionTemplate" style="display: none;">
+    <div class="question-card card mb-3">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h6 class="mb-0">Question <span class="question-number">1</span></h6>
+                <button type="button" class="btn btn-danger btn-sm" onclick="removeQuestion(this)">🗑️</button>
+            </div>
+            
+            <div class="mb-2">
+                <label class="form-label">Question Text *</label>
+                <input type="text" class="form-control question-text" name="question_text[]" required>
+            </div>
+
+            <div class="mb-2">
+                <label class="form-label">Question Type *</label>
+                <select class="form-control question-type" name="question_type[]" onchange="toggleOptions(this)" required>
+                    <option value="mcq">Multiple Choice</option>
+                    <option value="true_false">True/False</option>
+                    <option value="short_answer">Short Answer (Teacher Graded)</option>
+                </select>
+            </div>
+
+            <div class="mb-2">
+                <label class="form-label">Points</label>
+                <input type="number" class="form-control question-points" name="question_points[]" value="1" min="1">
+            </div>
+
+            <!-- MCQ Options -->
+            <div class="question-options">
+                <div class="row">
+                    <div class="col-md-6">
+                        <label class="form-label">Option A *</label>
+                        <input type="text" class="form-control" name="option_a[]" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Option B *</label>
+                        <input type="text" class="form-control" name="option_b[]" required>
+                    </div>
+                </div>
+                <div class="row mt-2">
+                    <div class="col-md-6">
+                        <label class="form-label">Option C</label>
+                        <input type="text" class="form-control" name="option_c[]">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Option D</label>
+                        <input type="text" class="form-control" name="option_d[]">
+                    </div>
+                </div>
+                <div class="mt-2">
+                    <label class="form-label">Correct Answer *</label>
+                    <select class="form-control correct-answer" name="correct_answer[]" required>
+                        <option value="A">Option A</option>
+                        <option value="B">Option B</option>
+                        <option value="C">Option C</option>
+                        <option value="D">Option D</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let questionCount = 0;
+
+function toggleMcqSection() {
+    const assessmentType = document.getElementById('assessmentType').value;
+    const mcqSection = document.getElementById('mcqSection');
+    
+    if (assessmentType === 'mcq' || assessmentType === 'mixed') {
+        mcqSection.style.display = 'block';
+        if (questionCount === 0) {
+            addQuestion();
+        }
+    } else {
+        mcqSection.style.display = 'none';
+        // Clear all questions
+        document.getElementById('questionsContainer').innerHTML = '';
+        questionCount = 0;
+    }
+}
+
+function addQuestion() {
+    questionCount++;
+    const template = document.getElementById('questionTemplate').cloneNode(true);
+    const questionDiv = template.querySelector('.question-card');
+    
+    // Update question number
+    questionDiv.querySelector('.question-number').textContent = questionCount;
+    
+    // Make visible and add to container
+    questionDiv.style.display = 'block';
+    document.getElementById('questionsContainer').appendChild(questionDiv);
+    
+    // Initialize options for this question
+    toggleOptions(questionDiv.querySelector('.question-type'));
+}
+
+function removeQuestion(button) {
+    if (questionCount > 1) {
+        button.closest('.question-card').remove();
+        questionCount--;
+        updateQuestionNumbers();
+    } else {
+        alert('Assessment must have at least one question');
+    }
+}
+
+function updateQuestionNumbers() {
+    const questions = document.querySelectorAll('.question-card');
+    questions.forEach((question, index) => {
+        question.querySelector('.question-number').textContent = index + 1;
+    });
+}
+
+function toggleOptions(selectElement) {
+    const questionCard = selectElement.closest('.question-card');
+    const optionsDiv = questionCard.querySelector('.question-options');
+    const correctAnswerSelect = questionCard.querySelector('.correct-answer');
+    
+    if (selectElement.value === 'mcq') {
+        optionsDiv.style.display = 'block';
+        // Show all options for MCQ
+        correctAnswerSelect.innerHTML = `
+            <option value="A">Option A</option>
+            <option value="B">Option B</option>
+            <option value="C">Option C</option>
+            <option value="D">Option D</option>
+        `;
+    } else if (selectElement.value === 'true_false') {
+        optionsDiv.style.display = 'block';
+        // Only show True/False options
+        correctAnswerSelect.innerHTML = `
+            <option value="True">True</option>
+            <option value="False">False</option>
+        `;
+    } else {
+        // short_answer - hide options
+        optionsDiv.style.display = 'none';
+        correctAnswerSelect.innerHTML = '<option value="">Not Applicable</option>';
+    }
+}
+
+// Initialize
+document.getElementById('assessmentType').addEventListener('change', toggleMcqSection);
+document.addEventListener('DOMContentLoaded', toggleMcqSection);
+</script>
+
 <style>
-.container {
-    max-width: 800px;
-    margin: 0 auto;
-    padding: 2rem;
+.question-card {
+    border-left: 4px solid #007bff;
 }
 
-.header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 2rem;
-}
-
-.header h1 {
-    color: #333;
-    margin: 0;
-}
-
-.form-container {
-    background: white;
-    padding: 2rem;
-    border-radius: 8px;
+.card {
+    border: none;
+    border-radius: 10px;
     box-shadow: 0 2px 10px rgba(0,0,0,0.1);
 }
-
-.form-group {
-    margin-bottom: 1.5rem;
-}
-
-.form-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1rem;
-}
-
-.form-section {
-    background: #f8f9fa;
-    padding: 1.5rem;
-    border-radius: 6px;
-    border-left: 4px solid #007bff;
-    margin: 1.5rem 0;
-}
-
-.form-section h4 {
-    margin-top: 0;
-    color: #007bff;
-}
-
-.form-group label {
-    display: block;
-    margin-bottom: 0.5rem;
-    font-weight: 600;
-    color: #333;
-}
-
-.form-control {
-    width: 100%;
-    padding: 0.75rem;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    font-size: 1rem;
-    box-sizing: border-box;
-}
-
-.form-control:focus {
-    outline: none;
-    border-color: #007bff;
-    box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
-}
-
-.form-actions {
-    display: flex;
-    gap: 1rem;
-    justify-content: flex-end;
-    margin-top: 2rem;
-}
-
-.btn {
-    padding: 0.75rem 1.5rem;
-    border: none;
-    border-radius: 4px;
-    text-decoration: none;
-    font-size: 1rem;
-    cursor: pointer;
-    transition: background-color 0.3s;
-}
-
-.btn-primary {
-    background-color: #007bff;
-    color: white;
-}
-
-.btn-primary:hover {
-    background-color: #0056b3;
-}
-
-.btn-secondary {
-    background-color: #6c757d;
-    color: white;
-}
-
-.btn-secondary:hover {
-    background-color: #545b62;
-}
-
-@media (max-width: 768px) {
-    .form-row {
-        grid-template-columns: 1fr;
-    }
-    
-    .header {
-        flex-direction: column;
-        gap: 1rem;
-        align-items: flex-start;
-    }
-    
-    .form-actions {
-        flex-direction: column;
-    }
-}
 </style>
-
-<!-- No additional JS required -->
 {% endblock %}
