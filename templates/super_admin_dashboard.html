@@ -57,27 +57,19 @@
     </div>
 
     <!-- Quick Actions -->
-    <div class="card mb-4">
-        <div class="card-header">
-            <h5 class="mb-0">🚀 Quick Actions</h5>
-        </div>
-        <div class="card-body">
-            <div class="action-buttons">
-                <a href="{{ url_for('super_admin_schools') }}" class="action-btn primary">
-                    🏫 Manage Schools
-                </a>
-                <a href="{{ url_for('super_admin_schools') }}" class="action-btn secondary">
-                    👥 Platform Users
-                </a>
-                <a href="{{ url_for('super_admin_analytics') }}" class="action-btn info">
-                    📊 Analytics
-                </a>
-                <a href="{{ url_for('super_admin_approvals') }}" class="action-btn secondary">
-                    👥 User Approvals
-                </a>
-            </div>
-        </div>
+    <div class="card-body">
+    <div class="action-buttons">
+        <a href="{{ url_for('super_admin_schools') }}" class="action-btn primary">
+            🏫 Manage Schools
+        </a>
+        <a href="{{ url_for('super_admin_analytics') }}" class="action-btn secondary">
+            📊 Platform Analytics
+        </a>
+        <a href="{{ url_for('debug_data') }}" class="action-btn warning">
+            🐞 System Debug
+        </a>
     </div>
+</div>
 
     <!-- Recent Activity -->
     <div class="row">
