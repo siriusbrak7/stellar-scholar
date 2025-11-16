@@ -181,7 +181,17 @@ def login_required(f):
 
 @app.context_processor
 def inject_user_info():
-    """Inject user info into all templates - UPDATED for teacher permissions"""
+    """Inject user info into all templates - UPDATED with school switcher"""
+    context = {
+        'is_school_admin': False, 
+        'user_school_id': None,
+        'teacher_permissions': 'classroom',
+        'is_classroom_teacher': True,
+        'available_schools': [],
+        'current_school_id': None,
+        'current_school_name': None
+    }
+    
     if 'user_id' in session:
         supabase = get_supabase()
         if supabase:
@@ -192,16 +202,30 @@ def inject_user_info():
                     is_school_admin = user.get('is_admin', False) and session.get('role') == 'teacher'
                     teacher_permissions = user.get('teacher_permissions', 'classroom')
                     
-                    return {
+                    context.update({
                         'is_school_admin': is_school_admin,
                         'user_school_id': user.get('school_id'),
                         'teacher_permissions': teacher_permissions,
                         'is_classroom_teacher': teacher_permissions == 'classroom'
-                    }
+                    })
+                    
+                    # School switcher for sirius
+                    if session['user_id'] == 'sirius':
+                        schools_response = supabase.table('schools').select('*').order('name').execute()
+                        context['available_schools'] = schools_response.data if schools_response.data else []
+                        
+                        # Get current school from session or user's school
+                        current_school_id = session.get('current_school_id') or user.get('school_id')
+                        if current_school_id:
+                            context['current_school_id'] = current_school_id
+                            current_school = next((s for s in context['available_schools'] if s['id'] == current_school_id), None)
+                            if current_school:
+                                context['current_school_name'] = current_school['name']
+                
             except Exception as e:
                 logger.error(f"Context processor error: {e}")
     
-    return {'is_school_admin': False, 'user_school_id': None, 'teacher_permissions': 'classroom', 'is_classroom_teacher': True}
+    return context
 
 # ===== DATABASE FIX ROUTES =====
 @app.route('/fix-schools-table')
@@ -550,9 +574,14 @@ def reset_password(token):
 @teacher_required
 def teacher_dashboard():
     supabase = get_supabase()
-    # GET CURRENT USER FIRST
     user_response = supabase.table('users').select('*').eq('username', session['user_id']).execute()
     user = user_response.data[0] if user_response.data else None
+    
+    # For sirius, use selected school context
+    if session['user_id'] == 'sirius' and 'current_school_id' in session:
+        school_id = session['current_school_id']
+    else:
+        school_id = user['school_id'] if user else None
     
     if not supabase:
         flash('Database connection error.', 'danger')
@@ -2636,6 +2665,27 @@ def verify_teacher_roles():
         
     except Exception as e:
         return f"Error: {str(e)}"
+    
+
+@app.route('/switch-school/<school_id>')
+@super_admin_required
+def switch_school(school_id):
+    """Allow sirius to switch between school contexts"""
+    if school_id == 'none':
+        session.pop('current_school_id', None)
+        flash('Switched to platform admin view.', 'info')
+    else:
+        # Verify school exists
+        supabase = get_supabase()
+        if supabase:
+            school_response = supabase.table('schools').select('name').eq('id', school_id).execute()
+            if school_response.data:
+                session['current_school_id'] = school_id
+                flash(f'Switched to {school_response.data[0]["name"]} view.', 'info')
+            else:
+                flash('School not found.', 'danger')
+    
+    return redirect(request.referrer or url_for('index'))
 
 
 if __name__ == '__main__':
