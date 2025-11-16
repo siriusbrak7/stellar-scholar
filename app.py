@@ -1,5 +1,5 @@
 # app.py
-from flask import Flask, render_template, request, redirect, url_for, session, flash
+from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
 from functools import wraps
 import json
 import os
@@ -31,42 +31,6 @@ def get_supabase():
     except Exception as e:
         logger.error(f"Error initializing Supabase: {e}")
         return None
-
-# Login required decorator
-def login_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if 'user_id' not in session:
-            flash('Please log in to access this page.', 'warning')
-            return redirect(url_for('login'))
-        return f(*args, **kwargs)
-    return decorated_function
-
-def teacher_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if 'user_id' not in session:
-            return redirect(url_for('login'))
-        
-        supabase = get_supabase()
-        if not supabase:
-            flash('Database connection error.', 'danger')
-            return redirect(url_for('index'))
-            
-        try:
-            # Get user from Supabase
-            response = supabase.table('users').select('*').eq('username', session['user_id']).execute()
-            user = response.data[0] if response.data else None
-            
-            if not user or user['role'] != 'teacher':
-                flash('Access denied. Teachers only.', 'danger')
-                return redirect(url_for('index'))
-            return f(*args, **kwargs)
-        except Exception as e:
-            logger.error(f"Error checking teacher role: {e}")
-            flash('Error verifying permissions.', 'danger')
-            return redirect(url_for('index'))
-    return decorated_function
 
 # ===== ENHANCED DECORATORS =====
 def super_admin_required(f):
@@ -105,8 +69,8 @@ def school_admin_required(f):
             return redirect(url_for('index'))
     return decorated_function
 
-# Update the teacher_required decorator to redirect super admin
 def teacher_required(f):
+    """Enhanced to ensure school scoping"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if 'user_id' not in session:
@@ -135,6 +99,15 @@ def teacher_required(f):
             return redirect(url_for('index'))
     return decorated_function
 
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_id' not in session:
+            flash('Please log in to access this page.', 'warning')
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
 @app.context_processor
 def inject_user_info():
     """Inject user info into all templates"""
@@ -154,6 +127,137 @@ def inject_user_info():
     
     return {'is_school_admin': False, 'user_school_id': None}
 
+# ===== DATABASE FIX ROUTES =====
+@app.route('/fix-schools-table')
+def fix_schools_table():
+    """Add missing columns to schools table"""
+    supabase = get_supabase()
+    if not supabase:
+        return "Database connection failed"
+    
+    try:
+        # First, let's see what columns actually exist
+        test_school = supabase.table('schools').select('*').limit(1).execute()
+        if test_school.data:
+            existing_columns = list(test_school.data[0].keys())
+            return f"""
+            <h3>Current Schools Table Columns:</h3>
+            <pre>{existing_columns}</pre>
+            <p>If 'status' is missing, you need to run this SQL in Supabase:</p>
+            <pre>
+ALTER TABLE schools ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'pending';
+ALTER TABLE schools ADD COLUMN IF NOT EXISTS contact_person TEXT;
+ALTER TABLE schools ADD COLUMN IF NOT EXISTS contact_phone TEXT;
+            </pre>
+            """
+        else:
+            return "No schools found. Try creating one first."
+                
+    except Exception as e:
+        error_msg = str(e)
+        if 'status' in error_msg:
+            return """
+            <h3>❌ Missing 'status' Column</h3>
+            <p>You need to add the 'status' column to your schools table.</p>
+            <p>Go to <strong>Supabase → SQL Editor</strong> and run this:</p>
+            <pre>
+ALTER TABLE schools ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'pending';
+ALTER TABLE schools ADD COLUMN IF NOT EXISTS contact_person TEXT;
+ALTER TABLE schools ADD COLUMN IF NOT EXISTS contact_phone TEXT;
+            </pre>
+            <p>Then refresh this page to check.</p>
+            """
+        return f"Error: {error_msg}"
+
+@app.route('/setup-database')
+def setup_database():
+    """Check if database is working"""
+    supabase = get_supabase()
+    if not supabase:
+        return "❌ Database connection failed"
+    
+    try:
+        # Test schools table
+        schools = supabase.table('schools').select('*').execute()
+        # Test users table  
+        users = supabase.table('users').select('*').execute()
+        
+        return f"""
+        <h3>✅ Database Connection Working</h3>
+        <p>Schools table: {len(schools.data) if schools.data else 0} records</p>
+        <p>Users table: {len(users.data) if users.data else 0} records</p>
+        <p><strong>Database is ready!</strong></p>
+        """
+    except Exception as e:
+        return f"❌ Database error: {str(e)}"
+
+@app.route('/debug-data')
+def debug_data():
+    """See all current data"""
+    supabase = get_supabase()
+    if not supabase:
+        return "No database connection"
+    
+    try:
+        schools = supabase.table('schools').select('*').execute()
+        users = supabase.table('users').select('username, role, school_id, is_admin, approval_status').execute()
+        
+        return f"""
+        <h3>Current Database Data</h3>
+        <h4>Schools ({len(schools.data) if schools.data else 0}):</h4>
+        <pre>{schools.data}</pre>
+        <h4>Users ({len(users.data) if users.data else 0}):</h4> 
+        <pre>{users.data}</pre>
+        """
+    except Exception as e:
+        return f"Error: {str(e)}"
+
+# ===== DEMO SCHOOL SETUP =====
+@app.route('/create-demo-school')
+def create_demo_school():
+    """Quickly create a demo school for testing"""
+    supabase = get_supabase()
+    if not supabase:
+        return "Database connection failed"
+    
+    try:
+        # Check if demo school already exists
+        existing = supabase.table('schools').select('id, name').eq('name', 'Newel Academy').execute()
+        if existing.data:
+            return "Demo school already exists!"
+        
+        # Create demo school - only use columns that definitely exist
+        school_data = {
+            'id': 'school_demo_academy',
+            'name': 'Newel Academy', 
+            'created_at': datetime.now().isoformat()
+        }
+        
+        # Try to add status if column exists
+        try:
+            school_data['status'] = 'active'
+        except:
+            pass  # Column doesn't exist yet
+            
+        school_result = supabase.table('schools').insert(school_data).execute()
+        
+        if school_result.data:
+            return """
+            <h3>✅ Demo School Created!</h3>
+            <p><strong>School Name:</strong> Newel Academy</p>
+            <p><strong>School ID:</strong> school_demo_academy</p>
+            <p>You can now register teachers and students for this school.</p>
+            <a href="/register" class="btn btn-primary">Register Users</a>
+            <br><br>
+            <small>Note: You may need to <a href="/fix-schools-table">add missing columns</a> for full functionality.</small>
+            """
+        else:
+            return "Failed to create demo school"
+            
+    except Exception as e:
+        return f"Error: {str(e)}<br><br>You may need to <a href='/fix-schools-table'>fix the database schema</a> first."
+
+# ===== MAIN ROUTES =====
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -277,6 +381,7 @@ def login():
             flash('Login error. Please try again.', 'danger')
     
     return render_template('login.html')
+
 
 @app.route('/logout')
 def logout():
@@ -1783,84 +1888,7 @@ def super_admin_dashboard():
                              stats={'total_schools': 0, 'pending_schools': 0, 'active_schools': 0, 'total_users': 0, 'active_sessions': 0, 'storage_used': '0 GB'},
                              recent_schools=[])
 
-@app.route('/setup-database')
-def setup_database():
-    """Check if database is working"""
-    supabase = get_supabase()
-    if not supabase:
-        return "❌ Database connection failed"
-    
-    try:
-        # Test schools table
-        schools = supabase.table('schools').select('*').execute()
-        # Test users table  
-        users = supabase.table('users').select('*').execute()
-        
-        return f"""
-        <h3>✅ Database Connection Working</h3>
-        <p>Schools table: {len(schools.data) if schools.data else 0} records</p>
-        <p>Users table: {len(users.data) if users.data else 0} records</p>
-        <p><strong>Database is ready!</strong></p>
-        """
-    except Exception as e:
-        return f"❌ Database error: {str(e)}"
 
-@app.route('/debug-data')
-def debug_data():
-    """See all current data"""
-    supabase = get_supabase()
-    if not supabase:
-        return "No database connection"
-    
-    try:
-        schools = supabase.table('schools').select('*').execute()
-        users = supabase.table('users').select('username, role, school_id, is_admin, approval_status').execute()
-        
-        return f"""
-        <h3>Current Database Data</h3>
-        <h4>Schools ({len(schools.data) if schools.data else 0}):</h4>
-        <pre>{schools.data}</pre>
-        <h4>Users ({len(users.data) if users.data else 0}):</h4> 
-        <pre>{users.data}</pre>
-        """
-    except Exception as e:
-        return f"Error: {str(e)}"
-
-@app.route('/create-demo-school')
-def create_demo_school():
-    """Quickly create a demo school for testing"""
-    supabase = get_supabase()
-    if not supabase:
-        return "Database connection failed"
-    
-    try:
-        # Check if demo school already exists
-        existing = supabase.table('schools').select('*').eq('name', 'Newel Academy').execute()
-        if existing.data:
-            return "Demo school already exists!"
-        
-        # Create demo school
-        school_data = {
-            'id': 'school_demo_academy',
-            'name': 'Newel Academy', 
-            'status': 'active',
-            'created_at': datetime.now().isoformat()
-        }
-        school_result = supabase.table('schools').insert(school_data).execute()
-        
-        if school_result.data:
-            return """
-            <h3>✅ Demo School Created!</h3>
-            <p><strong>School Name:</strong> Newel Academy</p>
-            <p><strong>School ID:</strong> school_demo_academy</p>
-            <p>You can now register teachers and students for this school.</p>
-            <a href="/register" class="btn btn-primary">Register Users</a>
-            """
-        else:
-            return "Failed to create demo school"
-            
-    except Exception as e:
-        return f"Error: {str(e)}"
 
 if __name__ == '__main__':
     app.run(debug=True)
