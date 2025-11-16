@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h4 class="mb-0">📖 Feedback: {{ prompt.title }}</h4>
+                            <small>Submitted: {{ submission.submitted_at[:16]|replace('T', ' at ') }}</small>
+                        </div>
+                        {% if submission.grade is not none %}
+                        <span class="badge bg-success fs-6">
+                            Grade: {{ submission.grade }}/100
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="card-body">
+                    <!-- Assessment Info -->
+                    <div class="mb-4">
+                        <h5>📝 Assessment Details</h5>
+                        <p><strong>Description:</strong> {{ prompt.description }}</p>
+                        <p><strong>Type:</strong> 
+                            {% if prompt.assessment_type == 'written' %}Written Response
+                            {% elif prompt.assessment_type == 'mcq' %}Multiple Choice
+                            {% else %}Mixed Assessment{% endif %}
+                        </p>
+                        <p><strong>Total Points:</strong> {{ prompt.total_points }}</p>
+                    </div>
+
+                    <!-- Written Response Section -->
+                    {% if prompt.assessment_type in ['written', 'mixed'] %}
+                    <div class="mb-4">
+                        <h5>✍️ Your Written Response</h5>
+                        <div class="card">
+                            <div class="card-body">
+                                <p>{{ submission.response or "No written response submitted." }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- MCQ Results Section -->
+                    {% if prompt.assessment_type in ['mcq', 'mixed'] and mcq_questions %}
+                    <div class="mb-4">
+                        <h5>🔠 Multiple Choice Results</h5>
+                        <p class="text-muted">Automatically graded questions</p>
+                        
+                        {% for question in mcq_questions %}
+                        {% set response = question_responses|selectattr("question_id", "equalto", question.id)|first %}
+                        <div class="card mb-3 {% if response and response.is_correct %}border-success{% else %}border-danger{% endif %}">
+                            <div class="card-body">
+                                <h6 class="card-title">
+                                    Question {{ loop.index }} ({{ question.points }} point{% if question.points > 1 %}s{% endif %})
+                                </h6>
+                                <p class="card-text">{{ question.question_text }}</p>
+                                
+                                <!-- Show options and student's answer -->
+                                <div class="options-result">
+                                    {% if question.question_type == 'mcq' %}
+                                        <div class="form-check {% if response and response.response_text == 'A' %}student-answer{% endif %}">
+                                            <input class="form-check-input" type="radio" disabled {% if response and response.response_text == 'A' %}checked{% endif %}>
+                                            <label class="form-check-label {% if question.correct_answer == 'A' %}text-success fw-bold{% endif %}">
+                                                <strong>A)</strong> {{ question.option_a }}
+                                                {% if question.correct_answer == 'A' %} ✅ Correct Answer{% endif %}
+                                            </label>
+                                        </div>
+                                        <div class="form-check {% if response and response.response_text == 'B' %}student-answer{% endif %}">
+                                            <input class="form-check-input" type="radio" disabled {% if response and response.response_text == 'B' %}checked{% endif %}>
+                                            <label class="form-check-label {% if question.correct_answer == 'B' %}text-success fw-bold{% endif %}">
+                                                <strong>B)</strong> {{ question.option_b }}
+                                                {% if question.correct_answer == 'B' %} ✅ Correct Answer{% endif %}
+                                            </label>
+                                        </div>
+                                        {% if question.option_c %}
+                                        <div class="form-check {% if response and response.response_text == 'C' %}student-answer{% endif %}">
+                                            <input class="form-check-input" type="radio" disabled {% if response and response.response_text == 'C' %}checked{% endif %}>
+                                            <label class="form-check-label {% if question.correct_answer == 'C' %}text-success fw-bold{% endif %}">
+                                                <strong>C)</strong> {{ question.option_c }}
+                                                {% if question.correct_answer == 'C' %} ✅ Correct Answer{% endif %}
+                                            </label>
+                                        </div>
+                                        {% endif %}
+                                        {% if question.option_d %}
+                                        <div class="form-check {% if response and response.response_text == 'D' %}student-answer{% endif %}">
+                                            <input class="form-check-input" type="radio" disabled {% if response and response.response_text == 'D' %}checked{% endif %}>
+                                            <label class="form-check-label {% if question.correct_answer == 'D' %}text-success fw-bold{% endif %}">
+                                                <strong>D)</strong> {{ question.option_d }}
+                                                {% if question.correct_answer == 'D' %} ✅ Correct Answer{% endif %}
+                                            </label>
+                                        </div>
+                                        {% endif %}
+                                    
+                                    {% elif question.question_type == 'true_false' %}
+                                        <div class="form-check {% if response and response.response_text == 'True' %}student-answer{% endif %}">
+                                            <input class="form-check-input" type="radio" disabled {% if response and response.response_text == 'True' %}checked{% endif %}>
+                                            <label class="form-check-label {% if question.correct_answer == 'True' %}text-success fw-bold{% endif %}">
+                                                ✅ True {% if question.correct_answer == 'True' %}(Correct Answer){% endif %}
+                                            </label>
+                                        </div>
+                                        <div class="form-check {% if response and response.response_text == 'False' %}student-answer{% endif %}">
+                                            <input class="form-check-input" type="radio" disabled {% if response and response.response_text == 'False' %}checked{% endif %}>
+                                            <label class="form-check-label {% if question.correct_answer == 'False' %}text-success fw-bold{% endif %}">
+                                                ❌ False {% if question.correct_answer == 'False' %}(Correct Answer){% endif %}
+                                            </label>
+                                        </div>
+                                    {% endif %}
+                                </div>
+
+                                <!-- Result Summary -->
+                                <div class="mt-3">
+                                    {% if response %}
+                                        {% if response.is_correct %}
+                                            <span class="badge bg-success">✅ Correct (+{{ response.points_earned }} points)</span>
+                                        {% else %}
+                                            <span class="badge bg-danger">❌ Incorrect (0 points)</span>
+                                            <small class="text-muted">Your answer: {{ response.response_text }}</small>
+                                        {% endif %}
+                                    {% else %}
+                                        <span class="badge bg-secondary">⏳ Not Answered</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    <!-- Teacher Feedback -->
+                    {% if submission.feedback %}
+                    <div class="mb-4">
+                        <h5>💬 Teacher Feedback</h5>
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <p class="card-text">{{ submission.feedback }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="card-footer">
+                    <a href="{{ url_for('student_dashboard') }}" class="btn btn-secondary">← Back to Dashboard</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.student-answer {
+    background-color: #e3f2fd;
+    padding: 0.5rem;
+    border-radius: 5px;
+    border-left: 4px solid #2196F3;
+}
+
+.card {
+    border-radius: 10px;
+}
+
+.form-check-input:checked {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+}
+</style>
+{% endblock %}

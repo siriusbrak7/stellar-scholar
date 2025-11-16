@@ -487,12 +487,16 @@ def teacher_dashboard():
         grade_filter = request.args.get('grade', 'all')
         category_filter = request.args.get('category', 'all')
         
-        # Get all prompts from user's school only - FIXED SYNTAX
+        # Get all prompts from user's school only
         prompts_response = supabase.table('prompts').select('*').eq('school_id', user['school_id']).order('created_at', desc=True).execute()
         all_prompts = prompts_response.data if prompts_response.data else []
 
+        # Calculate assessment type counts
+        written_count = len([p for p in all_prompts if p.get('assessment_type') == 'written'])
+        mcq_count = len([p for p in all_prompts if p.get('assessment_type') == 'mcq'])  
+        mixed_count = len([p for p in all_prompts if p.get('assessment_type') == 'mixed'])
 
-        # Build available grades and categories from full prompt set (for filter buttons)
+        # Build available grades and categories from full prompt set
         unique_grades = sorted(list({p['grade_level'] for p in all_prompts if p.get('grade_level')}))
         unique_categories = sorted(list({p.get('category', 'general') for p in all_prompts if p.get('category') is not None}))
         
@@ -642,7 +646,7 @@ def teacher_dashboard():
         top_students.sort(key=lambda x: x['avg_score'], reverse=True)
         top_students = top_students[:5]
         
-        # Render template with new category filter context
+        # Render template with assessment type counts
         return render_template('teacher_dashboard.html', 
                              prompts=prompts, 
                              prompt_stats=prompt_stats,
@@ -652,7 +656,10 @@ def teacher_dashboard():
                              available_grades=unique_grades,
                              available_categories=unique_categories,
                              student_progress=student_progress,
-                             class_analytics=class_analytics)
+                             class_analytics=class_analytics,
+                             written_count=written_count,
+                             mcq_count=mcq_count,
+                             mixed_count=mixed_count)
                              
     except Exception as e:
         logger.error(f"Teacher dashboard error: {e}")
@@ -1343,6 +1350,7 @@ def leaderboard():
 @app.route('/student/view_feedback/<submission_id>')
 @login_required
 def view_feedback(submission_id):
+    """View feedback for a submission - enhanced for MCQ assessments"""
     supabase = get_supabase()
     if not supabase:
         flash('Database connection error.', 'danger')
@@ -1366,9 +1374,28 @@ def view_feedback(submission_id):
         prompt_response = supabase.table('prompts').select('*').eq('id', submission['prompt_id']).execute()
         prompt = prompt_response.data[0] if prompt_response.data else None
         
+        if not prompt:
+            flash('Assessment not found.', 'danger')
+            return redirect(url_for('student_dashboard'))
+
+        # Get MCQ questions and responses if this was an MCQ/mixed assessment
+        mcq_questions = []
+        question_responses = []
+        
+        if prompt.get('assessment_type') in ['mcq', 'mixed']:
+            # Get questions
+            questions_response = supabase.table('mcq_questions').select('*').eq('prompt_id', prompt['id']).order('sort_order').execute()
+            mcq_questions = questions_response.data if questions_response.data else []
+            
+            # Get student's responses
+            responses_response = supabase.table('question_responses').select('*').eq('prompt_id', prompt['id']).eq('student_id', session['user_id']).execute()
+            question_responses = responses_response.data if responses_response.data else []
+        
         return render_template('view_feedback.html', 
                              submission=submission, 
-                             prompt=prompt)
+                             prompt=prompt,
+                             mcq_questions=mcq_questions,
+                             question_responses=question_responses)
         
     except Exception as e:
         logger.error(f"View feedback error: {e}")
