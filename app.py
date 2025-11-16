@@ -170,6 +170,8 @@ def register():
         password = request.form.get('password', '').strip()
         role = request.form.get('role')
         grade = request.form.get('grade') if role == 'student' else None
+        security_question = request.form.get('security_question', '').strip()
+        security_answer = request.form.get('security_answer', '').strip()
 
         # Basic validation
         if not username or not password:
@@ -200,18 +202,14 @@ def register():
             if role == 'student' and grade:
                 user_data['grade'] = grade
 
-            # Add security question & answer
-            if role == 'student':
-                security_question = request.form.get('security_question')
-                security_answer = request.form.get('security_answer')
+            # ✅ ADD SECURITY QUESTION FOR ALL USERS (not just students)
+            if security_question and security_answer:
+                user_data['security_question'] = security_question
+                user_data['security_answer_hash'] = generate_password_hash(
+                    security_answer.lower().strip()
+                )
 
-                if security_question and security_answer:
-                    user_data['security_question'] = security_question
-                    user_data['security_answer_hash'] = generate_password_hash(
-                        security_answer.lower().strip()
-                    )
-
-            # ✅ Add school_id (your update)
+            # ✅ Add school_id
             school_id = request.form.get('school_id')
             user_data['school_id'] = school_id
 
@@ -230,8 +228,14 @@ def register():
 
     # GET request — Fetch schools for dropdown
     supabase = get_supabase()
-    schools_response = supabase.table('schools').select('*').execute()
-    schools = schools_response.data if schools_response.data else []
+    schools = []
+    if supabase:
+        try:
+            schools_response = supabase.table('schools').select('*').execute()
+            schools = schools_response.data if schools_response.data else []
+        except Exception as e:
+            logger.error(f"Error fetching schools: {e}")
+            schools = []
 
     return render_template('register.html', schools=schools)
 
@@ -303,7 +307,7 @@ def forgot_password():
                                     username=username)
             else:
                 # Don't reveal if user exists for security
-                flash('If that username exists and has security questions set, you will be redirected.', 'info')
+                flash('If that username exists and has a security question set, you will be redirected to answer it.', 'info')
                 return redirect(url_for('forgot_password'))
                 
         except Exception as e:
@@ -1744,7 +1748,7 @@ def super_admin_dashboard():
         return redirect(url_for('index'))
     
     try:
-        # Get all schools with error handling
+        # Get all schools
         schools_response = supabase.table('schools').select('*').execute()
         schools = schools_response.data if schools_response.data else []
         
@@ -1774,13 +1778,53 @@ def super_admin_dashboard():
                              
     except Exception as e:
         logger.error(f"Super admin dashboard error: {e}")
-        # Provide helpful error message
-        error_msg = f"Database error: {str(e)}. Please check if schools table exists."
-        flash(error_msg, 'danger')
+        flash(f'Error loading dashboard: {str(e)}', 'danger')
         return render_template('super_admin_dashboard.html',
                              stats={'total_schools': 0, 'pending_schools': 0, 'active_schools': 0, 'total_users': 0, 'active_sessions': 0, 'storage_used': '0 GB'},
                              recent_schools=[])
+
+@app.route('/setup-database')
+def setup_database():
+    """Check if database is working"""
+    supabase = get_supabase()
+    if not supabase:
+        return "❌ Database connection failed"
     
+    try:
+        # Test schools table
+        schools = supabase.table('schools').select('*').execute()
+        # Test users table  
+        users = supabase.table('users').select('*').execute()
+        
+        return f"""
+        <h3>✅ Database Connection Working</h3>
+        <p>Schools table: {len(schools.data) if schools.data else 0} records</p>
+        <p>Users table: {len(users.data) if users.data else 0} records</p>
+        <p><strong>Database is ready!</strong></p>
+        """
+    except Exception as e:
+        return f"❌ Database error: {str(e)}"
+
+@app.route('/debug-data')
+def debug_data():
+    """See all current data"""
+    supabase = get_supabase()
+    if not supabase:
+        return "No database connection"
+    
+    try:
+        schools = supabase.table('schools').select('*').execute()
+        users = supabase.table('users').select('username, role, school_id, is_admin, approval_status').execute()
+        
+        return f"""
+        <h3>Current Database Data</h3>
+        <h4>Schools ({len(schools.data) if schools.data else 0}):</h4>
+        <pre>{schools.data}</pre>
+        <h4>Users ({len(users.data) if users.data else 0}):</h4> 
+        <pre>{users.data}</pre>
+        """
+    except Exception as e:
+        return f"Error: {str(e)}"
 
 if __name__ == '__main__':
     app.run(debug=True)
