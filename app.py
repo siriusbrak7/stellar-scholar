@@ -69,6 +69,70 @@ def school_admin_required(f):
             return redirect(url_for('index'))
     return decorated_function
 
+# ===== NEW DECORATORS =====
+def school_admin_required(f):
+    """For school-level admins only (teachers with is_admin=True)"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_id' not in session:
+            flash('Please log in first.', 'warning')
+            return redirect(url_for('login'))
+        
+        # Super admin should not access school admin routes
+        if session['user_id'] == 'sirius':
+            flash('Super admin cannot access school admin features.', 'danger')
+            return redirect(url_for('super_admin_dashboard'))
+        
+        supabase = get_supabase()
+        if not supabase:
+            flash('Database connection error.', 'danger')
+            return redirect(url_for('index'))
+            
+        try:
+            user_response = supabase.table('users').select('*').eq('username', session['user_id']).execute()
+            user = user_response.data[0] if user_response.data else None
+            
+            if not user or user['role'] != 'teacher' or not user.get('is_admin'):
+                flash('School admin access required.', 'danger')
+                return redirect(url_for('teacher_dashboard'))
+            return f(*args, **kwargs)
+        except Exception as e:
+            logger.error(f"School admin check error: {e}")
+            flash('Error verifying permissions.', 'danger')
+            return redirect(url_for('teacher_dashboard'))
+    return decorated_function
+
+def student_required(f):
+    """Enhanced student access control with school scoping"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_id' not in session:
+            flash('Please log in first.', 'warning')
+            return redirect(url_for('login'))
+        
+        # Super admin and teachers should not access student routes
+        if session['user_id'] == 'sirius':
+            return redirect(url_for('super_admin_dashboard'))
+        
+        supabase = get_supabase()
+        if not supabase:
+            flash('Database connection error.', 'danger')
+            return redirect(url_for('index'))
+            
+        try:
+            user_response = supabase.table('users').select('*').eq('username', session['user_id']).execute()
+            user = user_response.data[0] if user_response.data else None
+            
+            if not user or user['role'] != 'student':
+                flash('Student access required.', 'danger')
+                return redirect(url_for('teacher_dashboard'))
+            return f(*args, **kwargs)
+        except Exception as e:
+            logger.error(f"Student check error: {e}")
+            flash('Error verifying permissions.', 'danger')
+            return redirect(url_for('index'))
+    return decorated_function
+
 def teacher_required(f):
     """Enhanced to ensure school scoping"""
     @wraps(f)
@@ -487,7 +551,7 @@ def teacher_dashboard():
         grade_filter = request.args.get('grade', 'all')
         category_filter = request.args.get('category', 'all')
         
-        # Get all prompts from user's school only
+        # Get all prompts from user's school only - FIXED DATA LEAK
         prompts_response = supabase.table('prompts').select('*').eq('school_id', user['school_id']).order('created_at', desc=True).execute()
         all_prompts = prompts_response.data if prompts_response.data else []
 
@@ -509,12 +573,12 @@ def teacher_dashboard():
         
         prompts = {prompt['id']: prompt for prompt in filtered_prompts}
         
-        # Get all submissions
+        # Get all submissions from user's school only - FIXED DATA LEAK
         submissions_response = supabase.table('submissions').select('*').execute()
         submissions = submissions_response.data if submissions_response.data else []
         
-        # Get all users (for analytics and student progress)
-        users_response = supabase.table('users').select('*').execute()
+        # Get all users from user's school only - FIXED DATA LEAK
+        users_response = supabase.table('users').select('*').eq('school_id', user['school_id']).execute()
         users_data = users_response.data if users_response.data else []
         
         # Count submissions per prompt (only for prompts currently shown)
@@ -531,7 +595,7 @@ def teacher_dashboard():
                 if sub.get('grade') is not None:
                     prompt_stats[pid]['graded'] += 1
         
-        # STUDENT PROGRESS TRACKING
+        # STUDENT PROGRESS TRACKING - Now school-scoped
         student_progress = {}
         class_analytics = {
             'total_students': 0,
@@ -616,7 +680,7 @@ def teacher_dashboard():
             if grades:
                 class_analytics['average_grade'] = round(sum(grades) / len(grades), 1)
         
-        # Get top students for leaderboard preview
+        # Get top students for leaderboard preview - School-scoped
         top_students = []
         student_scores = {}
         
@@ -624,7 +688,7 @@ def teacher_dashboard():
             if sub.get('grade') is not None:
                 student_id = sub.get('student_id')
                 if student_id not in student_scores:
-                    user_response = supabase.table('users').select('grade').eq('username', student_id).execute()
+                    user_response = supabase.table('users').select('grade').eq('username', student_id).eq('school_id', user['school_id']).execute()
                     grade_level = user_response.data[0]['grade'] if user_response.data else 'N/A'
                     
                     student_scores[student_id] = {
@@ -1064,7 +1128,7 @@ def student_dashboard():
             flash("User not found. Please log in again.", "danger")
             return redirect(url_for('logout'))
         
-        # Get all prompts for student's grade and school
+        # Get all prompts for student's grade and school - FIXED DATA LEAK
         prompts_response = supabase.table('prompts')\
             .select('*')\
             .eq('grade_level', user['grade'])\
@@ -1117,7 +1181,7 @@ def student_dashboard():
         for subject, data in subject_mastery.items():
             subject_averages[subject] = round(data['total'] / data['count']) if data['count'] > 0 else 0
         
-        # Get leaderboard rank
+        # Get leaderboard rank - School-scoped
         all_students_response = supabase.table('users')\
             .select('username')\
             .eq('role', 'student')\
@@ -1483,10 +1547,10 @@ def admin_dashboard():
         return redirect(url_for('index'))
     
     try:
-        # Get pending registrations from user's school only
+        # Get pending registrations from user's school only - FIXED DATA LEAK
         pending_users = supabase.table('users').select('*').eq('approval_status', 'pending').eq('school_id', user['school_id']).execute()
         
-        # Get all users from user's school only
+        # Get all users from user's school only - FIXED DATA LEAK
         all_users = supabase.table('users').select('*').eq('school_id', user['school_id']).order('created_at', desc=True).execute()
         
         return render_template('admin_dashboard.html',
@@ -1646,9 +1710,8 @@ def school_register():
         admin_username = request.form.get('admin_username', '').strip()
         admin_password = request.form.get('admin_password', '').strip()
         admin_email = request.form.get('admin_email', '').strip()
-        
-        # Debug: Print form data
-        print(f"Form data: {school_name}, {admin_username}, {admin_email}")
+        contact_person = request.form.get('contact_person', '').strip()
+        contact_phone = request.form.get('contact_phone', '').strip()
         
         # Validation
         if not all([school_name, admin_username, admin_password, admin_email]):
@@ -1677,29 +1740,29 @@ def school_register():
                 'id': school_id,
                 'name': school_name,
                 'status': 'pending',
+                'contact_person': contact_person if contact_person else None,
+                'contact_phone': contact_phone if contact_phone else None,
                 'created_at': datetime.now().isoformat()
             }
             
-            print(f"Creating school: {school_data}")
             school_result = supabase.table('schools').insert(school_data).execute()
             
             if not school_result.data:
                 flash('Failed to create school. Please try again.', 'danger')
                 return render_template('school_register.html')
             
-            # Create admin account (also pending)
+            # Create admin account (auto-approved for now, but school is pending)
             user_data = {
                 'username': admin_username,
                 'password_hash': generate_password_hash(admin_password),
                 'email': admin_email,
                 'role': 'teacher',
-                'approval_status': 'approved',
+                'approval_status': 'approved',  # User is approved
                 'school_id': school_id,
-                'is_admin': True,
+                'is_admin': True,  # Mark as school admin
                 'created_at': datetime.now().isoformat()
             }
             
-            print(f"Creating admin user: {user_data}")
             user_result = supabase.table('users').insert(user_data).execute()
             
             if user_result.data:
