@@ -44,11 +44,16 @@ def super_admin_required(f):
     return decorated_function
 
 def school_admin_required(f):
-    """For school-level admins (teachers with is_admin=True)"""
+    """For school-level admins only - INCLUDES sirius"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if 'user_id' not in session:
+            flash('Please log in first.', 'warning')
             return redirect(url_for('login'))
+        
+        # Allow sirius to access school admin features
+        if session['user_id'] == 'sirius':
+            return f(*args, **kwargs)
         
         supabase = get_supabase()
         if not supabase:
@@ -59,14 +64,15 @@ def school_admin_required(f):
             user_response = supabase.table('users').select('*').eq('username', session['user_id']).execute()
             user = user_response.data[0] if user_response.data else None
             
-            if not user or not user.get('is_admin') or user['role'] != 'teacher':
+            # Check teacher_permissions for admin access
+            if not user or user['role'] != 'teacher' or user.get('teacher_permissions') != 'admin':
                 flash('School admin access required.', 'danger')
-                return redirect(url_for('index'))
+                return redirect(url_for('teacher_dashboard'))
             return f(*args, **kwargs)
         except Exception as e:
             logger.error(f"School admin check error: {e}")
             flash('Error verifying permissions.', 'danger')
-            return redirect(url_for('index'))
+            return redirect(url_for('teacher_dashboard'))
     return decorated_function
 
 # ===== NEW DECORATORS =====
@@ -135,15 +141,15 @@ def student_required(f):
     return decorated_function
 
 def teacher_required(f):
-    """Enhanced to ensure school scoping"""
+    """Enhanced to ensure school scoping - INCLUDES sirius"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if 'user_id' not in session:
             return redirect(url_for('login'))
         
-        # Super admin should not access teacher dashboard
+        # Allow sirius to access teacher features
         if session['user_id'] == 'sirius':
-            return redirect(url_for('super_admin_dashboard'))
+            return f(*args, **kwargs)
         
         supabase = get_supabase()
         if not supabase:
