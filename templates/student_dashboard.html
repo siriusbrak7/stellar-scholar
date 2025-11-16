@@ -1,118 +1,147 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container-fluid">
-    <div class="row">
-        <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h2 class="text-white">📚 Student Dashboard</h2>
-                <span class="badge bg-primary">Grade {{ user.grade }}</span>
-            </div>
+<div class="student-dashboard-container">
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2 class="text-white">📚 Student Dashboard</h2>
+                    <span class="badge bg-primary">Grade {{ user.grade }}</span>
+                </div>
 
-            {% if prompts %}
-            <div class="row">
-                {% for prompt in prompts %}
-                <div class="col-md-6 col-lg-4 mb-4">
-                    <div class="card prompt-card {% if prompt.has_submitted %}submitted-card{% endif %}">
-                        <div class="card-header">
-                            <h5 class="card-title mb-1">{{ prompt.title }}</h5>
-                            <div class="prompt-meta">
-                                <small class="text-muted">
-                                    📝 {{ prompt.assessment_type|upper }} • 
-                                    {% if prompt.subject != 'general' %}{{ prompt.subject|title }} • {% endif %}
-                                    {{ prompt.total_points }} points
-                                </small>
+                {% if prompts %}
+                <div class="row">
+                    {% for prompt in prompts %}
+                    <div class="col-md-6 col-lg-4 mb-4">
+                        <div class="card prompt-card {% if prompt.has_submitted %}submitted-card{% endif %}">
+                            <div class="card-header">
+                                <h5 class="card-title mb-1">{{ prompt.title }}</h5>
+                                <div class="prompt-meta">
+                                    <small class="text-muted">
+                                        📝 {{ prompt.assessment_type|upper }} • 
+                                        {% if prompt.subject != 'general' %}{{ prompt.subject|title }} • {% endif %}
+                                        {{ prompt.total_points }} points
+                                    </small>
+                                </div>
                             </div>
-                        </div>
-                        
-                        <div class="card-body">
-                            <p class="card-text">{{ prompt.description[:100] }}{% if prompt.description|length > 100 %}...{% endif %}</p>
                             
-                            {% if prompt.instructions %}
-                            <div class="alert alert-info py-2">
-                                <small><strong>📋 Instructions:</strong> {{ prompt.instructions }}</small>
-                            </div>
-                            {% endif %}
+                            <div class="card-body">
+                                <p class="card-text">{{ prompt.description[:100] }}{% if prompt.description|length > 100 %}...{% endif %}</p>
+                                
+                                {% if prompt.instructions %}
+                                <div class="alert alert-info py-2">
+                                    <small><strong>📋 Instructions:</strong> {{ prompt.instructions }}</small>
+                                </div>
+                                {% endif %}
 
-                            <!-- Assessment Type Badge -->
-                            <div class="mb-2">
-                                <span class="badge 
-                                    {% if prompt.assessment_type == 'written' %}bg-primary
-                                    {% elif prompt.assessment_type == 'mcq' %}bg-success
-                                    {% else %}bg-warning{% endif %}">
-                                    {% if prompt.assessment_type == 'written' %}✍️ Written
-                                    {% elif prompt.assessment_type == 'mcq' %}🔠 Multiple Choice
-                                    {% else %}📝 Mixed Assessment{% endif %}
-                                </span>
-                            </div>
+                                <!-- Assessment Type Badge -->
+                                <div class="mb-2">
+                                    <span class="badge 
+                                        {% if prompt.assessment_type == 'written' %}bg-primary
+                                        {% elif prompt.assessment_type == 'mcq' %}bg-success
+                                        {% else %}bg-warning{% endif %}">
+                                        {% if prompt.assessment_type == 'written' %}✍️ Written
+                                        {% elif prompt.assessment_type == 'mcq' %}🔠 Multiple Choice
+                                        {% else %}📝 Mixed Assessment{% endif %}
+                                    </span>
+                                </div>
 
-                            <!-- Due Date -->
-                            {% if prompt.due_date %}
-                            <div class="mb-2">
-                                <small class="text-muted">
-                                    📅 Due: {{ prompt.due_date[:16]|replace('T', ' at ') }}
-                                    {% if prompt.due_date < now.isoformat() %}
-                                    <span class="badge bg-danger">Overdue</span>
-                                    {% endif %}
-                                </small>
-                            </div>
-                            {% endif %}
+                                <!-- Due Date -->
+                                {% if prompt.due_date %}
+                                <div class="mb-2">
+                                    <small class="text-muted">
+                                        📅 Due: {{ prompt.due_date[:16]|replace('T', ' at ') }}
+                                        {% if prompt.due_date < now.isoformat() %}
+                                        <span class="badge bg-danger">Overdue</span>
+                                        {% endif %}
+                                    </small>
+                                </div>
+                                {% endif %}
 
-                            <!-- Submission Status -->
-                            <div class="mb-3">
-                                {% if prompt.has_submitted %}
-                                    <span class="badge bg-success">✅ Submitted</span>
-                                    {% if prompt.submission.grade is not none %}
-                                        <span class="badge bg-info">Grade: {{ prompt.submission.grade }}/{{ prompt.total_points }}</span>
+                                <!-- Submission Status -->
+                                <div class="mb-3">
+                                    {% if prompt.has_submitted %}
+                                        <span class="badge bg-success">✅ Submitted</span>
+                                        {% if prompt.submission.grade is not none %}
+                                            <span class="badge bg-info">Grade: {{ prompt.submission.grade }}/{{ prompt.total_points }}</span>
+                                        {% else %}
+                                            <span class="badge bg-warning">⏳ Awaiting Grade</span>
+                                        {% endif %}
                                     {% else %}
-                                        <span class="badge bg-warning">⏳ Awaiting Grade</span>
+                                        <span class="badge bg-warning">📝 Not Submitted</span>
                                     {% endif %}
+                                </div>
+                            </div>
+
+                            <div class="card-footer">
+                                {% if not prompt.has_submitted %}
+                                    <a href="{{ url_for('take_assessment', prompt_id=prompt.id) }}" 
+                                       class="btn btn-primary btn-sm">
+                                        {% if prompt.assessment_type == 'written' %}
+                                            ✍️ Write Response
+                                        {% else %}
+                                            🎯 Take Assessment
+                                        {% endif %}
+                                    </a>
                                 {% else %}
-                                    <span class="badge bg-warning">📝 Not Submitted</span>
+                                    <a href="{{ url_for('view_feedback', submission_id=prompt.submission.id) }}" 
+                                       class="btn btn-outline-info btn-sm">
+                                        📖 View Feedback
+                                    </a>
                                 {% endif %}
                             </div>
                         </div>
-
-                        <div class="card-footer">
-                            {% if not prompt.has_submitted %}
-                                <a href="{{ url_for('take_assessment', prompt_id=prompt.id) }}" 
-                                   class="btn btn-primary btn-sm">
-                                    {% if prompt.assessment_type == 'written' %}
-                                        ✍️ Write Response
-                                    {% else %}
-                                        🎯 Take Assessment
-                                    {% endif %}
-                                </a>
-                            {% else %}
-                                <a href="{{ url_for('view_feedback', submission_id=prompt.submission.id) }}" 
-                                   class="btn btn-outline-info btn-sm">
-                                    📖 View Feedback
-                                </a>
-                            {% endif %}
-                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <div class="empty-state">
+                        <h3 class="text-white">🎉 No Assignments!</h3>
+                        <p class="text-muted">You're all caught up. Check back later for new assignments.</p>
                     </div>
                 </div>
-                {% endfor %}
+                {% endif %}
             </div>
-            {% else %}
-            <div class="text-center py-5">
-                <div class="empty-state">
-                    <h3 class="text-white">🎉 No Assignments!</h3>
-                    <p class="text-muted">You're all caught up. Check back later for new assignments.</p>
-                </div>
-            </div>
-            {% endif %}
         </div>
     </div>
 </div>
 
 <style>
+/* EMERGENCY SCROLL FIX */
+body, html {
+    height: auto !important;
+    min-height: 100vh !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+}
+
+.student-dashboard-container {
+    min-height: 100vh;
+    overflow-y: auto !important;
+}
+
+.container-fluid {
+    min-height: auto !important;
+    height: auto !important;
+    overflow-y: visible !important;
+}
+
+.student-dashboard-container {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #0a0e27 0%, #16213e 50%, #1a1a2e 100%);
+    padding: 2rem 0;
+    overflow-y: auto;
+}
+
 .prompt-card {
     border: none;
     border-radius: 15px;
     box-shadow: 0 4px 20px rgba(0,0,0,0.1);
     transition: all 0.3s ease;
     height: 100%;
+    background: white;
 }
 
 .prompt-card:hover {
@@ -132,20 +161,45 @@
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
     border-radius: 15px 15px 0 0 !important;
+    border: none;
 }
 
 .card-title {
     font-weight: 600;
+    color: white;
+}
+
+.card-body {
+    background: white;
+    color: #333;
+}
+
+.card-footer {
+    background: #f8f9fa;
+    border-top: 1px solid #e9ecef;
+    border-radius: 0 0 15px 15px;
 }
 
 .empty-state {
     padding: 3rem;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 15px;
+    backdrop-filter: blur(10px);
 }
 
 .alert-info {
     background: rgba(102, 126, 234, 0.1);
     border: 1px solid rgba(102, 126, 234, 0.2);
     border-radius: 8px;
+    color: #31708f;
+}
+
+.text-muted {
+    color: #6c757d !important;
+}
+
+.badge {
+    font-size: 0.75rem;
 }
 </style>
 {% endblock %}
