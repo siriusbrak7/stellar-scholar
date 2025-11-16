@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="admin-container">
+    <div class="admin-header">
+        <h1 class="admin-title">🐞 System Debug</h1>
+        <p class="admin-subtitle">Database Diagnostics & Platform Health</p>
+    </div>
+
+    <div class="row">
+        <!-- Schools Data -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">🏫 Schools ({{ schools|length }})</h5>
+                </div>
+                <div class="card-body">
+                    {% if schools %}
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Name</th>
+                                    <th>Status</th>
+                                    <th>Created</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for school in schools %}
+                                <tr>
+                                    <td><code>{{ school.id[:8] }}...</code></td>
+                                    <td><strong>{{ school.name }}</strong></td>
+                                    <td>
+                                        <span class="badge {% if school.status == 'active' %}bg-success{% else %}bg-warning{% endif %}">
+                                            {{ school.status }}
+                                        </span>
+                                    </td>
+                                    <td>{{ school.created_at[:10] }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted">No schools found</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Users Data -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">👥 Users ({{ users|length }})</h5>
+                </div>
+                <div class="card-body">
+                    {% if users %}
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Username</th>
+                                    <th>Role</th>
+                                    <th>School</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for user in users %}
+                                <tr>
+                                    <td><strong>{{ user.username }}</strong></td>
+                                    <td>
+                                        <span class="badge {% if user.role == 'teacher' %}bg-primary{% else %}bg-success{% endif %}">
+                                            {{ user.role }}
+                                        </span>
+                                        {% if user.is_admin %}
+                                        <span class="badge bg-warning">Admin</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if user.school_id %}
+                                            <small>{{ user.school_id[:8] }}...</small>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge {% if user.approval_status == 'approved' %}bg-success{% else %}bg-warning{% endif %}">
+                                            {{ user.approval_status }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted">No users found</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Platform Stats -->
+    <div class="card">
+        <div class="card-header bg-dark text-white">
+            <h5 class="mb-0">📊 Platform Statistics</h5>
+        </div>
+        <div class="card-body">
+            <div class="row text-center">
+                <div class="col-md-3">
+                    <h3>{{ schools|length }}</h3>
+                    <p class="text-muted">Schools</p>
+                </div>
+                <div class="col-md-3">
+                    <h3>{{ users|length }}</h3>
+                    <p class="text-muted">Total Users</p>
+                </div>
+                <div class="col-md-3">
+                    <h3>{{ teachers_count }}</h3>
+                    <p class="text-muted">Teachers</p>
+                </div>
+                <div class="col-md-3">
+                    <h3>{{ students_count }}</h3>
+                    <p class="text-muted">Students</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <a href="{{ url_for('super_admin_dashboard') }}" class="btn btn-secondary mt-4">← Back to Dashboard</a>
+</div>
+
+<style>
+.admin-container {
+    background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+    min-height: 100vh;
+    padding: 2rem;
+    color: #e0e0e0;
+}
+
+.admin-header {
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #404040;
+}
+
+.admin-title {
+    color: #ffffff;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+
+.admin-subtitle {
+    color: #b0b0b0;
+    margin-bottom: 0;
+}
+
+.card {
+    background: #2a2a2a;
+    border: 1px solid #404040;
+    border-radius: 10px;
+}
+
+.table {
+    color: #e0e0e0;
+}
+
+.table th {
+    border-color: #404040;
+    color: #b0b0b0;
+}
+
+.table td {
+    border-color: #404040;
+}
+
+.badge {
+    font-size: 0.7rem;
+}
+</style>
+{% endblock %}

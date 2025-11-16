@@ -192,8 +192,9 @@ def setup_database():
         return f"❌ Database error: {str(e)}"
 
 @app.route('/debug-data')
+@super_admin_required
 def debug_data():
-    """See all current data"""
+    """Styled system debug page"""
     supabase = get_supabase()
     if not supabase:
         return "No database connection"
@@ -202,13 +203,15 @@ def debug_data():
         schools = supabase.table('schools').select('*').execute()
         users = supabase.table('users').select('username, role, school_id, is_admin, approval_status').execute()
         
-        return f"""
-        <h3>Current Database Data</h3>
-        <h4>Schools ({len(schools.data) if schools.data else 0}):</h4>
-        <pre>{schools.data}</pre>
-        <h4>Users ({len(users.data) if users.data else 0}):</h4> 
-        <pre>{users.data}</pre>
-        """
+        # Calculate counts
+        teachers_count = len([u for u in (users.data or []) if u.get('role') == 'teacher'])
+        students_count = len([u for u in (users.data or []) if u.get('role') == 'student'])
+        
+        return render_template('debug_data.html',
+                             schools=schools.data if schools.data else [],
+                             users=users.data if users.data else [],
+                             teachers_count=teachers_count,
+                             students_count=students_count)
     except Exception as e:
         return f"Error: {str(e)}"
 
@@ -1554,7 +1557,7 @@ def school_register():
                 'password_hash': generate_password_hash(admin_password),
                 'email': admin_email,
                 'role': 'teacher',
-                'approval_status': 'pending',
+                'approval_status': 'approved',
                 'school_id': school_id,
                 'is_admin': True,
                 'created_at': datetime.now().isoformat()
@@ -1896,58 +1899,69 @@ def super_admin_users():
     return "Platform Users Management - Coming Soon"
 
 @app.route('/super/admin/analytics')
-@super_admin_required  
+@super_admin_required
 def super_admin_analytics():
-    """Placeholder - Platform analytics"""
-    return "Platform Analytics - Coming Soon"
-
-@app.route('/super/admin/approvals')
-@super_admin_required
-def super_admin_approvals():
-    """Super admin view of ALL pending users across all schools"""
+    """Platform-wide analytics for super admin"""
     supabase = get_supabase()
     if not supabase:
         flash('Database connection error.', 'danger')
         return redirect(url_for('super_admin_dashboard'))
     
     try:
-        # Get ALL pending users from ALL schools
-        pending_users = supabase.table('users').select('*, schools(name)').eq('approval_status', 'pending').execute()
+        # Platform statistics
+        schools = supabase.table('schools').select('*').execute()
+        users = supabase.table('users').select('*').execute()
+        prompts = supabase.table('prompts').select('*').execute()
+        submissions = supabase.table('submissions').select('*').execute()
         
-        # Get ALL users for reference
-        all_users = supabase.table('users').select('*, schools(name)').order('created_at', desc=True).execute()
+        # Calculate platform stats
+        active_schools = [s for s in schools.data if s.get('status') == 'active'] if schools.data else []
+        pending_schools = [s for s in schools.data if s.get('status') == 'pending'] if schools.data else []
         
-        return render_template('super_admin_approvals.html',
-                             pending_users=pending_users.data if pending_users.data else [],
-                             all_users=all_users.data if all_users.data else [])
+        teachers = [u for u in users.data if u.get('role') == 'teacher'] if users.data else []
+        students = [u for u in users.data if u.get('role') == 'student'] if users.data else []
+        
+        stats = {
+            'total_schools': len(schools.data) if schools.data else 0,
+            'active_schools': len(active_schools),
+            'pending_schools': len(pending_schools),
+            'total_users': len(users.data) if users.data else 0,
+            'teachers': len(teachers),
+            'students': len(students),
+            'total_prompts': len(prompts.data) if prompts.data else 0,
+            'total_submissions': len(submissions.data) if submissions.data else 0,
+        }
+        
+        return render_template('super_admin_analytics.html', stats=stats)
+        
     except Exception as e:
-        logger.error(f"Super admin approvals error: {e}")
-        flash('Error loading user approvals.', 'danger')
+        logger.error(f"Super admin analytics error: {e}")
+        flash('Error loading analytics.', 'danger')
         return redirect(url_for('super_admin_dashboard'))
-
-# Also update the approve_user route to work for super admin
-@app.route('/super/admin/approve_user/<username>', methods=['POST'])
-@super_admin_required
-def super_approve_user(username):
-    """Super admin approval for any user"""
+    
+@app.route('/fix-admin-roles')
+def fix_admin_roles():
+    """Fix the admin role assignments"""
     supabase = get_supabase()
     if not supabase:
-        flash('Database connection error.', 'danger')
-        return redirect(url_for('super_admin_approvals'))
+        return "Database connection failed"
     
     try:
-        # Update user approval status to 'approved'
-        result = supabase.table('users').update({'approval_status': 'approved'}).eq('username', username).execute()
+        # Make newel_teacher the school admin
+        result1 = supabase.table('users').update({'is_admin': True}).eq('username', 'newel_teacher').execute()
         
-        if result.data:
-            flash(f'✅ User {username} has been approved successfully!', 'success')
-        else:
-            flash('User not found.', 'warning')
+        # Ensure sirius has no school_id
+        result2 = supabase.table('users').update({'school_id': None}).eq('username', 'sirius').execute()
+        
+        return """
+        <h3>✅ Admin Roles Fixed!</h3>
+        <p><strong>newel_teacher</strong> is now school admin</p>
+        <p><strong>sirius</strong> is properly detached from schools</p>
+        <a href="/debug-data" class="btn btn-primary">Check Database</a>
+        """
     except Exception as e:
-        logger.error(f"Super approve user error: {e}")
-        flash('Error approving user.', 'danger')
-    
-    return redirect(url_for('super_admin_approvals'))
+        return f"Error: {str(e)}"
+
 
 if __name__ == '__main__':
     app.run(debug=True)

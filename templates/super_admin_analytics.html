@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="admin-container">
+    <div class="admin-header">
+        <h1 class="admin-title">📊 Platform Analytics</h1>
+        <p class="admin-subtitle">Overall Platform Performance & Usage</p>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="stat-icon bg-primary">🏫</div>
+                <div class="stat-info">
+                    <h3>{{ stats.total_schools }}</h3>
+                    <p>Total Schools</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="stat-icon bg-success">👥</div>
+                <div class="stat-info">
+                    <h3>{{ stats.total_users }}</h3>
+                    <p>Total Users</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="stat-icon bg-info">👨‍🏫</div>
+                <div class="stat-info">
+                    <h3>{{ stats.teachers }}</h3>
+                    <p>Teachers</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="stat-icon bg-warning">👨‍🎓</div>
+                <div class="stat-info">
+                    <h3>{{ stats.students }}</h3>
+                    <p>Students</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Activity Overview -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">📈 Platform Overview</h5>
+        </div>
+        <div class="card-body">
+            <div class="row text-center">
+                <div class="col-md-4">
+                    <div class="platform-stat">
+                        <h4>{{ stats.active_schools }}</h4>
+                        <p>Active Schools</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="platform-stat">
+                        <h4>{{ stats.total_prompts }}</h4>
+                        <p>Total Prompts</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="platform-stat">
+                        <h4>{{ stats.total_submissions }}</h4>
+                        <p>Submissions</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="alert alert-info mt-4">
+        <h6>🚀 Analytics Dashboard Coming Soon</h6>
+        <p class="mb-0">Advanced analytics including growth trends, usage patterns, and performance metrics will be available in the next update.</p>
+    </div>
+
+    <a href="{{ url_for('super_admin_dashboard') }}" class="btn btn-secondary mt-3">← Back to Dashboard</a>
+</div>
+
+<style>
+.platform-stat h4 {
+    color: #ffffff;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+
+.platform-stat p {
+    color: #b0b0b0;
+    margin-bottom: 0;
+}
+
+.alert {
+    background: rgba(102, 126, 234, 0.1);
+    border: 1px solid rgba(102, 126, 234, 0.2);
+    color: #e0e0e0;
+}
+</style>
+{% endblock %}
