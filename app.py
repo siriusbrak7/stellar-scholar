@@ -93,18 +93,22 @@ def school_admin_required(f):
 
 # ===== NEW DECORATORS =====
 def school_admin_required(f):
-    """For school-level admins only (teachers with admin permissions)"""
+    """For school-level admins - ALLOWS sirius with school context"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if 'user_id' not in session:
             flash('Please log in first.', 'warning')
             return redirect(url_for('login'))
         
-        # Super admin should not access school admin routes
+        # ALLOW sirius to access school admin features when he has a school context
         if session['user_id'] == 'sirius':
-            flash('Super admin cannot access school admin features.', 'danger')
-            return redirect(url_for('super_admin_dashboard'))
+            # Only allow if sirius has selected a school
+            if not session.get('current_school_id'):
+                flash('Please select a school first using the school switcher.', 'warning')
+                return redirect(url_for('super_admin_dashboard'))
+            return f(*args, **kwargs)
         
+        # Regular school admin check for other users
         supabase = get_supabase()
         if not supabase:
             flash('Database connection error.', 'danger')
@@ -114,7 +118,6 @@ def school_admin_required(f):
             user_response = supabase.table('users').select('*').eq('username', session['user_id']).execute()
             user = user_response.data[0] if user_response.data else None
             
-            # UPDATED: Check teacher_permissions instead of just is_admin
             if not user or user['role'] != 'teacher' or user.get('teacher_permissions') != 'admin':
                 flash('School admin access required.', 'danger')
                 return redirect(url_for('teacher_dashboard'))
@@ -157,16 +160,20 @@ def student_required(f):
     return decorated_function
 
 def teacher_required(f):
-    """Enhanced to ensure school scoping - INCLUDES sirius"""
+    """Enhanced to ensure school scoping - ALLOWS sirius with school context"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if 'user_id' not in session:
             return redirect(url_for('login'))
         
-        # Allow sirius to access teacher features
+        # ALLOW sirius to access teacher features when he has a school context
         if session['user_id'] == 'sirius':
+            if not session.get('current_school_id'):
+                flash('Please select a school first using the school switcher.', 'warning')
+                return redirect(url_for('super_admin_dashboard'))
             return f(*args, **kwargs)
         
+        # Regular teacher check for other users
         supabase = get_supabase()
         if not supabase:
             flash('Database connection error.', 'danger')
@@ -2716,7 +2723,9 @@ def switch_school(school_id):
     """Allow sirius to switch between school contexts"""
     if school_id == 'none':
         session.pop('current_school_id', None)
+        session.pop('current_teacher_id', None)
         flash('Switched to platform admin view.', 'info')
+        return redirect(url_for('super_admin_dashboard'))
     else:
         # Verify school exists
         supabase = get_supabase()
@@ -2724,11 +2733,14 @@ def switch_school(school_id):
             school_response = supabase.table('schools').select('name').eq('id', school_id).execute()
             if school_response.data:
                 session['current_school_id'] = school_id
+                session.pop('current_teacher_id', None)  # Clear teacher context
                 flash(f'Switched to {school_response.data[0]["name"]} view.', 'info')
+                # REDIRECT TO SCHOOL DASHBOARD instead of referrer
+                return redirect(url_for('school_admin_dashboard'))
             else:
                 flash('School not found.', 'danger')
-    
-    return redirect(request.referrer or url_for('index'))
+        
+        return redirect(url_for('super_admin_dashboard'))
 
 @app.route('/switch-teacher/<teacher_id>')
 @login_required
