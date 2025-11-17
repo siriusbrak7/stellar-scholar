@@ -533,192 +533,257 @@ footer {
 .border-cosmic-yellow { border-color: var(--primary-yellow) !important; }
 
 /* ===== THEME SYSTEM ===== */
-:root {
-  /* Cosmic Theme (Default) */
-  --cosmic-bg-primary: linear-gradient(135deg, #0a0e27 0%, #16213e 50%, #1a1a2e 100%);
-  --cosmic-bg-secondary: rgba(255, 255, 255, 0.08);
-  --cosmic-text-primary: #ffffff;
-  --cosmic-text-secondary: #b0b8c9;
-  --cosmic-accent: #FFD700;
-  --cosmic-accent-secondary: #32CD32;
-  --cosmic-border: rgba(255, 255, 255, 0.15);
-  --cosmic-card-bg: rgba(255, 255, 255, 0.08);
-  --cosmic-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-}
 
+/* ===== DYSTOPIAN THEME ===== */
 [data-theme="dystopian"] {
-  /* Dystopian Theme */
-  --bg-primary: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #2a2a2a 100%);
-  --bg-secondary: rgba(0, 255, 255, 0.05);
-  --text-primary: #00ff00;
-  --text-secondary: #00ffff;
-  --accent: #ff00ff;
-  --accent-secondary: #ffff00;
-  --border: rgba(0, 255, 255, 0.3);
-  --card-bg: rgba(0, 0, 0, 0.7);
-  --shadow: 0 0 20px rgba(0, 255, 255, 0.2);
-  --neon-glow: 0 0 10px currentColor;
-}
-
-[data-theme="classic"] {
-  /* Classic Theme */
-  --bg-primary: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 50%, #dee2e6 100%);
-  --bg-secondary: rgba(255, 255, 255, 0.9);
-  --text-primary: #212529;
-  --text-secondary: #6c757d;
-  --accent: #007bff;
-  --accent-secondary: #28a745;
-  --border: rgba(0, 0, 0, 0.125);
-  --card-bg: #ffffff;
-  --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  --neon-glow: none;
-}
-
-/* Base Theme Variables (Fallback to Cosmic) */
-body {
-  --current-bg-primary: var(--cosmic-bg-primary, var(--bg-primary));
-  --current-bg-secondary: var(--cosmic-bg-secondary, var(--bg-secondary));
-  --current-text-primary: var(--cosmic-text-primary, var(--text-primary));
-  --current-text-secondary: var(--cosmic-text-secondary, var(--text-secondary));
-  --current-accent: var(--cosmic-accent, var(--accent));
-  --current-accent-secondary: var(--cosmic-accent-secondary, var(--accent-secondary));
-  --current-border: var(--cosmic-border, var(--border));
-  --current-card-bg: var(--cosmic-card-bg, var(--card-bg));
-  --current-shadow: var(--cosmic-shadow, var(--shadow));
-  --current-neon-glow: var(--neon-glow, none);
-}
-
-/* Apply Theme to Body */
-body {
-  background: var(--current-bg-primary);
-  color: var(--current-text-primary);
-  transition: all 0.3s ease;
-}
-
-/* ===== DYSTOPIAN THEME SPECIFIC STYLES ===== */
-[data-theme="dystopian"] {
-  /* Cyberpunk Typography */
-  font-family: 'Courier New', monospace;
+    /* Dystopian Theme - Cyberpunk Style */
+    background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #2d1a36 100%) !important;
+    color: #00ff00 !important;
+    font-family: 'Courier New', 'SF Mono', monospace;
 }
 
 [data-theme="dystopian"] .navbar {
-  background: rgba(0, 0, 0, 0.9) !important;
-  border-bottom: 1px solid var(--current-border);
-  box-shadow: var(--current-shadow);
+    background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%) !important;
+    border-bottom: 2px solid #ff00ff !important;
+    box-shadow: 0 0 15px rgba(255, 0, 255, 0.3) !important;
 }
 
 [data-theme="dystopian"] .navbar-brand {
-  color: var(--current-accent) !important;
-  text-shadow: var(--current-neon-glow);
-  font-weight: bold;
-  letter-spacing: 2px;
+    color: #00ffff !important;
+    text-shadow: 0 0 10px rgba(0, 255, 255, 0.7) !important;
+    font-weight: bold;
+    letter-spacing: 1px;
 }
 
 [data-theme="dystopian"] .nav-link {
-  color: var(--current-text-secondary) !important;
-  transition: all 0.3s ease;
+    color: #00ff00 !important;
+    text-shadow: 0 0 5px rgba(0, 255, 0, 0.5) !important;
+    transition: all 0.3s ease !important;
 }
 
 [data-theme="dystopian"] .nav-link:hover {
-  color: var(--current-accent) !important;
-  text-shadow: var(--current-neon-glow);
+    color: #ffff00 !important;
+    text-shadow: 0 0 10px rgba(255, 255, 0, 0.7) !important;
 }
 
 [data-theme="dystopian"] .card {
-  background: var(--current-card-bg);
-  border: 1px solid var(--current-border);
-  border-radius: 0;
-  box-shadow: var(--current-shadow);
-  backdrop-filter: blur(10px);
+    background: rgba(0, 0, 0, 0.8) !important;
+    border: 1px solid #ff00ff !important;
+    border-radius: 4px !important;
+    box-shadow: 0 0 20px rgba(255, 0, 255, 0.2) !important;
+    color: #00ff00 !important;
+    backdrop-filter: blur(10px);
 }
 
 [data-theme="dystopian"] .card-header {
-  background: rgba(0, 0, 0, 0.8) !important;
-  border-bottom: 1px solid var(--current-border);
-  color: var(--current-accent);
-  text-shadow: var(--current-neon-glow);
-  font-weight: bold;
+    background: linear-gradient(135deg, rgba(255, 0, 255, 0.3), rgba(0, 255, 255, 0.3)) !important;
+    color: #ffff00 !important;
+    text-shadow: 0 0 8px rgba(255, 255, 0, 0.5) !important;
+    border-bottom: 1px solid #ff00ff !important;
+    font-weight: bold;
+}
+
+[data-theme="dystopian"] .card-body {
+    color: #00ff00 !important;
 }
 
 [data-theme="dystopian"] .btn-primary {
-  background: linear-gradient(45deg, #ff00ff, #00ffff);
-  border: none;
-  color: #000;
-  font-weight: bold;
-  text-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
-  transition: all 0.3s ease;
+    background: linear-gradient(45deg, #ff00ff, #00ffff) !important;
+    border: none !important;
+    color: #000 !important;
+    font-weight: bold;
+    text-shadow: 0 0 5px rgba(0, 0, 0, 0.5) !important;
+    box-shadow: 0 0 15px rgba(255, 0, 255, 0.4) !important;
 }
 
 [data-theme="dystopian"] .btn-primary:hover {
-  background: linear-gradient(45deg, #00ffff, #ff00ff);
-  box-shadow: 0 0 20px rgba(255, 0, 255, 0.5);
+    background: linear-gradient(45deg, #00ffff, #ff00ff) !important;
+    box-shadow: 0 0 25px rgba(0, 255, 255, 0.6) !important;
+    transform: translateY(-2px) !important;
 }
 
 [data-theme="dystopian"] .table {
-  color: var(--current-text-primary);
-  border-color: var(--current-border);
+    background: rgba(0, 0, 0, 0.8) !important;
+    color: #00ff00 !important;
+    border: 1px solid #ff00ff !important;
+}
+
+[data-theme="dystopian"] .table th {
+    background: linear-gradient(135deg, rgba(255, 0, 255, 0.4), rgba(0, 255, 255, 0.4)) !important;
+    color: #ffff00 !important;
+    text-shadow: 0 0 5px rgba(255, 255, 0, 0.5) !important;
 }
 
 [data-theme="dystopian"] .table-hover tbody tr:hover {
-  background: rgba(0, 255, 255, 0.1);
-  color: var(--current-accent);
+    background: rgba(0, 255, 255, 0.1) !important;
+    color: #ffff00 !important;
 }
 
 [data-theme="dystopian"] .badge {
-  border: 1px solid var(--current-border);
-  text-shadow: var(--current-neon-glow);
+    border: 1px solid #00ffff !important;
+    text-shadow: 0 0 5px currentColor !important;
 }
 
-/* ===== CLASSIC THEME SPECIFIC STYLES ===== */
+[data-theme="dystopian"] .form-control {
+    background: rgba(0, 0, 0, 0.7) !important;
+    border: 1px solid #00ff00 !important;
+    color: #00ff00 !important;
+    border-radius: 0 !important;
+}
+
+[data-theme="dystopian"] .form-control:focus {
+    border-color: #ff00ff !important;
+    box-shadow: 0 0 10px rgba(255, 0, 255, 0.3) !important;
+}
+
+[data-theme="dystopian"] .alert {
+    border: 1px solid #ff00ff !important;
+    background: rgba(0, 0, 0, 0.9) !important;
+    color: #00ff00 !important;
+    text-shadow: 0 0 5px rgba(0, 255, 0, 0.3) !important;
+}
+
+/* ===== CLASSIC THEME - STUDENT FRIENDLY ===== */
 [data-theme="classic"] {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    /* Classic Theme - Clean & Professional */
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    color: #2d3748 !important;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
 [data-theme="classic"] .navbar {
-  background: linear-gradient(135deg, #007bff 0%, #0056b3 100%) !important;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%) !important;
+    border-bottom: 3px solid #e53e3e !important;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1) !important;
+}
+
+[data-theme="classic"] .navbar-brand {
+    color: #ffffff !important;
+    font-weight: 600;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3) !important;
+}
+
+[data-theme="classic"] .nav-link {
+    color: #e2e8f0 !important;
+    font-weight: 500;
+    transition: all 0.3s ease !important;
+}
+
+[data-theme="classic"] .nav-link:hover {
+    color: #ffffff !important;
+    background: rgba(255, 255, 255, 0.1) !important;
+    border-radius: 4px;
 }
 
 [data-theme="classic"] .card {
-  background: var(--current-card-bg);
-  border: 1px solid var(--current-border);
-  border-radius: 8px;
-  box-shadow: var(--current-shadow);
+    background: rgba(255, 255, 255, 0.95) !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 12px !important;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1) !important;
+    color: #2d3748 !important;
+    transition: all 0.3s ease !important;
+}
+
+[data-theme="classic"] .card:hover {
+    transform: translateY(-3px) !important;
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.15) !important;
 }
 
 [data-theme="classic"] .card-header {
-  background: linear-gradient(135deg, var(--current-accent), var(--current-accent-secondary)) !important;
-  color: white;
-  font-weight: 600;
-  border-radius: 8px 8px 0 0 !important;
+    background: linear-gradient(135deg, #4299e1, #667eea) !important;
+    color: #ffffff !important;
+    border-radius: 12px 12px 0 0 !important;
+    border-bottom: none !important;
+    font-weight: 600;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2) !important;
+}
+
+[data-theme="classic"] .card-body {
+    color: #4a5568 !important;
 }
 
 [data-theme="classic"] .btn-primary {
-  background: linear-gradient(135deg, var(--current-accent), var(--current-accent-secondary));
-  border: none;
-  border-radius: 6px;
-  font-weight: 500;
-  transition: all 0.3s ease;
+    background: linear-gradient(135deg, #48bb78, #4299e1) !important;
+    border: none !important;
+    border-radius: 8px !important;
+    color: #ffffff !important;
+    font-weight: 600;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+    transition: all 0.3s ease !important;
 }
 
 [data-theme="classic"] .btn-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    background: linear-gradient(135deg, #38a169, #3182ce) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2) !important;
 }
 
 [data-theme="classic"] .table {
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: var(--current-shadow);
+    background: #ffffff !important;
+    color: #2d3748 !important;
+    border-radius: 8px !important;
+    overflow: hidden !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
 }
 
 [data-theme="classic"] .table th {
-  background: linear-gradient(135deg, var(--current-accent), var(--current-accent-secondary));
-  color: white;
-  font-weight: 600;
+    background: linear-gradient(135deg, #4299e1, #667eea) !important;
+    color: #ffffff !important;
+    font-weight: 600;
+    border: none !important;
+}
+
+[data-theme="classic"] .table td {
+    border-color: #e2e8f0 !important;
+    background: #ffffff !important;
+}
+
+[data-theme="classic"] .table-hover tbody tr:hover {
+    background: #f7fafc !important;
+    transform: scale(1.01) !important;
+}
+
+[data-theme="classic"] .badge {
+    border-radius: 12px !important;
+    font-weight: 500;
+}
+
+[data-theme="classic"] .form-control {
+    background: #ffffff !important;
+    border: 2px solid #e2e8f0 !important;
+    color: #2d3748 !important;
+    border-radius: 8px !important;
+    transition: all 0.3s ease !important;
+}
+
+[data-theme="classic"] .form-control:focus {
+    border-color: #4299e1 !important;
+    box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1) !important;
+}
+
+[data-theme="classic"] .alert {
+    border-radius: 8px !important;
+    border: none !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+}
+
+[data-theme="classic"] .alert-success {
+    background: linear-gradient(135deg, #48bb78, #38a169) !important;
+    color: #ffffff !important;
+}
+
+[data-theme="classic"] .alert-warning {
+    background: linear-gradient(135deg, #ed8936, #dd6b20) !important;
+    color: #ffffff !important;
+}
+
+[data-theme="classic"] footer {
+    background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%) !important;
+    color: #e2e8f0 !important;
+    border-top: 3px solid #4299e1 !important;
 }
 
 /* Theme transition animations */
-.card, .btn, .navbar, .table {
-  transition: all 0.3s ease;
+.card, .btn, .navbar, .table, .form-control, .alert {
+    transition: all 0.3s ease !important;
 }
