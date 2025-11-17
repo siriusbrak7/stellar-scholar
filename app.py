@@ -3198,9 +3198,9 @@ def update_theme():
         logger.error(f"Theme update error: {e}")
         return jsonify({'success': False, 'error': str(e)})
 
-@app.route('/update-theme', methods=['POST'])
+@app.route('/update-user-theme', methods=['POST'])
 @login_required
-def update_theme():
+def update_user_theme():
     """Update user's theme preference"""
     supabase = get_supabase()
     if not supabase:

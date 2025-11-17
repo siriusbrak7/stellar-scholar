@@ -320,7 +320,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Save to server if user is logged in
         if ({{ 'true' if session.user_id else 'false' }}) {
-            fetch('/update-theme', {
+            fetch('/update-user-theme', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({theme: theme})
