@@ -1454,12 +1454,25 @@ def leaderboard():
         # Get grade filter from query parameter
         grade_filter = request.args.get('grade', 'all')
         
-        # Get all users
-        users_response = supabase.table('users').select('*').execute()
+        # SCHOOL FILTER FOR SUPER ADMIN
+        school_filter = request.args.get('school', 'all')
+        if session.get('user_id') == 'sirius' and session.get('current_school_id'):
+            school_filter = session['current_school_id']
+        
+        # Get all users with school filtering
+        if school_filter != 'all' and school_filter:
+            users_response = supabase.table('users').select('*').eq('school_id', school_filter).execute()
+        else:
+            users_response = supabase.table('users').select('*').execute()
+            
         users_data = {user['username']: user for user in users_response.data} if users_response.data else {}
         
-        # Get all prompts
-        prompts_response = supabase.table('prompts').select('*').execute()
+        # Get all prompts with school filtering
+        if school_filter != 'all' and school_filter:
+            prompts_response = supabase.table('prompts').select('*').eq('school_id', school_filter).execute()
+        else:
+            prompts_response = supabase.table('prompts').select('*').execute()
+            
         prompts_data = prompts_response.data if prompts_response.data else []
         
         # Get all submissions with grades
@@ -1473,8 +1486,12 @@ def leaderboard():
             if user_data['role'] == 'student':
                 student_grade = user_data['grade']
                 
-                # Get all prompts for this student's grade level
-                grade_prompts = [p for p in prompts_data if p['grade_level'] == student_grade]
+                # Get all prompts for this student's grade level and school
+                if school_filter != 'all' and school_filter:
+                    grade_prompts = [p for p in prompts_data if p['grade_level'] == student_grade and p['school_id'] == school_filter]
+                else:
+                    grade_prompts = [p for p in prompts_data if p['grade_level'] == student_grade]
+                    
                 total_prompts = len(grade_prompts)
                 
                 if total_prompts > 0:
@@ -1484,6 +1501,7 @@ def leaderboard():
                         'possible_grades': [],  # Including zeros for missing submissions
                         'username': student_username,
                         'grade_level': student_grade,
+                        'school_id': user_data.get('school_id'),
                         'total_prompts': total_prompts,
                         'submitted_prompts': 0
                     }
@@ -1514,6 +1532,7 @@ def leaderboard():
                 leaderboard_data.append({
                     'username': data['username'],
                     'grade_level': data['grade_level'],
+                    'school_id': data['school_id'],
                     'avg_score': round(fair_avg_score, 2),
                     'num_submissions': data['submitted_prompts'],
                     'total_prompts': data['total_prompts'],
@@ -1523,6 +1542,10 @@ def leaderboard():
         # Apply grade filter if specified
         if grade_filter != 'all':
             leaderboard_data = [s for s in leaderboard_data if s['grade_level'] == grade_filter]
+        
+        # Apply school filter for display
+        if school_filter != 'all' and school_filter:
+            leaderboard_data = [s for s in leaderboard_data if s['school_id'] == school_filter]
         
         # Sort by average score (descending)
         leaderboard_data.sort(key=lambda x: x['avg_score'], reverse=True)
@@ -1534,10 +1557,18 @@ def leaderboard():
         # Get unique grades for filter buttons
         unique_grades = sorted(list(set([s['grade_level'] for s in leaderboard_data])))
         
+        # Get schools for super admin filter
+        available_schools = []
+        if session.get('user_id') == 'sirius':
+            schools_response = supabase.table('schools').select('*').order('name').execute()
+            available_schools = schools_response.data if schools_response.data else []
+        
         return render_template('leaderboard.html', 
                              leaderboard=leaderboard_data,
                              current_grade_filter=grade_filter,
-                             available_grades=unique_grades)
+                             current_school_filter=school_filter,
+                             available_grades=unique_grades,
+                             available_schools=available_schools)
         
     except Exception as e:
         logger.error(f"Leaderboard error: {e}")
@@ -1884,15 +1915,15 @@ def super_admin_schools():
         schools_response = supabase.table('schools').select('*').order('created_at', desc=True).execute()
         schools = schools_response.data if schools_response.data else []
         
-        # Get user counts for each school
+        # Get user counts for each school - FIXED: use username instead of id
         schools_with_stats = []
         for school in schools:
-            users_response = supabase.table('users').select('id').eq('school_id', school['id']).execute()
+            users_response = supabase.table('users').select('username').eq('school_id', school['id']).execute()
             user_count = len(users_response.data) if users_response.data else 0
             
-            # Count by role
-            teachers_response = supabase.table('users').select('id').eq('school_id', school['id']).eq('role', 'teacher').execute()
-            students_response = supabase.table('users').select('id').eq('school_id', school['id']).eq('role', 'student').execute()
+            # Count by role - FIXED: use username instead of id
+            teachers_response = supabase.table('users').select('username').eq('school_id', school['id']).eq('role', 'teacher').execute()
+            students_response = supabase.table('users').select('username').eq('school_id', school['id']).eq('role', 'student').execute()
             
             school_with_stats = {
                 **school,

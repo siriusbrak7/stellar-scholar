@@ -19,14 +19,22 @@
                 <textarea id="description" name="description" class="form-control" rows="5" required>{{ prompt.description }}</textarea>
             </div>
 
-            <!-- New Category Dropdown -->
+            <!-- Updated Subject Dropdown (replaces old category field) -->
             <div class="form-group">
-                <label for="category" class="form-label">Subject Category:</label>
-                <select class="form-control" id="category" name="category" required>
-                    <option value="">Select Category</option>
-                    <option value="general" {% if prompt.category == 'general' %}selected{% endif %}>General</option>
-                    <option value="biology" {% if prompt.category == 'biology' %}selected{% endif %}>Biology</option>
-                    <option value="physics" {% if prompt.category == 'physics' %}selected{% endif %}>Physics</option>
+                <label for="subject" class="form-label">Subject</label>
+                <select class="form-control" id="subject" name="subject" required>
+                    <option value="general" {% if prompt.subject == 'general' %}selected{% endif %}>General</option>
+                    <option value="mathematics" {% if prompt.subject == 'mathematics' %}selected{% endif %}>Mathematics</option>
+                    <option value="science" {% if prompt.subject == 'science' %}selected{% endif %}>Science</option>
+                    <option value="english" {% if prompt.subject == 'english' %}selected{% endif %}>English</option>
+                    <option value="history" {% if prompt.subject == 'history' %}selected{% endif %}>History</option>
+                    <option value="geography" {% if prompt.subject == 'geography' %}selected{% endif %}>Geography</option>
+                    <option value="art" {% if prompt.subject == 'art' %}selected{% endif %}>Art</option>
+                    <option value="music" {% if prompt.subject == 'music' %}selected{% endif %}>Music</option>
+                    <option value="physical_education" {% if prompt.subject == 'physical_education' %}selected{% endif %}>Physical Education</option>
+                    <option value="computer_science" {% if prompt.subject == 'computer_science' %}selected{% endif %}>Computer Science</option>
+                    <option value="business" {% if prompt.subject == 'business' %}selected{% endif %}>Business</option>
+                    <option value="economics" {% if prompt.subject == 'economics' %}selected{% endif %}>Economics</option>
                 </select>
             </div>
 
@@ -46,7 +54,7 @@
                 <div class="form-group">
                     <label for="due_date">Due Date (Optional)</label>
                     {% if prompt.due_date %}
-                        <input type="datetime-local" id="due_date" name="due_date" class="form-control" value="{{ prompt.due_date.strftime('%Y-%m-%dT%H:%M') if prompt.due_date else '' }}">
+                        <input type="datetime-local" id="due_date" name="due_date" class="form-control" value="{{ prompt.due_date.strftime('%Y-%m-%dT%H:%M') }}">
                     {% else %}
                         <input type="datetime-local" id="due_date" name="due_date" class="form-control">
                     {% endif %}
