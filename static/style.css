@@ -531,3 +531,194 @@ footer {
 .text-cosmic-green { color: var(--primary-green) !important; }
 .bg-cosmic-dark { background: var(--cosmic-dark) !important; }
 .border-cosmic-yellow { border-color: var(--primary-yellow) !important; }
+
+/* ===== THEME SYSTEM ===== */
+:root {
+  /* Cosmic Theme (Default) */
+  --cosmic-bg-primary: linear-gradient(135deg, #0a0e27 0%, #16213e 50%, #1a1a2e 100%);
+  --cosmic-bg-secondary: rgba(255, 255, 255, 0.08);
+  --cosmic-text-primary: #ffffff;
+  --cosmic-text-secondary: #b0b8c9;
+  --cosmic-accent: #FFD700;
+  --cosmic-accent-secondary: #32CD32;
+  --cosmic-border: rgba(255, 255, 255, 0.15);
+  --cosmic-card-bg: rgba(255, 255, 255, 0.08);
+  --cosmic-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="dystopian"] {
+  /* Dystopian Theme */
+  --bg-primary: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #2a2a2a 100%);
+  --bg-secondary: rgba(0, 255, 255, 0.05);
+  --text-primary: #00ff00;
+  --text-secondary: #00ffff;
+  --accent: #ff00ff;
+  --accent-secondary: #ffff00;
+  --border: rgba(0, 255, 255, 0.3);
+  --card-bg: rgba(0, 0, 0, 0.7);
+  --shadow: 0 0 20px rgba(0, 255, 255, 0.2);
+  --neon-glow: 0 0 10px currentColor;
+}
+
+[data-theme="classic"] {
+  /* Classic Theme */
+  --bg-primary: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 50%, #dee2e6 100%);
+  --bg-secondary: rgba(255, 255, 255, 0.9);
+  --text-primary: #212529;
+  --text-secondary: #6c757d;
+  --accent: #007bff;
+  --accent-secondary: #28a745;
+  --border: rgba(0, 0, 0, 0.125);
+  --card-bg: #ffffff;
+  --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --neon-glow: none;
+}
+
+/* Base Theme Variables (Fallback to Cosmic) */
+body {
+  --current-bg-primary: var(--cosmic-bg-primary, var(--bg-primary));
+  --current-bg-secondary: var(--cosmic-bg-secondary, var(--bg-secondary));
+  --current-text-primary: var(--cosmic-text-primary, var(--text-primary));
+  --current-text-secondary: var(--cosmic-text-secondary, var(--text-secondary));
+  --current-accent: var(--cosmic-accent, var(--accent));
+  --current-accent-secondary: var(--cosmic-accent-secondary, var(--accent-secondary));
+  --current-border: var(--cosmic-border, var(--border));
+  --current-card-bg: var(--cosmic-card-bg, var(--card-bg));
+  --current-shadow: var(--cosmic-shadow, var(--shadow));
+  --current-neon-glow: var(--neon-glow, none);
+}
+
+/* Apply Theme to Body */
+body {
+  background: var(--current-bg-primary);
+  color: var(--current-text-primary);
+  transition: all 0.3s ease;
+}
+
+/* ===== DYSTOPIAN THEME SPECIFIC STYLES ===== */
+[data-theme="dystopian"] {
+  /* Cyberpunk Typography */
+  font-family: 'Courier New', monospace;
+}
+
+[data-theme="dystopian"] .navbar {
+  background: rgba(0, 0, 0, 0.9) !important;
+  border-bottom: 1px solid var(--current-border);
+  box-shadow: var(--current-shadow);
+}
+
+[data-theme="dystopian"] .navbar-brand {
+  color: var(--current-accent) !important;
+  text-shadow: var(--current-neon-glow);
+  font-weight: bold;
+  letter-spacing: 2px;
+}
+
+[data-theme="dystopian"] .nav-link {
+  color: var(--current-text-secondary) !important;
+  transition: all 0.3s ease;
+}
+
+[data-theme="dystopian"] .nav-link:hover {
+  color: var(--current-accent) !important;
+  text-shadow: var(--current-neon-glow);
+}
+
+[data-theme="dystopian"] .card {
+  background: var(--current-card-bg);
+  border: 1px solid var(--current-border);
+  border-radius: 0;
+  box-shadow: var(--current-shadow);
+  backdrop-filter: blur(10px);
+}
+
+[data-theme="dystopian"] .card-header {
+  background: rgba(0, 0, 0, 0.8) !important;
+  border-bottom: 1px solid var(--current-border);
+  color: var(--current-accent);
+  text-shadow: var(--current-neon-glow);
+  font-weight: bold;
+}
+
+[data-theme="dystopian"] .btn-primary {
+  background: linear-gradient(45deg, #ff00ff, #00ffff);
+  border: none;
+  color: #000;
+  font-weight: bold;
+  text-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+  transition: all 0.3s ease;
+}
+
+[data-theme="dystopian"] .btn-primary:hover {
+  background: linear-gradient(45deg, #00ffff, #ff00ff);
+  box-shadow: 0 0 20px rgba(255, 0, 255, 0.5);
+}
+
+[data-theme="dystopian"] .table {
+  color: var(--current-text-primary);
+  border-color: var(--current-border);
+}
+
+[data-theme="dystopian"] .table-hover tbody tr:hover {
+  background: rgba(0, 255, 255, 0.1);
+  color: var(--current-accent);
+}
+
+[data-theme="dystopian"] .badge {
+  border: 1px solid var(--current-border);
+  text-shadow: var(--current-neon-glow);
+}
+
+/* ===== CLASSIC THEME SPECIFIC STYLES ===== */
+[data-theme="classic"] {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+[data-theme="classic"] .navbar {
+  background: linear-gradient(135deg, #007bff 0%, #0056b3 100%) !important;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+[data-theme="classic"] .card {
+  background: var(--current-card-bg);
+  border: 1px solid var(--current-border);
+  border-radius: 8px;
+  box-shadow: var(--current-shadow);
+}
+
+[data-theme="classic"] .card-header {
+  background: linear-gradient(135deg, var(--current-accent), var(--current-accent-secondary)) !important;
+  color: white;
+  font-weight: 600;
+  border-radius: 8px 8px 0 0 !important;
+}
+
+[data-theme="classic"] .btn-primary {
+  background: linear-gradient(135deg, var(--current-accent), var(--current-accent-secondary));
+  border: none;
+  border-radius: 6px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+[data-theme="classic"] .btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+[data-theme="classic"] .table {
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: var(--current-shadow);
+}
+
+[data-theme="classic"] .table th {
+  background: linear-gradient(135deg, var(--current-accent), var(--current-accent-secondary));
+  color: white;
+  font-weight: 600;
+}
+
+/* Theme transition animations */
+.card, .btn, .navbar, .table {
+  transition: all 0.3s ease;
+}
