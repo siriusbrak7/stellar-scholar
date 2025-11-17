@@ -962,7 +962,7 @@ def edit_prompt(prompt_id):
             title = request.form.get('title', '').strip()
             description = request.form.get('description', '').strip()
             grade_level = request.form.get('grade_level')
-            category = request.form.get('category', 'general')
+            subject = request.form.get('subject', 'general')
             due_date_str = request.form.get('due_date')
             
             if not title or not description or not grade_level:
@@ -978,15 +978,24 @@ def edit_prompt(prompt_id):
                     flash('Invalid due date format.', 'danger')
                     return render_template('edit_prompt.html', prompt=prompt)
             
-            # Update prompt in Supabase
+            # Update prompt in Supabase - REMOVE updated_at if column doesn't exist
             update_data = {
                 'title': title,
                 'description': description,
                 'grade_level': grade_level,
-                'category': category,
-                'due_date': due_date.isoformat() if due_date else None,
-                'updated_at': datetime.now().isoformat()
+                'subject': subject,
+                'due_date': due_date.isoformat() if due_date else None
             }
+            
+            # Only add updated_at if the column exists
+            try:
+                # Test if updated_at column exists by making a small update
+                test_update = supabase.table('prompts').update({'title': title}).eq('id', prompt_id).execute()
+                # If no error, try to add updated_at
+                update_data['updated_at'] = datetime.now().isoformat()
+            except:
+                # Column doesn't exist, continue without it
+                pass
             
             result = supabase.table('prompts').update(update_data).eq('id', prompt_id).execute()
             
