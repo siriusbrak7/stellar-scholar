@@ -2081,19 +2081,25 @@ def reject_school(school_id):
 
 @app.route('/super/admin/reject_school/<school_id>', methods=['POST'])
 @super_admin_required
-def super_admin_reject_school(school_id):  # Unique name
-    """Reject a school registration"""
+def super_admin_reject_school(school_id):
+    """Reject a pending school registration"""
     supabase = get_supabase()
     if not supabase:
         flash('Database connection error.', 'danger')
         return redirect(url_for('super_admin_schools'))
     
     try:
-        # Delete school and its admin user
+        # Get school name before deletion
+        school_response = supabase.table('schools').select('name').eq('id', school_id).execute()
+        school_name = school_response.data[0]['name'] if school_response.data else 'Unknown School'
+        
+        # Delete all users in the school first
         supabase.table('users').delete().eq('school_id', school_id).execute()
+        
+        # Delete the school
         supabase.table('schools').delete().eq('id', school_id).execute()
         
-        flash('School registration rejected and removed.', 'success')
+        flash(f'❌ School registration "{school_name}" has been rejected and removed.', 'success')
             
     except Exception as e:
         logger.error(f"Reject school error: {e}")
@@ -2949,6 +2955,54 @@ def school_admin_analytics():
         logger.error(f"School analytics error: {e}")
         flash('Error loading analytics dashboard.', 'danger')
         return redirect(url_for('school_admin_dashboard'))
+
+@app.route('/super/admin/delete_school/<school_id>', methods=['POST'])
+@super_admin_required
+def super_admin_delete_school(school_id):
+    """Delete an active school and all its data"""
+    supabase = get_supabase()
+    if not supabase:
+        flash('Database connection error.', 'danger')
+        return redirect(url_for('super_admin_schools'))
+    
+    try:
+        # Get school name before deletion
+        school_response = supabase.table('schools').select('name').eq('id', school_id).execute()
+        school_name = school_response.data[0]['name'] if school_response.data else 'Unknown School'
+        
+        # Delete all data in this order to respect foreign key constraints:
+        
+        # 1. Delete question responses (if table exists)
+        try:
+            supabase.table('question_responses').delete().eq('prompt_id', school_id).execute()
+        except:
+            pass  # Table might not exist
+        
+        # 2. Delete MCQ questions (if table exists)
+        try:
+            supabase.table('mcq_questions').delete().eq('prompt_id', school_id).execute()
+        except:
+            pass  # Table might not exist
+        
+        # 3. Delete submissions
+        supabase.table('submissions').delete().eq('prompt_id', school_id).execute()
+        
+        # 4. Delete prompts
+        supabase.table('prompts').delete().eq('school_id', school_id).execute()
+        
+        # 5. Delete users
+        supabase.table('users').delete().eq('school_id', school_id).execute()
+        
+        # 6. Finally delete the school
+        supabase.table('schools').delete().eq('id', school_id).execute()
+        
+        flash(f'✅ School "{school_name}" and all its data have been permanently deleted.', 'success')
+            
+    except Exception as e:
+        logger.error(f"Delete school error: {e}")
+        flash('Error deleting school. Please try again.', 'danger')
+    
+    return redirect(url_for('super_admin_schools'))
 
 if __name__ == '__main__':
     app.run(debug=True)

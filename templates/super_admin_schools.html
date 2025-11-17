@@ -98,19 +98,36 @@
                             </td>
                             <td>
                                 <div class="btn-group btn-group-sm">
+
                                     <a href="{{ url_for('super_admin_school_detail', school_id=school.id) }}" 
                                        class="btn btn-outline-primary">
                                         👁️ View
                                     </a>
+
                                     {% if school.status == 'pending' %}
-                                    <form method="POST" action="{{ url_for('approve_school', school_id=school.id) }}" class="d-inline">
-                                        <button type="submit" class="btn btn-success btn-sm">✅ Approve</button>
-                                    </form>
-                                    <form method="POST" action="{{ url_for('super_admin_reject_school', school_id=school.id) }}" class="d-inline">
-                                        <button type="submit" class="btn btn-danger btn-sm" 
-                                                onclick="return confirm('Delete this school?')">❌ Reject</button>
-                                    </form>
+                                        <!-- Approve Button -->
+                                        <form method="POST" action="{{ url_for('approve_school', school_id=school.id) }}" class="d-inline">
+                                            <button type="submit" class="btn btn-success btn-sm">✅ Approve</button>
+                                        </form>
+
+                                        <!-- Updated Reject Button (with stronger warning) -->
+                                        <form method="POST" action="{{ url_for('super_admin_reject_school', school_id=school.id) }}" class="d-inline">
+                                            <button type="submit" class="btn btn-danger btn-sm" 
+                                                    onclick="return confirm('Are you sure you want to reject and delete this school? This will remove all associated users and data.')">
+                                                ❌ Reject
+                                            </button>
+                                        </form>
+
+                                    {% elif school.status == 'active' %}
+                                        <!-- Delete Button for Active Schools -->
+                                        <form method="POST" action="{{ url_for('super_admin_delete_school', school_id=school.id) }}" class="d-inline">
+                                            <button type="submit" class="btn btn-outline-danger btn-sm"
+                                                    onclick="return confirm('⚠️ DANGER: This will permanently delete the school and ALL its data (users, prompts, submissions). This action cannot be undone!')">
+                                                🗑️ Delete
+                                            </button>
+                                        </form>
                                     {% endif %}
+
                                 </div>
                             </td>
                         </tr>
