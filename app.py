@@ -4,6 +4,8 @@ from functools import wraps
 import json
 import os
 from datetime import datetime, timedelta
+
+import supabase
 from config import Config
 from werkzeug.security import generate_password_hash, check_password_hash
 from supabase import create_client, Client
@@ -2537,7 +2539,7 @@ def fix_admin_roles():
 @app.route('/student/assessment/<prompt_id>', methods=['GET', 'POST'])
 @login_required
 def take_assessment(prompt_id):
-    """Student interface for taking assessments"""
+    """Student interface for taking assessments - UPDATED with percentage grading"""
     supabase = get_supabase()
     if not supabase:
         flash('Database connection error.', 'danger')
@@ -2573,7 +2575,6 @@ def take_assessment(prompt_id):
             questions = questions_response.data if questions_response.data else []
 
         if request.method == 'POST':
-            # Handle assessment submission
             written_response = request.form.get('written_response', '').strip()
             
             # Validate written response for written/mixed assessments
@@ -2598,10 +2599,11 @@ def take_assessment(prompt_id):
                 flash('Failed to submit assessment.', 'danger')
                 return render_template('take_assessment.html', prompt=prompt, questions=questions, user=user)
 
-            # Handle MCQ responses
+            # Handle MCQ responses - UPDATED WITH PERCENTAGE GRADING
             if prompt.get('assessment_type') in ['mcq', 'mixed'] and questions:
                 question_responses = []
-                total_score = 0
+                correct_answers = 0
+                total_questions = len(questions)
                 
                 for question in questions:
                     response_key = f"question_{question['id']}"
@@ -2616,8 +2618,8 @@ def take_assessment(prompt_id):
                         if question['question_type'] in ['mcq', 'true_false']:
                             auto_graded = True
                             is_correct = (student_answer == question['correct_answer'])
-                            points_earned = question['points'] if is_correct else 0
-                            total_score += points_earned
+                            if is_correct:
+                                correct_answers += 1
                         
                         response_data = {
                             'id': f"resp_{question['id']}_{session['user_id']}",
@@ -2635,10 +2637,11 @@ def take_assessment(prompt_id):
                 if question_responses:
                     supabase.table('question_responses').insert(question_responses).execute()
                     
-                    # Update submission with auto-graded score for MCQ-only assessments
-                    if prompt.get('assessment_type') == 'mcq' and total_score > 0:
+                    # Calculate percentage score for MCQ-only assessments - UPDATED
+                    if prompt.get('assessment_type') == 'mcq' and total_questions > 0:
+                        percentage_score = (correct_answers / total_questions) * 100
                         supabase.table('submissions').update({
-                            'grade': total_score,
+                            'grade': round(percentage_score, 2),
                             'graded_at': datetime.now().isoformat()
                         }).eq('id', submission_id).execute()
 
