@@ -31,8 +31,10 @@
                     </div>
                     {% endif %}
 
+                    <!-- FORM STARTS -->
                     <form method="POST" id="assessmentForm">
-                        <!-- Written Response Section (for written and mixed assessments) -->
+
+                        <!-- Written Response Section -->
                         {% if prompt.assessment_type in ['written', 'mixed'] %}
                         <div class="mb-4 written-section">
                             <h5>✍️ Written Response</h5>
@@ -133,14 +135,32 @@
                         </div>
                         {% endif %}
 
-                        <div class="d-grid gap-2">
-                            <button type="submit" class="btn btn-success btn-lg">
-                                🚀 Submit Assessment
-                            </button>
-                            <a href="{{ url_for('student_dashboard') }}" class="btn btn-secondary">
-                                ← Back to Dashboard
-                            </a>
+                        <!-- DRAFT CARD (replaces original submit area) -->
+                        <div class="card mt-3">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <small class="text-muted" id="draftStatus">
+                                            💾 Draft: <span id="saveStatus">No unsaved changes</span>
+                                        </small>
+                                    </div>
+                                    <div>
+                                        <button type="button" class="btn btn-outline-secondary btn-sm me-2" onclick="saveDraftManually()">
+                                            💾 Save Draft
+                                        </button>
+
+                                        <button type="button" class="btn btn-outline-warning btn-sm me-2" onclick="clearDraftManually()">
+                                            🗑️ Clear Draft
+                                        </button>
+
+                                        <button type="submit" class="btn btn-success">
+                                            ✅ Submit Assessment
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
+
                     </form>
                 </div>
             </div>
@@ -188,4 +208,99 @@
     border-radius: 8px;
 }
 </style>
+
+<!-- DRAFT SYSTEM SCRIPT -->
+<script>
+let hasUnsavedChanges = false;
+let autoSaveInterval;
+
+document.addEventListener('DOMContentLoaded', function() {
+    const textareas = document.querySelectorAll('textarea');
+    const inputs = document.querySelectorAll('input[type="text"], select');
+    const allInputs = [...textareas, ...inputs];
+
+    allInputs.forEach(input => {
+        input.addEventListener('input', function() {
+            hasUnsavedChanges = true;
+            document.getElementById('saveStatus').innerText = "Unsaved changes";
+        });
+    });
+
+    autoSaveInterval = setInterval(saveDraft, 30000);
+    window.addEventListener('beforeunload', function(e) {
+        if (hasUnsavedChanges) {
+            e.preventDefault();
+            e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
+        }
+    });
+
+    loadDraft();
+});
+
+function saveDraft() {
+    if (!hasUnsavedChanges) return;
+
+    const formData = new FormData(document.getElementById('assessmentForm'));
+    const draftData = {};
+
+    for (let [key, value] of formData.entries()) {
+        draftData[key] = value;
+    }
+
+    localStorage.setItem('assessment_draft_{{ prompt.id }}', JSON.stringify(draftData));
+    document.getElementById('saveStatus').innerText = "Draft auto-saved";
+    hasUnsavedChanges = false;
+}
+
+function loadDraft() {
+    const draft = localStorage.getItem('assessment_draft_{{ prompt.id }}');
+    if (draft) {
+        if (confirm('You have a saved draft for this assessment. Would you like to load it?')) {
+            const draftData = JSON.parse(draft);
+            for (let [key, value] of Object.entries(draftData)) {
+                const element = document.querySelector(`[name="${key}"]`);
+                if (element) element.value = value;
+            }
+            hasUnsavedChanges = false;
+        }
+    }
+}
+
+function clearDraft() {
+    localStorage.removeItem('assessment_draft_{{ prompt.id }}');
+    hasUnsavedChanges = false;
+    document.getElementById('saveStatus').innerText = "Draft cleared";
+}
+
+function confirmSubmission() {
+    if (hasUnsavedChanges) {
+        return confirm('⚠️ You have unsaved changes. Submit anyway?');
+    }
+    return confirm('Are you sure you want to submit this assessment?');
+}
+
+document.getElementById('assessmentForm').addEventListener('submit', function(e) {
+    if (!confirmSubmission()) {
+        e.preventDefault();
+        return false;
+    }
+
+    clearDraft();
+    clearInterval(autoSaveInterval);
+    return true;
+});
+
+function saveDraftManually() {
+    saveDraft();
+    alert('Draft saved successfully!');
+}
+
+function clearDraftManually() {
+    if (confirm('Are you sure you want to clear your draft? This cannot be undone.')) {
+        clearDraft();
+        document.getElementById('assessmentForm').reset();
+        alert('Draft cleared!');
+    }
+}
+</script>
 {% endblock %}
