@@ -206,7 +206,7 @@ def login_required(f):
 
 @app.context_processor
 def inject_user_info():
-    """Enhanced context processor with school and teacher switching"""
+    """Enhanced context processor with school, teacher, and theme switching"""
     context = {
         'is_school_admin': False, 
         'user_school_id': None,
@@ -217,14 +217,15 @@ def inject_user_info():
         'current_school_name': None,
         'available_teachers': [],
         'current_teacher_id': None,
-        'current_teacher_name': None
+        'current_teacher_name': None,
+        'user_preferred_theme': 'cosmic'  # Default theme
     }
     
     if 'user_id' in session:
         supabase = get_supabase()
         if supabase:
             try:
-                user_response = supabase.table('users').select('is_admin, school_id, teacher_permissions').eq('username', session['user_id']).execute()
+                user_response = supabase.table('users').select('is_admin, school_id, teacher_permissions, preferred_theme').eq('username', session['user_id']).execute()
                 user = user_response.data[0] if user_response.data else None
                 if user:
                     is_school_admin = user.get('is_admin', False) and session.get('role') == 'teacher'
@@ -234,7 +235,8 @@ def inject_user_info():
                         'is_school_admin': is_school_admin,
                         'user_school_id': user.get('school_id'),
                         'teacher_permissions': teacher_permissions,
-                        'is_classroom_teacher': teacher_permissions == 'classroom'
+                        'is_classroom_teacher': teacher_permissions == 'classroom',
+                        'user_preferred_theme': user.get('preferred_theme', 'cosmic')
                     })
                     
                     # SCHOOL SWITCHER FOR SIRIUS
@@ -3171,6 +3173,58 @@ def create_classroom():
         flash('Error creating classroom.', 'danger')
     
     return redirect(url_for('manage_classrooms'))
+
+@app.route('/update-theme', methods=['POST'])
+@login_required
+def update_theme():
+    """Update user's theme preference"""
+    supabase = get_supabase()
+    if not supabase:
+        return jsonify({'success': False, 'error': 'Database connection failed'})
+    
+    try:
+        data = request.get_json()
+        theme = data.get('theme', 'cosmic')
+        
+        # Update user's theme preference
+        result = supabase.table('users').update({'preferred_theme': theme}).eq('username', session['user_id']).execute()
+        
+        if result.data:
+            return jsonify({'success': True, 'theme': theme})
+        else:
+            return jsonify({'success': False, 'error': 'Update failed'})
+            
+    except Exception as e:
+        logger.error(f"Theme update error: {e}")
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/update-theme', methods=['POST'])
+@login_required
+def update_theme():
+    """Update user's theme preference"""
+    supabase = get_supabase()
+    if not supabase:
+        return jsonify({'success': False, 'error': 'Database connection failed'})
+    
+    try:
+        data = request.get_json()
+        theme = data.get('theme', 'cosmic')
+        
+        # Validate theme
+        if theme not in ['cosmic', 'dystopian', 'classic']:
+            theme = 'cosmic'
+        
+        # Update user's theme preference
+        result = supabase.table('users').update({'preferred_theme': theme}).eq('username', session['user_id']).execute()
+        
+        if result.data:
+            return jsonify({'success': True, 'theme': theme})
+        else:
+            return jsonify({'success': False, 'error': 'Update failed'})
+            
+    except Exception as e:
+        logger.error(f"Theme update error: {e}")
+        return jsonify({'success': False, 'error': str(e)})
 
 if __name__ == '__main__':
     app.run(debug=True)
