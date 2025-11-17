@@ -3004,5 +3004,161 @@ def super_admin_delete_school(school_id):
     
     return redirect(url_for('super_admin_schools'))
 
+@app.route('/migrate-classrooms')
+@super_admin_required
+def migrate_classrooms():
+    """Add classrooms table to database"""
+    supabase = get_supabase()
+    if not supabase:
+        return "Database connection failed"
+    
+    try:
+        # Check if classrooms table exists
+        test_classroom = supabase.table('classrooms').select('id').limit(1).execute()
+        
+        if test_classroom.data is not None:  # Table exists
+            return """
+            <h3>✅ Classrooms Table Already Exists</h3>
+            <p>The classrooms table is ready for use.</p>
+            <a href="/debug-data" class="btn btn-primary">Check Database</a>
+            """
+        
+        # Table doesn't exist - provide SQL
+        return """
+        <h3>📋 Classroom Management Setup Required</h3>
+        <p>You need to create the classrooms table in Supabase.</p>
+        
+        <p>Go to <strong>Supabase → SQL Editor</strong> and run this SQL:</p>
+        
+        <pre>
+-- Create classrooms table
+CREATE TABLE IF NOT EXISTS classrooms (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    school_id TEXT NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+    grade_level TEXT,
+    subject TEXT,
+    teacher_id TEXT REFERENCES users(username),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Create classroom_students junction table
+CREATE TABLE IF NOT EXISTS classroom_students (
+    id TEXT PRIMARY KEY,
+    classroom_id TEXT NOT NULL REFERENCES classrooms(id) ON DELETE CASCADE,
+    student_id TEXT NOT NULL REFERENCES users(username) ON DELETE CASCADE,
+    enrolled_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    UNIQUE(classroom_id, student_id)
+);
+
+-- Add indexes for performance
+CREATE INDEX IF NOT EXISTS idx_classrooms_school_id ON classrooms(school_id);
+CREATE INDEX IF NOT EXISTS idx_classrooms_teacher_id ON classrooms(teacher_id);
+CREATE INDEX IF NOT EXISTS idx_classroom_students_classroom_id ON classroom_students(classroom_id);
+CREATE INDEX IF NOT EXISTS idx_classroom_students_student_id ON classroom_students(student_id);
+
+-- Verify the tables
+SELECT * FROM classrooms LIMIT 1;
+SELECT * FROM classroom_students LIMIT 1;
+        </pre>
+        
+        <p>After running the SQL, <a href="/migrate-classrooms">refresh this page</a> to verify.</p>
+        """
+                
+    except Exception as e:
+        error_msg = str(e)
+        return f"Error checking database: {error_msg}"
+    
+@app.route('/school/admin/classrooms')
+@school_admin_required
+def manage_classrooms():
+    """School admin classroom management"""
+    supabase = get_supabase()
+    if not supabase:
+        flash('Database connection error.', 'danger')
+        return redirect(url_for('school_admin_dashboard'))
+    
+    try:
+        user_response = supabase.table('users').select('school_id').eq('username', session['user_id']).execute()
+        school_id = user_response.data[0]['school_id'] if user_response.data else None
+        
+        # Get all classrooms for the school
+        classrooms_response = supabase.table('classrooms').select('*').eq('school_id', school_id).order('name').execute()
+        classrooms = classrooms_response.data if classrooms_response.data else []
+        
+        # Get teachers for assignment
+        teachers_response = supabase.table('users').select('username').eq('school_id', school_id).eq('role', 'teacher').eq('approval_status', 'approved').execute()
+        teachers = teachers_response.data if teachers_response.data else []
+        
+        # Get students for enrollment
+        students_response = supabase.table('users').select('username, grade').eq('school_id', school_id).eq('role', 'student').eq('approval_status', 'approved').execute()
+        students = students_response.data if students_response.data else []
+        
+        # Get student counts for each classroom
+        for classroom in classrooms:
+            students_response = supabase.table('classroom_students').select('id').eq('classroom_id', classroom['id']).execute()
+            classroom['student_count'] = len(students_response.data) if students_response.data else 0
+        
+        return render_template('manage_classrooms.html',
+                             classrooms=classrooms,
+                             teachers=teachers,
+                             students=students,
+                             school_id=school_id)
+                             
+    except Exception as e:
+        logger.error(f"Manage classrooms error: {e}")
+        flash('Error loading classroom management.', 'danger')
+        return redirect(url_for('school_admin_dashboard'))
+
+@app.route('/school/admin/create_classroom', methods=['POST'])
+@school_admin_required
+def create_classroom():
+    """Create a new classroom"""
+    supabase = get_supabase()
+    if not supabase:
+        flash('Database connection error.', 'danger')
+        return redirect(url_for('manage_classrooms'))
+    
+    try:
+        name = request.form.get('name', '').strip()
+        grade_level = request.form.get('grade_level', '')
+        subject = request.form.get('subject', 'general')
+        teacher_id = request.form.get('teacher_id', '')
+        
+        if not name:
+            flash('Classroom name is required.', 'danger')
+            return redirect(url_for('manage_classrooms'))
+        
+        user_response = supabase.table('users').select('school_id').eq('username', session['user_id']).execute()
+        school_id = user_response.data[0]['school_id'] if user_response.data else None
+        
+        # Generate unique classroom ID
+        import secrets
+        classroom_id = f"class_{secrets.token_hex(8)}"
+        
+        classroom_data = {
+            'id': classroom_id,
+            'name': name,
+            'school_id': school_id,
+            'grade_level': grade_level if grade_level else None,
+            'subject': subject,
+            'teacher_id': teacher_id if teacher_id else None,
+            'created_at': datetime.now().isoformat()
+        }
+        
+        result = supabase.table('classrooms').insert(classroom_data).execute()
+        
+        if result.data:
+            flash(f'Classroom "{name}" created successfully!', 'success')
+        else:
+            flash('Failed to create classroom.', 'danger')
+            
+    except Exception as e:
+        logger.error(f"Create classroom error: {e}")
+        flash('Error creating classroom.', 'danger')
+    
+    return redirect(url_for('manage_classrooms'))
+
 if __name__ == '__main__':
     app.run(debug=True)
