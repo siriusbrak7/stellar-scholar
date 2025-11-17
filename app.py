@@ -457,14 +457,14 @@ def register():
             if role == 'student' and grade:
                 user_data['grade'] = grade
 
-            # ✅ ADD SECURITY QUESTION FOR ALL USERS (not just students)
+            # ADD SECURITY QUESTION FOR ALL USERS
             if security_question and security_answer:
                 user_data['security_question'] = security_question
                 user_data['security_answer_hash'] = generate_password_hash(
                     security_answer.lower().strip()
                 )
 
-            # ✅ Add school_id
+            # ADD school_id
             school_id = request.form.get('school_id')
             user_data['school_id'] = school_id
 
@@ -472,6 +472,19 @@ def register():
             result = supabase.table('users').insert(user_data).execute()
 
             if result.data:
+                # ✅ EMAIL TRIGGER - NEW STUDENT REGISTRATION
+                if role == 'student':
+                    try:
+                        email_service = EmailService() # type: ignore
+                        email_service.send_new_student_notification(
+                            student_username=username,
+                            student_grade=grade,
+                            school_id=school_id
+                        )
+                    except Exception as e:
+                        logger.error(f"Student registration email failed: {e}")
+                        # Don't break registration flow
+
                 flash('Registration successful! Please wait for admin approval.', 'success')
                 return redirect(url_for('login'))
             else:
@@ -1445,6 +1458,22 @@ def submit_response(prompt_id):
         result = supabase.table('submissions').insert(submission_data).execute()
         
         if result.data:
+            # ✅ EMAIL TRIGGER - ASSIGNMENT SUBMISSION NOTIFICATION
+            try:
+                # Get prompt details for email
+                prompt_response = supabase.table('prompts').select('title, created_by').eq('id', prompt_id).execute()
+                prompt = prompt_response.data[0] if prompt_response.data else None
+                
+                if prompt:
+                    email_service = EmailService() # type: ignore
+                    email_service.send_submission_notification(
+                        student_username=session['user_id'],
+                        prompt_title=prompt['title'],
+                        teacher_username=prompt['created_by']
+                    )
+            except Exception as e:
+                logger.error(f"Submission email failed: {e}")
+            
             flash('Response submitted successfully!', 'success')
         else:
             flash('Failed to submit response.', 'danger')
@@ -1710,6 +1739,22 @@ def approve_user(username):
         result = supabase.table('users').update({'approval_status': 'approved'}).eq('username', username).execute()
         
         if result.data:
+            # ✅ EMAIL TRIGGER - TEACHER APPROVAL NOTIFICATION
+            try:
+                # Get user details for email
+                user_response = supabase.table('users').select('role, email').eq('username', username).execute()
+                user = user_response.data[0] if user_response.data else None
+                
+                if user and user.get('role') == 'teacher':
+                    email_service = EmailService() # type: ignore
+                    email_service.send_teacher_approval_notification(
+                        teacher_email=user.get('email'),
+                        teacher_username=username,
+                        admin_username=session['user_id']
+                    )
+            except Exception as e:
+                logger.error(f"Teacher approval email failed: {e}")
+            
             flash(f'✅ User {username} has been approved successfully!', 'success')
         else:
             flash('User not found.', 'warning')
@@ -1892,15 +1937,26 @@ def school_register():
                 'password_hash': generate_password_hash(admin_password),
                 'email': admin_email,
                 'role': 'teacher',
-                'approval_status': 'approved',  # User is approved
+                'approval_status': 'approved',
                 'school_id': school_id,
-                'is_admin': True,  # Mark as school admin
+                'is_admin': True,
                 'created_at': datetime.now().isoformat()
             }
             
             user_result = supabase.table('users').insert(user_data).execute()
             
             if user_result.data:
+                # ✅ EMAIL TRIGGER - NEW SCHOOL REGISTRATION
+                try:
+                    email_service = EmailService() # type: ignore
+                    email_service.send_new_school_notification(
+                        school_name=school_name,
+                        admin_username=admin_username,
+                        contact_email=admin_email
+                    )
+                except Exception as e:
+                    logger.error(f"New school email failed: {e}")
+                
                 flash('School registration submitted successfully! Your school requires approval from the platform administrator. You will be notified once approved.', 'success')
                 return redirect(url_for('index'))
             else:
