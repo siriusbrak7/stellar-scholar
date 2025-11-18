@@ -175,74 +175,121 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
+# app/context_processors.py
+
 @app.context_processor
 def inject_user_info():
-    """Enhanced context processor with school and teacher switching"""
+    """Enhanced context processor with school and teacher switching."""
+
     context = {
-        'is_school_admin': False, 
-        'user_school_id': None,
-        'teacher_permissions': 'classroom',
-        'is_classroom_teacher': True,
-        'available_schools': [],
-        'current_school_id': None,
-        'current_school_name': None,
-        'available_teachers': [],
-        'current_teacher_id': None,
-        'current_teacher_name': None,
+        "is_school_admin": False,
+        "user_school_id": None,
+        "teacher_permissions": "classroom",
+        "is_classroom_teacher": True,
+        "available_schools": [],
+        "current_school_id": None,
+        "current_school_name": None,
+        "available_teachers": [],
+        "current_teacher_id": None,
+        "current_teacher_name": None,
     }
-    
-    if 'user_id' in session:
-        supabase = get_supabase()
-        if supabase:
-            try:
-                user_response = supabase.table('users').select('is_admin, school_id, teacher_permissions').eq('username', session['user_id']).execute()
-                user = user_response.data[0] if user_response.data else None
-                if user:
-                    is_school_admin = user.get('is_admin', False) and session.get('role') == 'teacher'
-                    teacher_permissions = user.get('teacher_permissions', 'classroom')
-                    
-                    context.update({
-                        'is_school_admin': is_school_admin,
-                        'user_school_id': user.get('school_id'),
-                        'teacher_permissions': teacher_permissions,
-                        'is_classroom_teacher': teacher_permissions == 'classroom',
-                    })
-                    
-                    # SCHOOL SWITCHER FOR SIRIUS
-                    if session['user_id'] == 'sirius':
-                        schools_response = supabase.table('schools').select('*').order('name').execute()
-                        context['available_schools'] = schools_response.data if schools_response.data else []
-                        
-                        # Get current school from session
-                        current_school_id = session.get('current_school_id')
-                        if current_school_id:
-                            context['current_school_id'] = current_school_id
-                            current_school = next((s for s in context['available_schools'] if s['id'] == current_school_id), None)
-                            if current_school:
-                                context['current_school_name'] = current_school['name']
-                            
-                            # TEACHER SWITCHER FOR CURRENT SCHOOL
-                            teachers_response = supabase.table('users').select('username').eq('school_id', current_school_id).eq('role', 'teacher').execute()
-                            context['available_teachers'] = teachers_response.data if teachers_response.data else []
-                    
-                    # TEACHER SWITCHER FOR SCHOOL ADMINS (not sirius)
-                    elif is_school_admin and user.get('school_id'):
-                        context['current_school_id'] = user['school_id']
-                        
-                        # Get teachers in the same school
-                        teachers_response = supabase.table('users').select('username').eq('school_id', user['school_id']).eq('role', 'teacher').execute()
-                        context['available_teachers'] = teachers_response.data if teachers_response.data else []
-                    
-                    # CURRENT TEACHER CONTEXT
-                    current_teacher_id = session.get('current_teacher_id')
-                    if current_teacher_id:
-                        context['current_teacher_id'] = current_teacher_id
-                        context['current_teacher_name'] = current_teacher_id
-                
-            except Exception as e:
-                logger.error(f"Context processor error: {e}")
-    
+
+    if "user_id" not in session:
+        return context
+
+    supabase = get_supabase()
+    if not supabase:
+        return context
+
+    try:
+        # Fetch user record
+        user_resp = (
+            supabase.table("users")
+            .select("is_admin, school_id, teacher_permissions")
+            .eq("username", session["user_id"])
+            .execute()
+        )
+        user = user_resp.data[0] if user_resp.data else None
+        if not user:
+            return context
+
+        # FIX: Sirius is always school admin
+        is_school_admin = (
+            (user.get("is_admin", False) and session.get("role") == "teacher")
+            or session["user_id"] == "sirius"
+        )
+
+        teacher_permissions = user.get("teacher_permissions", "classroom")
+
+        context.update(
+            {
+                "is_school_admin": is_school_admin,
+                "user_school_id": user.get("school_id"),
+                "teacher_permissions": teacher_permissions,
+                "is_classroom_teacher": teacher_permissions == "classroom",
+            }
+        )
+
+        # ---------------------------------------------------
+        # SCHOOL SWITCHER (SIRIUS)
+        # ---------------------------------------------------
+        if session["user_id"] == "sirius":
+            schools_resp = (
+                supabase.table("schools").select("*").order("name").execute()
+            )
+            context["available_schools"] = schools_resp.data or []
+
+            # Selected school in session
+            current_school_id = session.get("current_school_id")
+            if current_school_id:
+                context["current_school_id"] = current_school_id
+
+                current_school = next(
+                    (s for s in context["available_schools"] if s["id"] == current_school_id),
+                    None,
+                )
+                if current_school:
+                    context["current_school_name"] = current_school["name"]
+
+                # Teacher list for selected school
+                teachers_resp = (
+                    supabase.table("users")
+                    .select("username")
+                    .eq("school_id", current_school_id)
+                    .eq("role", "teacher")
+                    .execute()
+                )
+                context["available_teachers"] = teachers_resp.data or []
+
+        # ---------------------------------------------------
+        # SCHOOL ADMIN (NOT SIRIUS)
+        # ---------------------------------------------------
+        elif is_school_admin and user.get("school_id"):
+            school_id = user["school_id"]
+            context["current_school_id"] = school_id
+
+            teachers_resp = (
+                supabase.table("users")
+                .select("username")
+                .eq("school_id", school_id)
+                .eq("role", "teacher")
+                .execute()
+            )
+            context["available_teachers"] = teachers_resp.data or []
+
+        # ---------------------------------------------------
+        # CURRENT TEACHER SELECTION
+        # ---------------------------------------------------
+        current_teacher_id = session.get("current_teacher_id")
+        if current_teacher_id:
+            context["current_teacher_id"] = current_teacher_id
+            context["current_teacher_name"] = current_teacher_id
+
+    except Exception as e:
+        logger.error(f"Context processor error: {e}")
+
     return context
+
 
 # ===== DATABASE FIX ROUTES =====
 @app.route('/fix-schools-table')
@@ -1137,7 +1184,6 @@ def manage_students():
 @app.route('/teacher/delete_student/<username>', methods=['POST'])
 @teacher_required
 def delete_student(username):
-    """Delete student account - accessible to school admins AND super admin"""
     supabase = get_supabase()
     if not supabase:
         flash('Database connection error.', 'danger')
@@ -1160,25 +1206,19 @@ def delete_student(username):
             flash('Student not found.', 'warning')
             return redirect(url_for('manage_students'))
         
-        # PERMISSION CHECK: 
-        # 1. Super admin (sirius) can delete ANYONE
-        # 2. School admin can delete students in their school
-        # 3. Regular teachers can delete students in their grade/school
+        # SIMPLIFIED PERMISSION CHECK:
         can_delete = False
         
+        # 1. Super admin (sirius) can delete ANYONE
         if session['user_id'] == 'sirius':
-            # Super admin - delete power over everyone
             can_delete = True
+        # 2. School admin can delete students in their school  
         elif (current_user.get('is_admin') and 
               current_user.get('school_id') == student.get('school_id')):
-            # School admin - can delete any student in same school
             can_delete = True
-        elif (current_user.get('teacher_permissions') == 'classroom' and
-              current_user.get('school_id') == student.get('school_id')):
-            # Regular teacher - check if they have prompts for student's grade
-            prompts_response = supabase.table('prompts').select('id').eq('created_by', session['user_id']).eq('grade_level', student.get('grade')).execute()
-            if prompts_response.data:
-                can_delete = True
+        # 3. Regular teachers can delete if same school (remove grade restriction)
+        elif (current_user.get('school_id') == student.get('school_id')):
+            can_delete = True
         
         if not can_delete:
             flash('Access denied. You can only delete students from your school.', 'danger')
@@ -1683,21 +1723,40 @@ def admin_required(f):
 @app.route('/admin/dashboard')
 @teacher_required
 def admin_dashboard():
-    """School-scoped admin dashboard for user approvals"""
+    """School-scoped admin dashboard for user approvals - FIXED FOR SIRIUS"""
     supabase = get_supabase()
-    user_response = supabase.table('users').select('*').eq('username', session['user_id']).execute()
-    user = user_response.data[0] if user_response.data else None
     
     if not supabase:
         flash('Database connection error.', 'danger')
         return redirect(url_for('index'))
     
     try:
-        # Get pending registrations from user's school only - FIXED DATA LEAK
-        pending_users = supabase.table('users').select('*').eq('approval_status', 'pending').eq('school_id', user['school_id']).execute()
+        # Get current user info
+        user_response = supabase.table('users').select('*').eq('username', session['user_id']).execute()
+        user = user_response.data[0] if user_response.data else None
         
-        # Get all users from user's school only - FIXED DATA LEAK
-        all_users = supabase.table('users').select('*').eq('school_id', user['school_id']).order('created_at', desc=True).execute()
+        # DETERMINE SCHOOL CONTEXT
+        school_id = None
+        
+        if session['user_id'] == 'sirius':
+            # Sirius uses selected school context or shows all schools
+            school_id = session.get('current_school_id')
+            if not school_id:
+                flash('Please select a school first using the school switcher.', 'warning')
+                return redirect(url_for('super_admin_dashboard'))
+        else:
+            # Regular school admin uses their own school
+            school_id = user.get('school_id') if user else None
+        
+        if not school_id:
+            flash('School context required.', 'danger')
+            return redirect(url_for('teacher_dashboard'))
+        
+        # Get pending registrations for the determined school
+        pending_users = supabase.table('users').select('*').eq('approval_status', 'pending').eq('school_id', school_id).execute()
+        
+        # Get all users for the determined school
+        all_users = supabase.table('users').select('*').eq('school_id', school_id).order('created_at', desc=True).execute()
         
         return render_template('admin_dashboard.html',
                              pending_users=pending_users.data if pending_users.data else [],
