@@ -14,7 +14,7 @@
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap" rel="stylesheet">
 
-    <!-- Custom CSS -->
+    <!-- Cosmic Theme CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 
     <style>
@@ -219,18 +219,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         {% if is_school_admin %}<span class="badge bg-warning ms-1">School Admin</span>{% endif %}
                     </span>
 
-                    <!-- Theme Switcher -->
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
-                            🎨 Theme
-                        </a>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item theme-option {% if user_preferred_theme == 'cosmic' %}active{% endif %}" href="#" data-theme="cosmic">🌌 Cosmic</a></li>
-                            <li><a class="dropdown-item theme-option {% if user_preferred_theme == 'dystopian' %}active{% endif %}" href="#" data-theme="dystopian">⚫ Dystopian</a></li>
-                            <li><a class="dropdown-item theme-option {% if user_preferred_theme == 'classic' %}active{% endif %}" href="#" data-theme="classic">📚 Classic</a></li>
-                        </ul>
-                    </li>
-
                     <a class="nav-link text-danger" href="{{ url_for('logout') }}">
                         <i class="fas fa-sign-out-alt"></i> Logout
                     </a>
@@ -272,72 +260,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <!-- Bootstrap JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-
-<!-- Theme Management System -->
-<script>
-// Theme Management System
-document.addEventListener('DOMContentLoaded', function() {
-    // Initialize theme
-    initializeTheme();
-    
-    // Theme switcher functionality
-    document.querySelectorAll('.theme-option').forEach(button => {
-        button.addEventListener('click', function(e) {
-            e.preventDefault();
-            const theme = this.getAttribute('data-theme');
-            switchTheme(theme);
-            
-            // Update active state
-            document.querySelectorAll('.theme-option').forEach(btn => btn.classList.remove('active'));
-            this.classList.add('active');
-        });
-    });
-    
-    function initializeTheme() {
-        // Check localStorage first, then server preference
-        const localTheme = localStorage.getItem('stellar_theme');
-        const serverTheme = '{{ user_preferred_theme }}';
-        const finalTheme = localTheme || serverTheme || 'cosmic';
-        
-        applyTheme(finalTheme);
-    }
-    
-    function applyTheme(theme) {
-        document.body.setAttribute('data-theme', theme);
-        localStorage.setItem('stellar_theme', theme);
-        
-        // Update dropdown active state
-        document.querySelectorAll('.theme-option').forEach(btn => {
-            btn.classList.remove('active');
-            if (btn.getAttribute('data-theme') === theme) {
-                btn.classList.add('active');
-            }
-        });
-    }
-    
-    function switchTheme(theme) {
-        applyTheme(theme);
-        
-        // Save to server if user is logged in
-        if ({{ 'true' if session.user_id else 'false' }}) {
-            fetch('/update-user-theme', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({theme: theme})
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (!data.success) {
-                    console.error('Failed to save theme:', data.error);
-                }
-            })
-            .catch(error => {
-                console.error('Theme save error:', error);
-            });
-        }
-    }
-});
-</script>
 
 </body>
 </html>
