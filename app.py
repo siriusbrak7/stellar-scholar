@@ -79,6 +79,9 @@ def school_admin_required(f):
             return f(*args, **kwargs)
         
         # Regular school admin check for other users
+        # ... rest of your existing code
+        
+        # Regular school admin check for other users
         supabase = get_supabase()
         if not supabase:
             flash('Database connection error.', 'danger')
