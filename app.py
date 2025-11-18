@@ -2435,12 +2435,7 @@ def super_admin_dashboard():
                              stats={'total_schools': 0, 'pending_schools': 0, 'active_schools': 0, 'total_users': 0, 'active_sessions': 0, 'storage_used': '0 GB'},
                              recent_schools=[])
 
-# Add placeholder routes for the missing endpoints
-@app.route('/super/admin/users-old')
-@super_admin_required
-def super_admin_users():
-    """Placeholder - Platform users management"""
-    return "Platform Users Management - Coming Soon"
+
 
 @app.route('/super/admin/analytics')
 @super_admin_required
