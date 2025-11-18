@@ -8,6 +8,22 @@
             <div>
                 <h1 class="admin-title">🛡️ Platform Administration</h1>
                 <p class="admin-subtitle">Super Admin Dashboard</p>
+                
+                <!-- Context Display -->
+                {% if current_school_name or current_teacher_name %}
+                <div class="context-display mt-2">
+                    <small class="text-warning">
+                        📍 Currently viewing: 
+                        {% if current_teacher_name %}
+                        <strong>{{ current_teacher_name }}</strong> (Teacher)
+                        {% elif current_school_name %}
+                        <strong>{{ current_school_name }}</strong> (School)
+                        {% else %}
+                        <strong>Platform Overview</strong>
+                        {% endif %}
+                    </small>
+                </div>
+                {% endif %}
             </div>
             <div class="admin-badges">
                 <span class="badge bg-dark">Super Admin</span>
@@ -15,6 +31,18 @@
             </div>
         </div>
     </div>
+
+    <!-- Context Switcher Help -->
+    {% if available_schools %}
+    <div class="alert alert-info mb-4">
+        <small>
+            💡 <strong>Quick Access:</strong> Use the school and teacher switchers at the top to view specific school/teacher dashboards.
+            Currently showing: 
+            {% if current_school_name %}{{ current_school_name }}{% else %}All Schools{% endif %} | 
+            {% if current_teacher_name %}{{ current_teacher_name }}{% else %}All Teachers{% endif %}
+        </small>
+    </div>
+    {% endif %}
 
     <!-- Quick Stats -->
     <div class="row mb-4">
@@ -57,19 +85,51 @@
     </div>
 
     <!-- Quick Actions -->
-    <div class="card-body">
-    <div class="action-buttons">
-        <a href="{{ url_for('super_admin_schools') }}" class="action-btn primary">
-            🏫 Manage Schools
-        </a>
-        <a href="{{ url_for('super_admin_analytics') }}" class="action-btn secondary">
-            📊 Platform Analytics
-        </a>
-        <a href="{{ url_for('debug_data') }}" class="action-btn warning">
-            🐞 System Debug
-        </a>
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">⚡ Quick Actions</h5>
+        </div>
+        <div class="card-body">
+            <div class="action-buttons">
+                <a href="{{ url_for('super_admin_schools') }}" class="action-btn primary">
+                    🏫 Manage Schools
+                </a>
+                <a href="{{ url_for('super_admin_analytics') }}" class="action-btn secondary">
+                    📊 Platform Analytics
+                </a>
+                <a href="{{ url_for('debug_data') }}" class="action-btn warning">
+                    🐞 System Debug
+                </a>
+                {% if available_schools %}
+                <a href="{{ url_for('create_demo_school') }}" class="action-btn info">
+                    🎯 Create Demo School
+                </a>
+                {% endif %}
+            </div>
+        </div>
     </div>
-</div>
+
+    <!-- School Context Actions -->
+    {% if current_school_id %}
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">🎯 School-Specific Actions</h5>
+        </div>
+        <div class="card-body">
+            <div class="action-buttons">
+                <a href="{{ url_for('school_admin_dashboard') }}" class="action-btn primary">
+                    🏫 School Admin Dashboard
+                </a>
+                <a href="{{ url_for('teacher_dashboard') }}" class="action-btn secondary">
+                    👨‍🏫 Teacher Dashboard
+                </a>
+                <a href="{{ url_for('admin_dashboard') }}" class="action-btn info">
+                    👥 User Approvals
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
 
     <!-- Recent Activity -->
     <div class="row">
@@ -90,6 +150,12 @@
                                     {{ school.status }}
                                 </span>
                                 <small class="text-muted">{{ school.created_at[:10] }}</small>
+                            </div>
+                            <div class="activity-actions">
+                                <a href="{{ url_for('switch_school', school_id=school.id) }}" 
+                                   class="btn btn-sm btn-outline-primary">
+                                    🔍 View
+                                </a>
                             </div>
                         </div>
                         {% endfor %}
@@ -120,7 +186,23 @@
                             <span class="stat-label">Storage Used</span>
                             <span class="stat-value">{{ stats.storage_used }}</span>
                         </div>
+                        <div class="platform-stat">
+                            <span class="stat-label">Available Schools</span>
+                            <span class="stat-value">{{ available_schools|length }}</span>
+                        </div>
                     </div>
+                    
+                    {% if available_schools %}
+                    <div class="mt-3">
+                        <small class="text-muted">
+                            🎯 <strong>Quick Switch:</strong> 
+                            {% for school in available_schools[:3] %}
+                            <a href="{{ url_for('switch_school', school_id=school.id) }}" class="text-warning">{{ school.name }}</a>{% if not loop.last %}, {% endif %}
+                            {% endfor %}
+                            {% if available_schools|length > 3 %}...{% endif %}
+                        </small>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -150,6 +232,13 @@
 .admin-subtitle {
     color: #b0b0b0;
     margin-bottom: 0;
+}
+
+.context-display {
+    background: rgba(255, 193, 7, 0.1);
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    border-left: 3px solid #ffc107;
 }
 
 .stat-card {
@@ -223,6 +312,11 @@
     color: white;
 }
 
+.action-btn.warning {
+    background: #ffc107;
+    color: #000;
+}
+
 .action-btn:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(0,0,0,0.3);
@@ -261,6 +355,11 @@
     flex: 1;
 }
 
+.activity-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
 .platform-stat {
     display: flex;
     justify-content: space-between;
@@ -289,6 +388,16 @@
 
 .admin-badges .badge {
     margin-left: 0.5rem;
+}
+
+.alert-info {
+    background: rgba(23, 162, 184, 0.1);
+    border: 1px solid rgba(23, 162, 184, 0.3);
+    color: #17a2b8;
+}
+
+.text-warning {
+    color: #ffc107 !important;
 }
 </style>
 {% endblock %}

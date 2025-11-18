@@ -1140,7 +1140,34 @@ def delete_student(username):
         return redirect(url_for('manage_students'))
     
     try:
-        # First delete student's submissions
+        # Get current user to check permissions
+        user_response = supabase.table('users').select('*').eq('username', session['user_id']).execute()
+        current_user = user_response.data[0] if user_response.data else None
+        
+        if not current_user:
+            flash('User not found.', 'danger')
+            return redirect(url_for('manage_students'))
+        
+        # Get student to check if they're in the same school
+        student_response = supabase.table('users').select('*').eq('username', username).execute()
+        student = student_response.data[0] if student_response.data else None
+        
+        if not student:
+            flash('Student not found.', 'warning')
+            return redirect(url_for('manage_students'))
+        
+        # PERMISSION CHECK: Teacher can only delete students from their own school
+        if student.get('school_id') != current_user.get('school_id'):
+            flash('Access denied.', 'danger')
+            return redirect(url_for('manage_students'))
+        
+        # PERMISSION CHECK: Regular teachers can only delete students from their grade level
+        if (current_user.get('teacher_permissions') == 'classroom' and 
+            student.get('grade') != current_user.get('grade_level_taught')):
+            flash('You can only remove students from your assigned grade level.', 'danger')
+            return redirect(url_for('manage_students'))
+        
+        # Delete student's submissions first
         submissions_result = supabase.table('submissions').delete().eq('student_id', username).execute()
         
         # Then delete the student user
