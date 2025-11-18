@@ -3244,32 +3244,7 @@ def super_admin_users():
         flash('Error loading user management.', 'danger')
         return redirect(url_for('super_admin_dashboard'))
 
-@app.route('/super/admin/delete_user/<username>', methods=['POST'])
-@super_admin_required
-def super_admin_delete_user(username):
-    """Super admin delete ANY user"""
-    supabase = get_supabase()
-    if not supabase:
-        flash('Database connection error.', 'danger')
-        return redirect(url_for('super_admin_users'))
-    
-    try:
-        # Delete user's submissions first
-        submissions_result = supabase.table('submissions').delete().eq('student_id', username).execute()
-        
-        # Delete the user
-        user_result = supabase.table('users').delete().eq('username', username).execute()
-        
-        if user_result.data:
-            flash(f'User {username} and all their data have been deleted.', 'success')
-        else:
-            flash('User not found or already deleted.', 'warning')
-            
-    except Exception as e:
-        logger.error(f"Super admin delete user error: {e}")
-        flash('Error deleting user.', 'danger')
-    
-    return redirect(url_for('super_admin_users'))
+
 
 @app.route('/super/admin/fix-teacher-school', methods=['POST'])
 @super_admin_required

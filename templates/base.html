@@ -199,40 +199,44 @@ document.addEventListener('DOMContentLoaded', function() {
                 {% if session.user_id %}
                     <a class="nav-link" href="{{ url_for('leaderboard') }}">🏆 Leaderboard</a>
                     
-                    {% if session.role == 'teacher' or session.user_id == 'sirius' %}
+                    <!-- SIRIUS SUPER ADMIN NAVIGATION -->
+                    {% if session.user_id == 'sirius' %}
+                        <!-- Sirius always sees these -->
                         <a class="nav-link" href="{{ url_for('teacher_dashboard') }}">📊 Dashboard</a>
-
-                        <!-- FIXED: Sirius can access admin dashboards when in school context -->
-                        {% if session.user_id == 'sirius' %}
-                            <!-- Always show Super Admin links -->
-                            <a class="nav-link" href="{{ url_for('super_admin_dashboard') }}">🛡️ Super Admin</a>
-                            <a class="nav-link" href="{{ url_for('super_admin_schools') }}">🏫 Manage Schools</a>
-                            
-                            <!-- Show School Admin links when Sirius has selected a school -->
-                            {% if current_school_id %}
-                                <a class="nav-link" href="{{ url_for('school_admin_dashboard') }}">🏫 School Admin</a>
-                            {% endif %}
-                            
-                        {% elif is_school_admin %}
-                            <!-- Regular school admins see school admin links -->
+                        <a class="nav-link" href="{{ url_for('super_admin_dashboard') }}">🛡️ Super Admin</a>
+                        <a class="nav-link" href="{{ url_for('super_admin_schools') }}">🏫 Manage Schools</a>
+                        <a class="nav-link" href="{{ url_for('super_admin_users') }}">👥 All Users</a>
+                        
+                        <!-- Sirius sees school admin links when he has selected a school -->
+                        {% if current_school_id %}
                             <a class="nav-link" href="{{ url_for('school_admin_dashboard') }}">🏫 School Admin</a>
-                        {% endif %}
-
-                        <!-- User approvals - show to Sirius in school context AND regular school admins -->
-                        {% if (session.user_id == 'sirius' and current_school_id) or is_school_admin %}
                             <a class="nav-link" href="{{ url_for('admin_dashboard') }}">👥 Approve Users</a>
                         {% endif %}
                         
+                    <!-- REGULAR TEACHER NAVIGATION -->
+                    {% elif session.role == 'teacher' %}
+                        <a class="nav-link" href="{{ url_for('teacher_dashboard') }}">📊 Dashboard</a>
+                        
+                        <!-- School admins see admin links -->
+                        {% if is_school_admin %}
+                            <a class="nav-link" href="{{ url_for('school_admin_dashboard') }}">🏫 School Admin</a>
+                            <a class="nav-link" href="{{ url_for('admin_dashboard') }}">👥 Approve Users</a>
+                        {% endif %}
+                        
+                    <!-- STUDENT NAVIGATION -->
                     {% else %}
-                        <!-- Student navigation -->
                         <a class="nav-link" href="{{ url_for('student_dashboard') }}">📚 Dashboard</a>
                         <a class="nav-link" href="{{ url_for('student_history') }}">📖 My History</a>
                     {% endif %}
 
+                    <!-- User Info & Logout -->
                     <span class="nav-link text-warning">
                         <i class="fas fa-user"></i> {{ session.user_id }}
-                        {% if is_school_admin %}<span class="badge bg-warning ms-1">School Admin</span>{% endif %}
-                        {% if session.user_id == 'sirius' %}<span class="badge bg-danger ms-1">Super Admin</span>{% endif %}
+                        {% if session.user_id == 'sirius' %}
+                            <span class="badge bg-danger ms-1">Super Admin</span>
+                        {% elif is_school_admin %}
+                            <span class="badge bg-warning ms-1">School Admin</span>
+                        {% endif %}
                     </span>
 
                     <a class="nav-link text-danger" href="{{ url_for('logout') }}">
