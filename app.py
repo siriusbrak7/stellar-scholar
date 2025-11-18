@@ -76,10 +76,7 @@ def school_admin_required(f):
             if not session.get('current_school_id'):
                 flash('Please select a school first using the school switcher.', 'warning')
                 return redirect(url_for('super_admin_dashboard'))
-            return f(*args, **kwargs)
-        
-        # Regular school admin check for other users
-        # ... rest of your existing code
+            return f(*args, **kwargs)  # Sirius can access
         
         # Regular school admin check for other users
         supabase = get_supabase()
@@ -91,7 +88,8 @@ def school_admin_required(f):
             user_response = supabase.table('users').select('*').eq('username', session['user_id']).execute()
             user = user_response.data[0] if user_response.data else None
             
-            if not user or user['role'] != 'teacher' or user.get('teacher_permissions') != 'admin':
+            # Check if user is school admin (is_admin = True AND role = teacher)
+            if not user or user['role'] != 'teacher' or not user.get('is_admin'):
                 flash('School admin access required.', 'danger')
                 return redirect(url_for('teacher_dashboard'))
             return f(*args, **kwargs)
@@ -2228,111 +2226,178 @@ def super_admin_reject_school(school_id):
 @app.route('/school/admin/dashboard')
 @school_admin_required
 def school_admin_dashboard():
-    """Enhanced school admin dashboard with real statistics"""
+    """Enhanced school admin dashboard with Sirius support + real statistics."""
     supabase = get_supabase()
     if not supabase:
         flash('Database connection error.', 'danger')
         return redirect(url_for('index'))
     
     try:
-        # Get current user and school
-        user_response = supabase.table('users').select('*').eq('username', session['user_id']).execute()
-        user = user_response.data[0] if user_response.data else None
-        
-        if not user or not user.get('is_admin'):
-            flash('School admin access required.', 'danger')
-            return redirect(url_for('teacher_dashboard'))
-        
-        # Get school information
-        school_response = supabase.table('schools').select('*').eq('id', user['school_id']).execute()
-        school = school_response.data[0] if school_response.data else None
-        
+        # -------------------------------------------------------
+        # DETERMINE SCHOOL CONTEXT (SIRIUS VS REGULAR ADMIN)
+        # -------------------------------------------------------
+        school_id = None
+        school = None
+
+        # ----------------------------
+        # SIRIUS SPECIAL HANDLING
+        # ----------------------------
+        if session["user_id"] == "sirius":
+            school_id = session.get("current_school_id")
+            if not school_id:
+                flash("Please select a school first using the school switcher.", "warning")
+                return redirect(url_for("super_admin_dashboard"))
+
+            school_resp = (
+                supabase.table("schools")
+                .select("*")
+                .eq("id", school_id)
+                .execute()
+            )
+            school = school_resp.data[0] if school_resp.data else None
+
+        # ----------------------------
+        # REGULAR SCHOOL ADMIN
+        # ----------------------------
+        else:
+            user_resp = (
+                supabase.table("users")
+                .select("*")
+                .eq("username", session["user_id"])
+                .execute()
+            )
+            user = user_resp.data[0] if user_resp.data else None
+
+            if not user or not user.get("is_admin"):
+                flash("School admin access required.", "danger")
+                return redirect(url_for("teacher_dashboard"))
+
+            school_id = user["school_id"]
+
+            school_resp = (
+                supabase.table("schools")
+                .select("*")
+                .eq("id", school_id)
+                .execute()
+            )
+            school = school_resp.data[0] if school_resp.data else None
+
+        # If somehow no school exists
         if not school:
-            flash('School not found.', 'danger')
-            return redirect(url_for('teacher_dashboard'))
-        
-        # Get all users in the school with detailed info
-        users_response = supabase.table('users').select('*').eq('school_id', user['school_id']).execute()
-        school_users = users_response.data if users_response.data else []
-        
-        # Get all prompts for the school
-        prompts_response = supabase.table('prompts').select('*').eq('school_id', user['school_id']).execute()
-        school_prompts = prompts_response.data if prompts_response.data else []
-        
-        # Get all submissions for the school
-        submissions_response = supabase.table('submissions').select('*').execute()
-        all_submissions = submissions_response.data if submissions_response.data else []
-        
-        # Calculate detailed statistics
-        teachers = [u for u in school_users if u['role'] == 'teacher']
-        students = [u for u in school_users if u['role'] == 'student']
-        pending_users = [u for u in school_users if u.get('approval_status') == 'pending']
-        
-        # Teacher statistics
-        active_teachers = len([t for t in teachers if t.get('approval_status') == 'approved'])
-        teacher_admins = len([t for t in teachers if t.get('is_admin')])
-        
-        # Student statistics
-        active_students = len([s for s in students if s.get('approval_status') == 'approved'])
-        
-        # Assessment statistics
-        written_assessments = len([p for p in school_prompts if p.get('assessment_type') == 'written'])
-        mcq_assessments = len([p for p in school_prompts if p.get('assessment_type') == 'mcq'])
-        mixed_assessments = len([p for p in school_prompts if p.get('assessment_type') == 'mixed'])
-        
-        # Submission statistics
+            flash("School not found.", "danger")
+            return redirect(url_for("teacher_dashboard"))
+
+        # -------------------------------------------------------
+        # LOAD ALL SCHOOL DATA (WORKS FOR BOTH SIRIUS + REGULAR)
+        # -------------------------------------------------------
+
+        # Users
+        users_resp = (
+            supabase.table("users")
+            .select("*")
+            .eq("school_id", school_id)
+            .execute()
+        )
+        school_users = users_resp.data or []
+
+        # Prompts
+        prompts_resp = (
+            supabase.table("prompts")
+            .select("*")
+            .eq("school_id", school_id)
+            .execute()
+        )
+        school_prompts = prompts_resp.data or []
+
+        # Submissions (filtered by user role)
+        subs_resp = supabase.table("submissions").select("*").execute()
+        all_submissions = subs_resp.data or []
+
+        # -------------------------------------------------------
+        # METRICS + STATISTICS
+        # -------------------------------------------------------
+        teachers = [u for u in school_users if u["role"] == "teacher"]
+        students = [u for u in school_users if u["role"] == "student"]
+        pending_users = [u for u in school_users if u.get("approval_status") == "pending"]
+
+        active_teachers = len([t for t in teachers if t.get("approval_status") == "approved"])
+        teacher_admins = len([t for t in teachers if t.get("is_admin")])
+
+        active_students = len([s for s in students if s.get("approval_status") == "approved"])
+
+        written_assessments = len([p for p in school_prompts if p.get("assessment_type") == "written"])
+        mcq_assessments = len([p for p in school_prompts if p.get("assessment_type") == "mcq"])
+        mixed_assessments = len([p for p in school_prompts if p.get("assessment_type") == "mixed"])
+
         total_submissions = len(all_submissions)
-        graded_submissions = len([s for s in all_submissions if s.get('grade') is not None])
-        
-        # Calculate average completion rate per student
+        graded_submissions = len([s for s in all_submissions if s.get("grade") is not None])
+
+        # Student completion calculations
         student_completion = {}
         for student in students:
-            if student.get('approval_status') == 'approved':
-                student_subs = [s for s in all_submissions if s['student_id'] == student['username']]
-                student_prompts = [p for p in school_prompts if p.get('grade_level') == student.get('grade')]
-                completion_rate = (len(student_subs) / len(student_prompts)) * 100 if student_prompts else 0
-                student_completion[student['username']] = completion_rate
-        
-        avg_completion_rate = round(sum(student_completion.values()) / len(student_completion)) if student_completion else 0
-        
+            if student.get("approval_status") == "approved":
+                student_subs = [s for s in all_submissions if s["student_id"] == student["username"]]
+                student_prompts = [
+                    p for p in school_prompts if p.get("grade_level") == student.get("grade")
+                ]
+                completion = (
+                    (len(student_subs) / len(student_prompts)) * 100
+                    if student_prompts else 0
+                )
+                student_completion[student["username"]] = completion
+
+        avg_completion_rate = (
+            round(sum(student_completion.values()) / len(student_completion))
+            if student_completion
+            else 0
+        )
+
         stats = {
-            'total_teachers': len(teachers),
-            'active_teachers': active_teachers,
-            'teacher_admins': teacher_admins,
-            'total_students': len(students),
-            'active_students': active_students,
-            'pending_approvals': len(pending_users),
-            'total_users': len(school_users),
-            'total_assessments': len(school_prompts),
-            'written_assessments': written_assessments,
-            'mcq_assessments': mcq_assessments,
-            'mixed_assessments': mixed_assessments,
-            'total_submissions': total_submissions,
-            'graded_submissions': graded_submissions,
-            'avg_completion_rate': avg_completion_rate
+            "total_teachers": len(teachers),
+            "active_teachers": active_teachers,
+            "teacher_admins": teacher_admins,
+            "total_students": len(students),
+            "active_students": active_students,
+            "pending_approvals": len(pending_users),
+            "total_users": len(school_users),
+            "total_assessments": len(school_prompts),
+            "written_assessments": written_assessments,
+            "mcq_assessments": mcq_assessments,
+            "mixed_assessments": mixed_assessments,
+            "total_submissions": total_submissions,
+            "graded_submissions": graded_submissions,
+            "avg_completion_rate": avg_completion_rate,
         }
-        
-        # Recent activity (last 5 users registered)
-        recent_users = sorted(school_users, key=lambda x: x.get('created_at', ''), reverse=True)[:5]
-        
+
+        # Last 5 newly registered users
+        recent_users = sorted(
+            school_users, key=lambda x: x.get("created_at", "")
+        , reverse=True)[:5]
+
         # Grade distribution
         grade_distribution = {}
         for student in students:
-            if student.get('approval_status') == 'approved':
-                grade = student.get('grade', 'Unknown')
+            if student.get("approval_status") == "approved":
+                grade = student.get("grade", "Unknown")
                 grade_distribution[grade] = grade_distribution.get(grade, 0) + 1
-        
-        return render_template('school_admin_dashboard.html',
-                             school=school,
-                             users=school_users,
-                             stats=stats,
-                             recent_users=recent_users,
-                             grade_distribution=grade_distribution)
-                             
+
+        # -------------------------------------------------------
+        # RENDER TEMPLATE
+        # -------------------------------------------------------
+        return render_template(
+            "school_admin_dashboard.html",
+            school=school,
+            users=school_users,
+            stats=stats,
+            recent_users=recent_users,
+            grade_distribution=grade_distribution,
+        )
+
     except Exception as e:
         logger.error(f"School admin dashboard error: {e}")
-        flash('Error loading school admin dashboard.', 'danger')
-        return redirect(url_for('teacher_dashboard'))
+        flash("Error loading school admin dashboard.", "danger")
+        return redirect(url_for("teacher_dashboard"))
+
 
 
 
