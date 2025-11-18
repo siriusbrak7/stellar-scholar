@@ -83,8 +83,6 @@
         </div>
     </div>
 
-    
-
     <!-- Assessment Types -->
     <div class="row mb-4">
         <div class="col-12">
@@ -118,19 +116,10 @@
             <div class="card">
                 <div class="card-header">
                     <h5 class="card-title mb-0">⚡ Quick Actions</h5>
-                    <div class="col-md-3 mb-2">
-    <a href="{{ url_for('school_admin_analytics') }}" class="btn btn-info w-100">
-        📊 Analytics
-    </a>
-</div>
                 </div>
                 <div class="card-body">
                     <div class="row">
-                        <div class="col-md-4 mb-2">
-                            <a href="{{ url_for('bulk_import_users') }}" class="btn btn-primary w-100">
-                                📥 Bulk Import Users
-                            </a>
-                        </div>
+                        <!-- REMOVED: Bulk Import Users button (route doesn't exist) -->
                         <div class="col-md-4 mb-2">
                             <a href="{{ url_for('admin_dashboard') }}" class="btn btn-warning w-100">
                                 👥 Manage User Approvals
@@ -139,6 +128,11 @@
                         <div class="col-md-4 mb-2">
                             <a href="{{ url_for('school_settings') }}" class="btn btn-info w-100">
                                 ⚙️ School Settings
+                            </a>
+                        </div>
+                        <div class="col-md-4 mb-2">
+                            <a href="{{ url_for('school_admin_analytics') }}" class="btn btn-primary w-100">
+                                📊 View Analytics
                             </a>
                         </div>
                     </div>
