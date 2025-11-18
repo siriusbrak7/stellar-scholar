@@ -141,10 +141,7 @@ def teacher_required(f):
         
         # ALLOW sirius to access teacher features when he has a school context
         if session['user_id'] == 'sirius':
-            if not session.get('current_school_id'):
-                flash('Please select a school first using the school switcher.', 'warning')
-                return redirect(url_for('super_admin_dashboard'))
-            return f(*args, **kwargs)
+            return f(*args, **kwargs)  # Sirius can always access teacher routes
         
         # Regular teacher check for other users
         supabase = get_supabase()
@@ -669,18 +666,30 @@ def teacher_dashboard():
         flash('Database connection error.', 'danger')
         return redirect(url_for('index'))
     
-    # Check if user is a teacher or has teacher permissions
-    if user.get('role') != 'teacher' and not user.get('teacher_permissions'):
-        flash('Teacher access required.', 'danger')
-        return redirect(url_for('main.dashboard'))
+    # ENHANCED PERMISSION CHECK - Allow Sirius and teachers
+    if session['user_id'] != 'sirius':  # Sirius bypasses all checks
+        if user.get('role') != 'teacher' and not user.get('teacher_permissions'):
+            flash('Teacher access required.', 'danger')
+            return redirect(url_for('index'))
     
     try:
         # Get filters from query parameters
         grade_filter = request.args.get('grade', 'all')
         category_filter = request.args.get('category', 'all')
         
-        # Get all prompts from user's school only
-        prompts_response = supabase.table('prompts').select('*').eq('school_id', user['school_id']).order('created_at', desc=True).execute()
+        # Get school context - Sirius uses selected school, others use their own
+        school_id = None
+        if session['user_id'] == 'sirius':
+            school_id = session.get('current_school_id') or user.get('school_id')
+        else:
+            school_id = user['school_id']
+        
+        if not school_id:
+            flash('School context required.', 'danger')
+            return redirect(url_for('super_admin_dashboard' if session['user_id'] == 'sirius' else 'index'))
+        
+        # Get all prompts from the determined school
+        prompts_response = supabase.table('prompts').select('*').eq('school_id', school_id).order('created_at', desc=True).execute()
         all_prompts = prompts_response.data if prompts_response.data else []
 
         # Calculate assessment type counts
@@ -701,12 +710,12 @@ def teacher_dashboard():
         
         prompts = {prompt['id']: prompt for prompt in filtered_prompts}
         
-        # Get all submissions from user's school only
+        # Get all submissions from the school
         submissions_response = supabase.table('submissions').select('*').execute()
         submissions = submissions_response.data if submissions_response.data else []
         
-        # Get all users from user's school only
-        users_response = supabase.table('users').select('*').eq('school_id', user['school_id']).execute()
+        # Get all users from the school
+        users_response = supabase.table('users').select('*').eq('school_id', school_id).execute()
         users_data = users_response.data if users_response.data else []
         
         # Count submissions per prompt (only for prompts currently shown)
@@ -723,7 +732,7 @@ def teacher_dashboard():
                 if sub.get('grade') is not None:
                     prompt_stats[pid]['graded'] += 1
         
-        # STUDENT PROGRESS TRACKING - Now school-scoped
+        # STUDENT PROGRESS TRACKING - School-scoped
         student_progress = {}
         class_analytics = {
             'total_students': 0,
@@ -816,7 +825,7 @@ def teacher_dashboard():
             if sub.get('grade') is not None:
                 student_id = sub.get('student_id')
                 if student_id not in student_scores:
-                    user_response = supabase.table('users').select('grade').eq('username', student_id).eq('school_id', user['school_id']).execute()
+                    user_response = supabase.table('users').select('grade').eq('username', student_id).eq('school_id', school_id).execute()
                     grade_level = user_response.data[0]['grade'] if user_response.data else 'N/A'
                     
                     student_scores[student_id] = {
@@ -838,6 +847,13 @@ def teacher_dashboard():
         top_students.sort(key=lambda x: x['avg_score'], reverse=True)
         top_students = top_students[:5]
         
+        # Add context for template
+        is_school_admin = False
+        if session['user_id'] == 'sirius':
+            is_school_admin = True  # Sirius acts as school admin when in school context
+        elif user.get('is_admin') and user.get('role') == 'teacher':
+            is_school_admin = True
+        
         # Render template with assessment type counts
         return render_template('teacher_dashboard.html', 
                              prompts=prompts, 
@@ -851,12 +867,13 @@ def teacher_dashboard():
                              class_analytics=class_analytics,
                              written_count=written_count,
                              mcq_count=mcq_count,
-                             mixed_count=mixed_count)
+                             mixed_count=mixed_count,
+                             is_school_admin=is_school_admin)
                              
     except Exception as e:
         logger.error(f"Teacher dashboard error: {e}")
         flash('Error loading dashboard.', 'danger')
-        return redirect(url_for('index'))
+        return redirect(url_for('super_admin_dashboard' if session['user_id'] == 'sirius' else 'index'))
 
 @app.route('/teacher/create_prompt', methods=['GET', 'POST'])
 @teacher_required
