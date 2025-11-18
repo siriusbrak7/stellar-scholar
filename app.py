@@ -2703,40 +2703,7 @@ def switch_teacher(teacher_id):
     
     return redirect(request.referrer or url_for('teacher_dashboard'))
 
-@app.route('/switch-teacher/<teacher_id>')
-@login_required
-def switch_teacher(teacher_id):
-    """Switch teacher context for school admins and super admin"""
-    if teacher_id == 'none':
-        session.pop('current_teacher_id', None)
-        flash('Switched to school admin view.', 'info')
-    else:
-        # Verify teacher exists and has permission
-        supabase = get_supabase()
-        if supabase:
-            # For school admins, ensure teacher is in their school
-            if session['user_id'] != 'sirius':
-                user_response = supabase.table('users').select('school_id').eq('username', session['user_id']).execute()
-                user_school = user_response.data[0]['school_id'] if user_response.data else None
-                
-                teacher_response = supabase.table('users').select('username, school_id').eq('username', teacher_id).eq('role', 'teacher').execute()
-                teacher = teacher_response.data[0] if teacher_response.data else None
-                
-                if teacher and teacher['school_id'] == user_school:
-                    session['current_teacher_id'] = teacher_id
-                    flash(f'Switched to {teacher_id} view.', 'info')
-                else:
-                    flash('Teacher not found in your school.', 'danger')
-            else:
-                # Super admin can switch to any teacher
-                teacher_response = supabase.table('users').select('username').eq('username', teacher_id).eq('role', 'teacher').execute()
-                if teacher_response.data:
-                    session['current_teacher_id'] = teacher_id
-                    flash(f'Switched to {teacher_id} view.', 'info')
-                else:
-                    flash('Teacher not found.', 'danger')
-    
-    return redirect(request.referrer or url_for('teacher_dashboard'))
+
 
 @app.route('/school/admin/analytics')
 @school_admin_required
