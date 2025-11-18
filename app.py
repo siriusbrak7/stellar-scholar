@@ -1137,13 +1137,14 @@ def manage_students():
 @app.route('/teacher/delete_student/<username>', methods=['POST'])
 @teacher_required
 def delete_student(username):
+    """Delete student account - accessible to school admins AND super admin"""
     supabase = get_supabase()
     if not supabase:
         flash('Database connection error.', 'danger')
         return redirect(url_for('manage_students'))
     
     try:
-        # Get current user to check permissions
+        # Get current user
         user_response = supabase.table('users').select('*').eq('username', session['user_id']).execute()
         current_user = user_response.data[0] if user_response.data else None
         
@@ -1151,7 +1152,7 @@ def delete_student(username):
             flash('User not found.', 'danger')
             return redirect(url_for('manage_students'))
         
-        # Get student to check if they're in the same school
+        # Get student to delete
         student_response = supabase.table('users').select('*').eq('username', username).execute()
         student = student_response.data[0] if student_response.data else None
         
@@ -1159,15 +1160,28 @@ def delete_student(username):
             flash('Student not found.', 'warning')
             return redirect(url_for('manage_students'))
         
-        # PERMISSION CHECK: Teacher can only delete students from their own school
-        if student.get('school_id') != current_user.get('school_id'):
-            flash('Access denied.', 'danger')
-            return redirect(url_for('manage_students'))
+        # PERMISSION CHECK: 
+        # 1. Super admin (sirius) can delete ANYONE
+        # 2. School admin can delete students in their school
+        # 3. Regular teachers can delete students in their grade/school
+        can_delete = False
         
-        # PERMISSION CHECK: Regular teachers can only delete students from their grade level
-        if (current_user.get('teacher_permissions') == 'classroom' and 
-            student.get('grade') != current_user.get('grade_level_taught')):
-            flash('You can only remove students from your assigned grade level.', 'danger')
+        if session['user_id'] == 'sirius':
+            # Super admin - delete power over everyone
+            can_delete = True
+        elif (current_user.get('is_admin') and 
+              current_user.get('school_id') == student.get('school_id')):
+            # School admin - can delete any student in same school
+            can_delete = True
+        elif (current_user.get('teacher_permissions') == 'classroom' and
+              current_user.get('school_id') == student.get('school_id')):
+            # Regular teacher - check if they have prompts for student's grade
+            prompts_response = supabase.table('prompts').select('id').eq('created_by', session['user_id']).eq('grade_level', student.get('grade')).execute()
+            if prompts_response.data:
+                can_delete = True
+        
+        if not can_delete:
+            flash('Access denied. You can only delete students from your school.', 'danger')
             return redirect(url_for('manage_students'))
         
         # Delete student's submissions first
