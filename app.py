@@ -3017,53 +3017,146 @@ def school_admin_analytics():
         flash('Error loading analytics dashboard.', 'danger')
         return redirect(url_for('school_admin_dashboard'))
 
-@app.route('/super/admin/delete_school/<school_id>', methods=['POST'])
+@app.route('/super/admin/delete_user/<username>', methods=['POST'])
 @super_admin_required
-def super_admin_delete_school(school_id):
-    """Delete an active school and all its data"""
+def super_admin_delete_user(username):
+    """Super admin delete ANY user"""
     supabase = get_supabase()
     if not supabase:
         flash('Database connection error.', 'danger')
-        return redirect(url_for('super_admin_schools'))
+        return redirect(url_for('super_admin_users'))
     
     try:
-        # Get school name before deletion
-        school_response = supabase.table('schools').select('name').eq('id', school_id).execute()
-        school_name = school_response.data[0]['name'] if school_response.data else 'Unknown School'
+        # Delete user's submissions first
+        supabase.table('submissions').delete().eq('student_id', username).execute()
         
-        # Delete all data in this order to respect foreign key constraints:
+        # Delete user's question responses
+        supabase.table('question_responses').delete().eq('student_id', username).execute()
         
-        # 1. Delete question responses (if table exists)
-        try:
-            supabase.table('question_responses').delete().eq('prompt_id', school_id).execute()
-        except:
-            pass  # Table might not exist
+        # Delete prompts created by this user
+        supabase.table('prompts').delete().eq('created_by', username).execute()
         
-        # 2. Delete MCQ questions (if table exists)
-        try:
-            supabase.table('mcq_questions').delete().eq('prompt_id', school_id).execute()
-        except:
-            pass  # Table might not exist
+        # Finally delete the user
+        user_result = supabase.table('users').delete().eq('username', username).execute()
         
-        # 3. Delete submissions
-        supabase.table('submissions').delete().eq('prompt_id', school_id).execute()
-        
-        # 4. Delete prompts
-        supabase.table('prompts').delete().eq('school_id', school_id).execute()
-        
-        # 5. Delete users
-        supabase.table('users').delete().eq('school_id', school_id).execute()
-        
-        # 6. Finally delete the school
-        supabase.table('schools').delete().eq('id', school_id).execute()
-        
-        flash(f'✅ School "{school_name}" and all its data have been permanently deleted.', 'success')
+        if user_result.data:
+            flash(f'✅ User {username} and all their data have been permanently deleted.', 'success')
+        else:
+            flash('User not found or already deleted.', 'warning')
             
     except Exception as e:
-        logger.error(f"Delete school error: {e}")
-        flash('Error deleting school. Please try again.', 'danger')
+        logger.error(f"Super admin delete user error: {e}")
+        flash('Error deleting user.', 'danger')
     
-    return redirect(url_for('super_admin_schools'))
+    return redirect(url_for('super_admin_users'))
+
+@app.route('/super/admin/edit_user/<username>', methods=['GET', 'POST'])
+@super_admin_required
+def super_admin_edit_user(username):
+    """Super admin edit ANY user"""
+    supabase = get_supabase()
+    if not supabase:
+        flash('Database connection error.', 'danger')
+        return redirect(url_for('super_admin_users'))
+    
+    try:
+        # Get user to edit
+        user_response = supabase.table('users').select('*, schools(name)').eq('username', username).execute()
+        user = user_response.data[0] if user_response.data else None
+        
+        if not user:
+            flash('User not found.', 'danger')
+            return redirect(url_for('super_admin_users'))
+        
+        if request.method == 'POST':
+            # Get form data
+            new_role = request.form.get('role')
+            new_school_id = request.form.get('school_id')
+            is_admin = request.form.get('is_admin') == 'on'
+            approval_status = request.form.get('approval_status')
+            teacher_permissions = request.form.get('teacher_permissions', 'classroom')
+            
+            # Update user
+            update_data = {
+                'role': new_role,
+                'school_id': new_school_id,
+                'is_admin': is_admin,
+                'approval_status': approval_status,
+                'teacher_permissions': teacher_permissions
+            }
+            
+            result = supabase.table('users').update(update_data).eq('username', username).execute()
+            
+            if result.data:
+                flash(f'✅ User {username} updated successfully!', 'success')
+                return redirect(url_for('super_admin_users'))
+            else:
+                flash('Failed to update user.', 'danger')
+        
+        # Get all schools for dropdown
+        schools_response = supabase.table('schools').select('*').order('name').execute()
+        schools = schools_response.data if schools_response.data else []
+        
+        return render_template('super_admin_edit_user.html', 
+                             user=user, 
+                             schools=schools)
+                             
+    except Exception as e:
+        logger.error(f"Super admin edit user error: {e}")
+        flash('Error editing user.', 'danger')
+        return redirect(url_for('super_admin_users'))
+
+@app.route('/super/admin/impersonate/<username>')
+@super_admin_required
+def super_admin_impersonate(username):
+    """Super admin impersonate any user"""
+    supabase = get_supabase()
+    if not supabase:
+        flash('Database connection error.', 'danger')
+        return redirect(url_for('super_admin_users'))
+    
+    try:
+        # Get user to impersonate
+        user_response = supabase.table('users').select('*').eq('username', username).execute()
+        user = user_response.data[0] if user_response.data else None
+        
+        if not user:
+            flash('User not found.', 'danger')
+            return redirect(url_for('super_admin_users'))
+        
+        # Store original admin session
+        session['original_admin'] = session['user_id']
+        
+        # Impersonate the user
+        session['user_id'] = user['username']
+        session['role'] = user['role']
+        
+        flash(f'🔓 Now impersonating {username}. Use the "Return to Admin" button to switch back.', 'warning')
+        
+        # Redirect based on role
+        if user['role'] == 'teacher':
+            return redirect(url_for('teacher_dashboard'))
+        else:
+            return redirect(url_for('student_dashboard'))
+            
+    except Exception as e:
+        logger.error(f"Impersonation error: {e}")
+        flash('Error impersonating user.', 'danger')
+        return redirect(url_for('super_admin_users'))
+
+@app.route('/super/admin/return')
+def super_admin_return():
+    """Return to original admin session after impersonation"""
+    if 'original_admin' in session:
+        original_admin = session['original_admin']
+        session['user_id'] = original_admin
+        session['role'] = 'teacher'  # Sirius is always teacher role
+        session.pop('original_admin', None)
+        flash('🔐 Returned to super admin session.', 'success')
+        return redirect(url_for('super_admin_dashboard'))
+    else:
+        flash('No impersonation session found.', 'warning')
+        return redirect(url_for('super_admin_dashboard'))
 
 @app.route('/teacher/student_records')
 @teacher_required
