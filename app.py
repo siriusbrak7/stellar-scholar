@@ -669,15 +669,17 @@ def teacher_dashboard():
         flash('Database connection error.', 'danger')
         return redirect(url_for('index'))
     
-    # REST OF DASHBOARD CODE (use 'user' variable for all queries)
-    # ... existing dashboard code continues ...
+    # Check if user is a teacher or has teacher permissions
+    if user.get('role') != 'teacher' and not user.get('teacher_permissions'):
+        flash('Teacher access required.', 'danger')
+        return redirect(url_for('main.dashboard'))
     
     try:
         # Get filters from query parameters
         grade_filter = request.args.get('grade', 'all')
         category_filter = request.args.get('category', 'all')
         
-        # Get all prompts from user's school only - FIXED DATA LEAK
+        # Get all prompts from user's school only
         prompts_response = supabase.table('prompts').select('*').eq('school_id', user['school_id']).order('created_at', desc=True).execute()
         all_prompts = prompts_response.data if prompts_response.data else []
 
@@ -699,11 +701,11 @@ def teacher_dashboard():
         
         prompts = {prompt['id']: prompt for prompt in filtered_prompts}
         
-        # Get all submissions from user's school only - FIXED DATA LEAK
+        # Get all submissions from user's school only
         submissions_response = supabase.table('submissions').select('*').execute()
         submissions = submissions_response.data if submissions_response.data else []
         
-        # Get all users from user's school only - FIXED DATA LEAK
+        # Get all users from user's school only
         users_response = supabase.table('users').select('*').eq('school_id', user['school_id']).execute()
         users_data = users_response.data if users_response.data else []
         
@@ -733,9 +735,9 @@ def teacher_dashboard():
         }
         
         # Calculate student progress and class analytics
-        for user in users_data:
-            if user.get('role') == 'student':
-                student_grade = user.get('grade')
+        for user_data in users_data:
+            if user_data.get('role') == 'student':
+                student_grade = user_data.get('grade')
                 
                 # Prompts for this student's grade (use ALL prompts to compute expected work)
                 grade_prompts = [p for p in all_prompts if p.get('grade_level') == student_grade]
@@ -743,15 +745,15 @@ def teacher_dashboard():
                 
                 if total_prompts > 0:
                     # Count submissions for this student across all prompts
-                    student_subs = [s for s in submissions if s.get('student_id') == user.get('username')]
+                    student_subs = [s for s in submissions if s.get('student_id') == user_data.get('username')]
                     submitted_count = len(student_subs)
                     graded_subs = [s for s in student_subs if s.get('grade') is not None]
                     
                     completion_rate = (submitted_count / total_prompts) * 100
                     avg_grade = sum(s['grade'] for s in graded_subs) / len(graded_subs) if graded_subs else 0
                     
-                    student_progress[user['username']] = {
-                        'username': user['username'],
+                    student_progress[user_data['username']] = {
+                        'username': user_data['username'],
                         'grade_level': student_grade,
                         'completed_prompts': submitted_count,
                         'total_prompts': total_prompts,
@@ -2434,7 +2436,7 @@ def super_admin_dashboard():
                              recent_schools=[])
 
 # Add placeholder routes for the missing endpoints
-@app.route('/super/admin/users')
+@app.route('/super/admin/users-old')
 @super_admin_required
 def super_admin_users():
     """Placeholder - Platform users management"""
@@ -3096,6 +3098,39 @@ def super_admin_delete_user(username):
     except Exception as e:
         logger.error(f"Super admin delete user error: {e}")
         flash('Error deleting user.', 'danger')
+    
+    return redirect(url_for('super_admin_users'))
+
+@app.route('/super/admin/fix-teacher-school', methods=['POST'])
+@super_admin_required
+def fix_teacher_school():
+    """Fix teacher school assignment"""
+    supabase = get_supabase()
+    if not supabase:
+        flash('Database connection error.', 'danger')
+        return redirect(url_for('super_admin_users'))
+    
+    try:
+        username = request.form.get('username')
+        new_school_id = request.form.get('school_id')
+        
+        if not username or not new_school_id:
+            flash('Username and school are required.', 'danger')
+            return redirect(url_for('super_admin_users'))
+        
+        # Update teacher's school
+        result = supabase.table('users').update({
+            'school_id': new_school_id
+        }).eq('username', username).execute()
+        
+        if result.data:
+            flash(f'✅ Teacher {username} moved to new school successfully!', 'success')
+        else:
+            flash('Teacher not found.', 'warning')
+            
+    except Exception as e:
+        logger.error(f"Fix teacher school error: {e}")
+        flash('Error updating teacher school.', 'danger')
     
     return redirect(url_for('super_admin_users'))
 
