@@ -2,53 +2,42 @@
 
 {% block content %}
 <div class="cosmic-leaderboard">
-    <!-- Animated Space Background -->
-    <div class="space-background">
-        <div class="star-field">
-            <div class="stars"></div>
-            <div class="stars"></div>
-            <div class="stars"></div>
-        </div>
-        <div class="floating-astronaut">👨‍🚀</div>
-        <div class="floating-satellite">🛰️</div>
-        <div class="floating-rocket">🚀</div>
-    </div>
-
     <!-- Cosmic Header -->
-    <div class="cosmic-header text-center mb-5">
+    <div class="cosmic-header text-center mb-4">
         <h1 class="cosmic-title">🌌 Cosmic Leaderboard</h1>
-        <p class="cosmic-subtitle">Race to the top of the galaxy! 🌟</p>
-        <div class="pulsing-orbit">
-            <div class="orbit-ring"></div>
-            <div class="central-star">⭐</div>
-        </div>
+        <p class="cosmic-subtitle">Race to the top of the galaxy! 🚀</p>
     </div>
 
-    <!-- Interactive Filters -->
-    <div class="cosmic-filters">
-        <div class="filter-card">
-            <div class="filter-header">
-                <span class="filter-icon">🎓</span>
-                <h3>Mission Control</h3>
-            </div>
-            <div class="filter-controls">
-                <!-- Grade Filter -->
-                <div class="filter-group">
-                    <label class="filter-label">Select Grade Orbit:</label>
+    <!-- Grade Filter -->
+    <div class="row mb-3">
+        <div class="col-12">
+            <div class="cosmic-filter-card">
+                <div class="filter-body">
+                    <label for="gradeFilter" class="filter-label">
+                        🎓 Select Grade Orbit:
+                    </label>
                     <select id="gradeFilter" class="cosmic-select">
                         <option value="all" {% if current_grade_filter == 'all' %}selected{% endif %}>🌍 All Orbits</option>
-                        <option value="8" {% if current_grade_filter == '8' %}selected{% endif %}>🪐 Grade 8 Orbit</option>
-                        <option value="9" {% if current_grade_filter == '9' %}selected{% endif %}>☄️ Grade 9 Orbit</option>
-                        <option value="10" {% if current_grade_filter == '10' %}selected{% endif %}>🌟 Grade 10 Orbit</option>
-                        <option value="11" {% if current_grade_filter == '11' %}selected{% endif %}>💫 Grade 11 Orbit</option>
-                        <option value="12" {% if current_grade_filter == '12' %}selected{% endif %}>🛸 Grade 12 Orbit</option>
+                        <option value="8" {% if current_grade_filter == '8' %}selected{% endif %}>🪐 Grade 8</option>
+                        <option value="9" {% if current_grade_filter == '9' %}selected{% endif %}>☄️ Grade 9</option>
+                        <option value="10" {% if current_grade_filter == '10' %}selected{% endif %}>🌟 Grade 10</option>
+                        <option value="11" {% if current_grade_filter == '11' %}selected{% endif %}>💫 Grade 11</option>
+                        <option value="12" {% if current_grade_filter == '12' %}selected{% endif %}>🛸 Grade 12</option>
                     </select>
                 </div>
+            </div>
+        </div>
+    </div>
 
-                <!-- School Filter for Sirius -->
-                {% if session.user_id == 'sirius' and available_schools %}
-                <div class="filter-group">
-                    <label class="filter-label">Select Galaxy:</label>
+    <!-- School Filter (Super Admin Only) -->
+    {% if session.user_id == 'sirius' and available_schools %}
+    <div class="row mb-3">
+        <div class="col-12">
+            <div class="cosmic-filter-card">
+                <div class="filter-body">
+                    <label for="schoolFilter" class="filter-label">
+                        🏫 Select Galaxy:
+                    </label>
                     <select id="schoolFilter" class="cosmic-select">
                         <option value="all" {% if current_school_filter == 'all' %}selected{% endif %}>
                             🌌 All Galaxies
@@ -60,254 +49,332 @@
                         {% endfor %}
                     </select>
                 </div>
-                {% endif %}
             </div>
         </div>
     </div>
 
-    <!-- Leaderboard Cards -->
-    <div class="leaderboard-container">
-        {% if leaderboard %}
-        <div class="cosmic-ranks">
-            {% for student in leaderboard %}
-            <div class="cosmic-rank-card rank-{{ student.rank }} {% if student.rank <= 3 %}podium{% endif %}">
-                <!-- Rank Badge -->
-                <div class="rank-badge">
-                    {% if student.rank == 1 %}
-                    <div class="crown">👑</div>
-                    <div class="rank-number">🥇</div>
-                    {% elif student.rank == 2 %}
-                    <div class="rank-number">🥈</div>
-                    {% elif student.rank == 3 %}
-                    <div class="rank-number">🥉</div>
-                    {% else %}
-                    <div class="rank-number">#{{ student.rank }}</div>
-                    {% endif %}
-                </div>
+    <script>
+    document.getElementById('schoolFilter').addEventListener('change', function() {
+        const schoolId = this.value;
+        const currentUrl = new URL(window.location.href);
+        currentUrl.searchParams.set('school', schoolId);
+        window.location.href = currentUrl.toString();
+    });
+    </script>
+    {% endif %}
 
-                <!-- Student Info -->
-                <div class="student-info">
-                    <div class="student-avatar">
-                        {{ ['🚀', '👨‍🚀', '👩‍🚀', '🛸', '☄️', '🌟', '⭐', '🌠'] | random }}
-                    </div>
-                    <div class="student-details">
-                        <h3 class="student-name">{{ student.username }}</h3>
-                        <div class="student-meta">
-                            <span class="grade-badge">Grade {{ student.grade_level }}</span>
-                            {% if session.user_id == 'sirius' %}
+    <!-- Leaderboard Table -->
+    <div class="cosmic-table-card">
+        <div class="card-body">
+            {% if leaderboard %}
+            <table class="table cosmic-table">
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>Student</th>
+                        <th>Grade</th>
+                        <th>Cosmic Score</th>
+                        <th>Mission Completion</th>
+                        {% if session.user_id == 'sirius' %}
+                        <th>School</th>
+                        {% endif %}
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for student in leaderboard %}
+                    <tr class="cosmic-row {% if student.rank <= 3 %}podium-row{% endif %}">
+                        <td class="rank-cell">
+                            <div class="rank-badge">
+                                {% if student.rank == 1 %}🥇
+                                {% elif student.rank == 2 %}🥈  
+                                {% elif student.rank == 3 %}🥉
+                                {% else %}#{{ student.rank }}
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td>
+                            <div class="student-info">
+                                <span class="student-avatar">{{ ['🚀', '👨‍🚀', '👩‍🚀', '🛸', '🌟'] | random }}</span>
+                                <strong>{{ student.username }}</strong>
+                            </div>
+                        </td>
+                        <td>Grade {{ student.grade_level }}</td>
+                        <td>
+                            <span class="score-badge {{ 'legendary' if student.avg_score >= 90 else 'epic' if student.avg_score >= 80 else 'rare' if student.avg_score >= 70 else 'common' }}">
+                                {{ student.avg_score }}%
+                            </span>
+                        </td>
+                        <td>
+                            <div class="completion-container">
+                                <div class="cosmic-progress">
+                                    <div class="progress-fill {{ 'legendary' if student.completion_rate >= 90 else 'epic' if student.completion_rate >= 80 else 'rare' if student.completion_rate >= 70 else 'common' }}" 
+                                         style="width: {{ student.completion_rate }}%">
+                                        <span class="progress-text">{{ student.completion_rate }}%</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                        {% if session.user_id == 'sirius' %}
+                        <td>
                             <span class="school-badge">
                                 {% for school in available_schools %}
                                     {% if school.id == student.school_id %}{{ school.name }}{% endif %}
                                 {% endfor %}
                             </span>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Stats -->
-                <div class="student-stats">
-                    <div class="stat">
-                        <div class="stat-label">Cosmic Score</div>
-                        <div class="stat-value {{ 'legendary' if student.avg_score >= 90 else 'epic' if student.avg_score >= 80 else 'rare' if student.avg_score >= 70 else 'common' }}">
-                            {{ student.avg_score }}%
-                        </div>
-                        <div class="stat-bar">
-                            <div class="stat-fill" style="width: {{ student.avg_score }}%"></div>
-                        </div>
-                    </div>
-                    
-                    <div class="stat">
-                        <div class="stat-label">Mission Completion</div>
-                        <div class="stat-value">{{ student.completion_rate }}%</div>
-                        <div class="progress-ring">
-                            <svg width="60" height="60">
-                                <circle class="progress-ring-background" cx="30" cy="30" r="25"></circle>
-                                <circle class="progress-ring-circle" cx="30" cy="30" r="25" 
-                                        style="stroke-dashoffset: {{ 157 - (157 * student.completion_rate / 100) }}"></circle>
-                            </svg>
-                            <div class="progress-text">{{ student.completion_rate }}%</div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Achievement Badges -->
-                <div class="achievements">
-                    {% if student.avg_score >= 90 %}
-                    <span class="achievement legendary">🌟 Legendary</span>
-                    {% elif student.avg_score >= 80 %}
-                    <span class="achievement epic">🚀 Epic</span>
-                    {% elif student.avg_score >= 70 %}
-                    <span class="achievement rare">💫 Rare</span>
-                    {% else %}
-                    <span class="achievement common">⭐ Rising Star</span>
-                    {% endif %}
-                    
-                    {% if student.completion_rate == 100 %}
-                    <span class="achievement perfect">🎯 Perfect</span>
-                    {% elif student.completion_rate >= 90 %}
-                    <span class="achievement consistent">📈 Consistent</span>
-                    {% endif %}
-                </div>
+                        </td>
+                        {% endif %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="empty-state text-center py-5">
+                <div class="empty-icon">🌌</div>
+                <h4>Quiet Space...</h4>
+                <p class="text-muted">Complete missions to appear on the cosmic leaderboard!</p>
             </div>
-            {% endfor %}
-        </div>
-        {% else %}
-        <!-- Empty State -->
-        <div class="empty-leaderboard">
-            <div class="empty-icon">🌌</div>
-            <h3>Quiet Space...</h3>
-            <p>Complete missions to appear on the cosmic leaderboard!</p>
-            <div class="floating-comets">
-                <div class="comet">☄️</div>
-                <div class="comet">☄️</div>
-                <div class="comet">☄️</div>
-            </div>
-        </div>
-        {% endif %}
-    </div>
-
-    <!-- Live Ranking Updates -->
-    <div class="live-updates">
-        <div class="update-indicator">
-            <span class="pulse-dot"></span>
-            <span>Live Rankings Updated</span>
+            {% endif %}
         </div>
     </div>
 </div>
 
 <style>
 .cosmic-leaderboard {
-    position: relative;
+    background: linear-gradient(135deg, #0a0e27 0%, #16213e 100%);
     min-height: 100vh;
-    background: linear-gradient(135deg, #0a0e27 0%, #16213e 50%, #1a1a2e 100%);
+    padding: 2rem 0;
     color: white;
-    overflow-x: hidden;
-    padding: 2rem 0;
 }
 
-/* Space Background */
-.space-background {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
-    z-index: -1;
-}
-
-.star-field .stars {
-    position: absolute;
-    width: 2px;
-    height: 2px;
-    background: white;
-    border-radius: 50%;
-    animation: twinkle 5s infinite;
-}
-
-.star-field .stars:nth-child(1) { top: 20%; left: 10%; animation-delay: 0s; }
-.star-field .stars:nth-child(2) { top: 60%; left: 80%; animation-delay: 1s; }
-.star-field .stars:nth-child(3) { top: 40%; left: 50%; animation-delay: 2s; }
-
-@keyframes twinkle {
-    0%, 100% { opacity: 0.3; transform: scale(1); }
-    50% { opacity: 1; transform: scale(1.5); }
-}
-
-.floating-astronaut, .floating-satellite, .floating-rocket {
-    position: absolute;
-    font-size: 2rem;
-    animation: floatElement 8s ease-in-out infinite;
-}
-
-.floating-astronaut { top: 15%; right: 10%; animation-delay: 0s; }
-.floating-satellite { top: 70%; left: 5%; animation-delay: 2s; }
-.floating-rocket { bottom: 20%; right: 20%; animation-delay: 4s; }
-
-@keyframes floatElement {
-    0%, 100% { transform: translateY(0px) rotate(0deg); }
-    50% { transform: translateY(-20px) rotate(5deg); }
-}
-
-/* Cosmic Header */
 .cosmic-header {
-    position: relative;
-    padding: 2rem 0;
-}
-
-.cosmic-title {
-    font-size: 3.5rem;
-    font-weight: 700;
-    background: linear-gradient(45deg, #FFD700, #32CD32, #FF6B6B, #4ECDC4);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    margin-bottom: 1rem;
-}
-
-.cosmic-subtitle {
-    font-size: 1.3rem;
-    color: #FFD700;
     margin-bottom: 2rem;
 }
 
-.pulsing-orbit {
+.cosmic-title {
+    font-size: 3rem;
+    font-weight: 700;
+    background: linear-gradient(45deg, #FFD700, #32CD32, #4ECDC4);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 0.5rem;
+}
+
+.cosmic-subtitle {
+    font-size: 1.2rem;
+    color: #FFD700;
+    opacity: 0.9;
+}
+
+.cosmic-filter-card {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 15px;
+    padding: 1rem;
+}
+
+.filter-body {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.filter-label {
+    color: #FFD700;
+    font-weight: 600;
+    margin: 0;
+    white-space: nowrap;
+}
+
+.cosmic-select {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 8px;
+    color: white;
+    padding: 0.5rem 1rem;
+    min-width: 200px;
+}
+
+.cosmic-select:focus {
+    border-color: #FFD700;
+    box-shadow: 0 0 0 2px rgba(255, 215, 0, 0.2);
+    outline: none;
+}
+
+.cosmic-table-card {
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 15px;
+    overflow: hidden;
+}
+
+.cosmic-table {
+    background: transparent;
+    color: white;
+    margin: 0;
+}
+
+.cosmic-table thead {
+    background: rgba(255, 215, 0, 0.2);
+    border-bottom: 2px solid rgba(255, 215, 0, 0.3);
+}
+
+.cosmic-table th {
+    color: #FFD700;
+    font-weight: 600;
+    border: none;
+    padding: 1rem;
+}
+
+.cosmic-table td {
+    border-color: rgba(255, 255, 255, 0.1);
+    padding: 1rem;
+    vertical-align: middle;
+}
+
+.cosmic-row {
+    transition: all 0.3s ease;
+    border-left: 3px solid transparent;
+}
+
+.cosmic-row:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-left-color: #FFD700;
+    transform: translateX(5px);
+}
+
+.podium-row {
+    background: linear-gradient(90deg, rgba(255, 215, 0, 0.1), transparent);
+}
+
+.rank-cell {
+    text-align: center;
+}
+
+.rank-badge {
+    display: inline-block;
+    padding: 0.5rem 1rem;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    font-weight: 700;
+    font-size: 1.1rem;
+    min-width: 50px;
+}
+
+.student-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.student-avatar {
+    font-size: 1.5rem;
+}
+
+.score-badge {
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.score-badge.legendary { background: linear-gradient(45deg, #FFD700, #FF6B6B); color: black; }
+.score-badge.epic { background: linear-gradient(45deg, #9B59B6, #3498DB); color: white; }
+.score-badge.rare { background: linear-gradient(45deg, #3498DB, #2ECC71); color: white; }
+.score-badge.common { background: linear-gradient(45deg, #95A5A6, #7F8C8D); color: white; }
+
+.completion-container {
+    min-width: 150px;
+}
+
+.cosmic-progress {
+    height: 25px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    overflow: hidden;
     position: relative;
-    width: 100px;
-    height: 100px;
-    margin: 0 auto;
 }
 
-.orbit-ring {
-    position: absolute;
-    width: 100%;
+.progress-fill {
     height: 100%;
-    border: 2px solid #FFD700;
-    border-radius: 50%;
-    animation: orbitSpin 3s linear infinite;
+    border-radius: 12px;
+    position: relative;
+    transition: width 0.5s ease;
 }
 
-.central-star {
+.progress-fill.legendary { background: linear-gradient(90deg, #FFD700, #32CD32); }
+.progress-fill.epic { background: linear-gradient(90deg, #9B59B6, #3498DB); }
+.progress-fill.rare { background: linear-gradient(90deg, #3498DB, #2ECC71); }
+.progress-fill.common { background: linear-gradient(90deg, #95A5A6, #7F8C8D); }
+
+.progress-text {
     position: absolute;
+    right: 10px;
     top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    font-size: 2rem;
-    animation: starPulse 2s ease-in-out infinite;
+    transform: translateY(-50%);
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: white;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.5);
 }
 
-@keyframes orbitSpin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+.school-badge {
+    background: rgba(102, 126, 234, 0.3);
+    color: #667eea;
+    padding: 0.25rem 0.75rem;
+    border-radius: 15px;
+    font-size: 0.8rem;
+    font-weight: 600;
 }
 
-@keyframes starPulse {
-    0%, 100% { transform: translate(-50%, -50%) scale(1); }
-    50% { transform: translate(-50%, -50%) scale(1.2); }
+.empty-state {
+    padding: 3rem;
 }
 
-/* Rest of the CSS remains the same but with proper syntax */
-/* ... [rest of your CSS code] ... */
+.empty-icon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+    opacity: 0.7;
+}
 
+.empty-state h4 {
+    color: #FFD700;
+    margin-bottom: 1rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .cosmic-title {
+        font-size: 2rem;
+    }
+    
+    .filter-body {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .cosmic-select {
+        width: 100%;
+    }
+    
+    .student-info {
+        flex-direction: column;
+        text-align: center;
+        gap: 0.5rem;
+    }
+}
 </style>
 
 <script>
-// Filter functionality
 document.getElementById('gradeFilter').addEventListener('change', function () {
     const grade = this.value;
     const currentUrl = new URL(window.location.href);
     currentUrl.searchParams.set('grade', grade);
     window.location.href = currentUrl.toString();
 });
-
-{% if session.user_id == 'sirius' and available_schools %}
-document.getElementById('schoolFilter').addEventListener('change', function() {
-    const schoolId = this.value;
-    const currentUrl = new URL(window.location.href);
-    currentUrl.searchParams.set('school', schoolId);
-    window.location.href = currentUrl.toString();
-});
-{% endif %}
 </script>
 {% endblock %}
