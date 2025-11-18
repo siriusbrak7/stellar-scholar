@@ -31,6 +31,14 @@
                     </div>
                     {% endif %}
 
+                    <!-- DRAFT WARNING BANNER -->
+                    <div id="draft-warning" class="alert alert-warning mb-4" style="display: none;">
+                        <div class="d-flex align-items-center">
+                            <span class="me-2">⚠️</span>
+                            <span><strong>Unsaved Changes:</strong> You have work that hasn't been saved. Don't close this page!</span>
+                        </div>
+                    </div>
+
                     <!-- FORM STARTS -->
                     <form method="POST" id="assessmentForm">
 
@@ -135,30 +143,14 @@
                         </div>
                         {% endif %}
 
-                        <!-- DRAFT CARD (replaces original submit area) -->
-                        <div class="card mt-3">
-                            <div class="card-body">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <div>
-                                        <small class="text-muted" id="draftStatus">
-                                            💾 Draft: <span id="saveStatus">No unsaved changes</span>
-                                        </small>
-                                    </div>
-                                    <div>
-                                        <button type="button" class="btn btn-outline-secondary btn-sm me-2" onclick="saveDraftManually()">
-                                            💾 Save Draft
-                                        </button>
-
-                                        <button type="button" class="btn btn-outline-warning btn-sm me-2" onclick="clearDraftManually()">
-                                            🗑️ Clear Draft
-                                        </button>
-
-                                        <button type="submit" class="btn btn-success">
-                                            ✅ Submit Assessment
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
+                        <!-- Submit Button -->
+                        <div class="text-center mt-4">
+                            <button type="submit" class="btn btn-success btn-lg">
+                                🚀 Submit Assessment
+                            </button>
+                            <small class="d-block text-muted mt-2">
+                                ⚠️ You'll get a warning if you try to leave with unsaved work
+                            </small>
                         </div>
 
                     </form>
@@ -207,100 +199,65 @@
     border: 1px solid rgba(102, 126, 234, 0.2);
     border-radius: 8px;
 }
+
+.alert-warning {
+    background: rgba(255, 193, 7, 0.1);
+    border: 2px solid #ffc107;
+    border-radius: 10px;
+    animation: pulse-warning 2s infinite;
+}
+
+@keyframes pulse-warning {
+    0%, 100% { border-color: #ffc107; }
+    50% { border-color: #ff9800; }
+}
 </style>
 
-<!-- DRAFT SYSTEM SCRIPT -->
+<!-- SIMPLE DRAFT WARNING SYSTEM -->
 <script>
 let hasUnsavedChanges = false;
-let autoSaveInterval;
 
 document.addEventListener('DOMContentLoaded', function() {
+    // Track all form inputs
     const textareas = document.querySelectorAll('textarea');
-    const inputs = document.querySelectorAll('input[type="text"], select');
+    const inputs = document.querySelectorAll('input[type="text"], input[type="radio"]');
     const allInputs = [...textareas, ...inputs];
 
     allInputs.forEach(input => {
         input.addEventListener('input', function() {
             hasUnsavedChanges = true;
-            document.getElementById('saveStatus').innerText = "Unsaved changes";
+            document.getElementById('draft-warning').style.display = 'block';
+        });
+        
+        input.addEventListener('change', function() {
+            hasUnsavedChanges = true;
+            document.getElementById('draft-warning').style.display = 'block';
         });
     });
 
-    autoSaveInterval = setInterval(saveDraft, 30000);
+    // Warn before leaving page
     window.addEventListener('beforeunload', function(e) {
         if (hasUnsavedChanges) {
             e.preventDefault();
-            e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
+            e.returnValue = '⚠️ You have unsaved work! Are you sure you want to leave?';
+            return '⚠️ You have unsaved work! Are you sure you want to leave?';
         }
     });
 
-    loadDraft();
+    // Clear warning on submit
+    document.getElementById('assessmentForm').addEventListener('submit', function() {
+        hasUnsavedChanges = false;
+        document.getElementById('draft-warning').style.display = 'none';
+    });
 });
 
-function saveDraft() {
-    if (!hasUnsavedChanges) return;
-
-    const formData = new FormData(document.getElementById('assessmentForm'));
-    const draftData = {};
-
-    for (let [key, value] of formData.entries()) {
-        draftData[key] = value;
-    }
-
-    localStorage.setItem('assessment_draft_{{ prompt.id }}', JSON.stringify(draftData));
-    document.getElementById('saveStatus').innerText = "Draft auto-saved";
-    hasUnsavedChanges = false;
-}
-
-function loadDraft() {
-    const draft = localStorage.getItem('assessment_draft_{{ prompt.id }}');
-    if (draft) {
-        if (confirm('You have a saved draft for this assessment. Would you like to load it?')) {
-            const draftData = JSON.parse(draft);
-            for (let [key, value] of Object.entries(draftData)) {
-                const element = document.querySelector(`[name="${key}"]`);
-                if (element) element.value = value;
-            }
-            hasUnsavedChanges = false;
-        }
-    }
-}
-
-function clearDraft() {
-    localStorage.removeItem('assessment_draft_{{ prompt.id }}');
-    hasUnsavedChanges = false;
-    document.getElementById('saveStatus').innerText = "Draft cleared";
-}
-
-function confirmSubmission() {
-    if (hasUnsavedChanges) {
-        return confirm('⚠️ You have unsaved changes. Submit anyway?');
-    }
-    return confirm('Are you sure you want to submit this assessment?');
-}
-
+// Optional: Add confirmation for submission
 document.getElementById('assessmentForm').addEventListener('submit', function(e) {
-    if (!confirmSubmission()) {
+    if (!confirm('🚀 Ready to submit your assessment? This cannot be undone.')) {
         e.preventDefault();
         return false;
     }
-
-    clearDraft();
-    clearInterval(autoSaveInterval);
     return true;
 });
-
-function saveDraftManually() {
-    saveDraft();
-    alert('Draft saved successfully!');
-}
-
-function clearDraftManually() {
-    if (confirm('Are you sure you want to clear your draft? This cannot be undone.')) {
-        clearDraft();
-        document.getElementById('assessmentForm').reset();
-        alert('Draft cleared!');
-    }
-}
 </script>
 {% endblock %}
