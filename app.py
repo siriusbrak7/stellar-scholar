@@ -453,6 +453,12 @@ def register():
         grade = request.form.get('grade') if role == 'student' else None
         security_question = request.form.get('security_question', '').strip()
         security_answer = request.form.get('security_answer', '').strip()
+        school_id = request.form.get('school_id')
+        
+        # Get subjects for teachers
+        subjects = []
+        if role == 'teacher':
+            subjects = request.form.getlist('subjects')  # Get multiple selections
 
         # Basic validation
         if not username or not password:
@@ -476,12 +482,17 @@ def register():
                 'password_hash': generate_password_hash(password),
                 'role': role,
                 'approval_status': 'pending',
-                'created_at': datetime.now().isoformat()
+                'created_at': datetime.now().isoformat(),
+                'school_id': school_id
             }
 
             # Add grade if student
             if role == 'student' and grade:
                 user_data['grade'] = grade
+
+            # Add subjects if teacher
+            if role == 'teacher' and subjects:
+                user_data['subjects'] = subjects  # This will be stored as array in Supabase
 
             # ✅ ADD SECURITY QUESTION FOR ALL USERS (not just students)
             if security_question and security_answer:
@@ -489,10 +500,6 @@ def register():
                 user_data['security_answer_hash'] = generate_password_hash(
                     security_answer.lower().strip()
                 )
-
-            # ✅ Add school_id
-            school_id = request.form.get('school_id')
-            user_data['school_id'] = school_id
 
             # Insert into database
             result = supabase.table('users').insert(user_data).execute()
@@ -681,28 +688,31 @@ def teacher_dashboard():
         else:
             school_id = user['school_id']
         
-        if not school_id:
-            flash('School context required.', 'danger')
-            return redirect(url_for('super_admin_dashboard' if session['user_id'] == 'sirius' else 'index'))
-        
         # -----------------------------------------------------------
-        # NEW SUBJECT FILTERING (clean + correct)
+        # ✅ UPDATED SCHOOL CONTEXT LOGIC (as you requested)
+        # -----------------------------------------------------------
+        if not school_id and session['user_id'] == 'sirius':
+            # Sirius without school context should go to super admin dashboard WITHOUT error
+            return redirect(url_for('super_admin_dashboard'))
+        elif not school_id:
+            flash('School context required.', 'danger')
+            return redirect(url_for('index'))
+        # -----------------------------------------------------------
+
+        # -----------------------------------------------------------
+        # SUBJECT FILTERING (correct logic)
         # -----------------------------------------------------------
         prompts_query = supabase.table('prompts').select('*').eq('school_id', school_id)
 
-        is_sirius = session['user_id'] == 'sirius'
-        is_school_admin = user.get('teacher_permissions') == 'admin'
-        is_classroom_teacher = user.get('teacher_permissions') == 'classroom'
+        is_regular_teacher = (
+            session['user_id'] != 'sirius' and
+            user.get('teacher_permissions') == 'classroom' and
+            user.get('subjects')
+        )
 
-        # Apply subject filtering ONLY for regular classroom teachers
-        if (not is_sirius and
-            not is_school_admin and
-            is_classroom_teacher and
-            user.get('subjects')):
-            
+        if is_regular_teacher:
             prompts_query = prompts_query.in_("subject", user['subjects'])
         
-        # Load prompts
         prompts_response = prompts_query.order('created_at', desc=True).execute()
         all_prompts = prompts_response.data if prompts_response.data else []
         # -----------------------------------------------------------
@@ -725,11 +735,11 @@ def teacher_dashboard():
 
         prompts = {p['id']: p for p in filtered_prompts}
 
-        # Get all submissions from the school
+        # Get all submissions
         submissions_response = supabase.table('submissions').select('*').execute()
         submissions = submissions_response.data if submissions_response.data else []
 
-        # Get all users from the school
+        # Get all users for the school
         users_response = supabase.table('users').select('*').eq('school_id', school_id).execute()
         users_data = users_response.data if users_response.data else []
 
@@ -860,6 +870,7 @@ def teacher_dashboard():
         logger.error(f"Teacher dashboard error: {e}")
         flash('Error loading dashboard.', 'danger')
         return redirect(url_for('super_admin_dashboard' if session['user_id'] == 'sirius' else 'index'))
+
 
 
 

@@ -5,6 +5,7 @@
     <div class="container">
         <div class="row justify-content-center">
             <div class="col-md-6">
+
                 <!-- Header -->
                 <div class="register-header text-center mb-4">
                     <h1 class="register-title">🚀 Join Stellar Scholar</h1>
@@ -35,18 +36,34 @@
                             <div class="role-selection">
                                 <div class="form-check">
                                     <input class="form-check-input" type="radio" name="role" id="teacher" value="teacher" required>
-                                    <label class="form-check-label" for="teacher">
-                                        👨‍🏫 Teacher
-                                    </label>
+                                    <label class="form-check-label" for="teacher">👨‍🏫 Teacher</label>
                                 </div>
 
                                 <div class="form-check">
                                     <input class="form-check-input" type="radio" name="role" id="student" value="student">
-                                    <label class="form-check-label" for="student">
-                                        👨‍🎓 Student
-                                    </label>
+                                    <label class="form-check-label" for="student">👨‍🎓 Student</label>
                                 </div>
                             </div>
+                        </div>
+
+                        <!-- SUBJECT SELECTION (TEACHERS ONLY) -->
+                        <div class="mb-3" id="subjectSection" style="display:none;">
+                            <label class="form-label">Subjects You Teach (select multiple):</label>
+                            <select name="subjects" class="form-select" id="subjects" multiple>
+                                <option value="math">Mathematics</option>
+                                <option value="science">Science</option>
+                                <option value="english">English</option>
+                                <option value="history">History</option>
+                                <option value="geography">Geography</option>
+                                <option value="art">Art</option>
+                                <option value="music">Music</option>
+                                <option value="pe">Physical Education</option>
+                                <option value="computers">Computer Science</option>
+                                <option value="language">Foreign Language</option>
+                            </select>
+                            <small class="form-text text-muted">
+                                Hold Ctrl/Cmd to select multiple subjects
+                            </small>
                         </div>
 
                         <!-- School Selection -->
@@ -65,7 +82,7 @@
                         </div>
 
                         <!-- Grade Level (Students Only) -->
-                        <div class="mb-3" id="gradeSection" style="display: none;">
+                        <div class="mb-3" id="gradeSection" style="display:none;">
                             <label for="grade" class="form-label">Grade Level</label>
                             <select class="form-control" id="grade" name="grade">
                                 <option value="">Select your grade</option>
@@ -78,7 +95,7 @@
                             </select>
                         </div>
 
-                        <!-- Security Questions (FOR ALL USERS) -->
+                        <!-- Security Questions -->
                         <div class="mb-3">
                             <label for="security_question" class="form-label">Security Question</label>
                             <select class="form-control" id="security_question" name="security_question" required>
@@ -98,9 +115,6 @@
                             <label for="security_answer" class="form-label">Security Answer</label>
                             <input type="text" class="form-control" id="security_answer" name="security_answer"
                                    placeholder="Your answer (remember this for password reset)" required>
-                            <div class="form-text">
-                                This will be used to verify your identity if you forget your password.
-                            </div>
                         </div>
 
                         <button type="submit" class="btn btn-primary w-100 py-2">
@@ -116,13 +130,14 @@
                     </div>
                 </div>
 
-                <!-- Registration Info -->
+                <!-- Info -->
                 <div class="alert alert-info mt-4" style="color: #000000 !important; background-color: #d1ecf1 !important; border-color: #bee5eb !important;">
                     <small style="color: #000000 !important;">
                         <strong>Note:</strong> All accounts require admin approval.<br>
                         You will be able to login once your account is approved.
                     </small>
                 </div>
+
             </div>
         </div>
     </div>
@@ -133,24 +148,32 @@ document.addEventListener('DOMContentLoaded', function() {
     const teacherRadio = document.getElementById('teacher');
     const studentRadio = document.getElementById('student');
     const gradeSection = document.getElementById('gradeSection');
+    const subjectSection = document.getElementById('subjectSection');
     const gradeSelect = document.getElementById('grade');
+    const subjectsSelect = document.getElementById('subjects');
 
-    function toggleStudentSections() {
+    function toggleSections() {
         if (studentRadio.checked) {
             gradeSection.style.display = 'block';
             gradeSelect.required = true;
-        } else {
+
+            subjectSection.style.display = 'none';
+            subjectsSelect.required = false;
+        } 
+        else if (teacherRadio.checked) {
+            subjectSection.style.display = 'block';
+            subjectsSelect.required = true;
+
             gradeSection.style.display = 'none';
             gradeSelect.required = false;
-            gradeSelect.value = '';
+            gradeSelect.value = "";
         }
     }
 
-    teacherRadio.addEventListener('change', toggleStudentSections);
-    studentRadio.addEventListener('change', toggleStudentSections);
+    teacherRadio.addEventListener('change', toggleSections);
+    studentRadio.addEventListener('change', toggleSections);
 
-    // Initialize on page load
-    toggleStudentSections();
+    toggleSections();
 });
 </script>
 
@@ -204,6 +227,35 @@ document.addEventListener('DOMContentLoaded', function() {
 .form-control:focus {
     border-color: #667eea;
     box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+/* Style for multi-select dropdown */
+select[multiple] {
+    min-height: 120px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 0.5rem;
+    transition: all 0.3s ease;
+}
+
+select[multiple]:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+select[multiple] option {
+    padding: 8px 12px;
+    border-bottom: 1px solid #eee;
+    cursor: pointer;
+}
+
+select[multiple] option:hover {
+    background-color: #f8f9fa;
+}
+
+select[multiple] option:checked {
+    background-color: #667eea;
+    color: white;
 }
 
 .role-selection {
@@ -269,7 +321,6 @@ document.addEventListener('DOMContentLoaded', function() {
     text-decoration: underline;
 }
 
-/* Responsive Design */
 @media (max-width: 768px) {
     .universal-register {
         padding: 1rem;
@@ -290,6 +341,11 @@ document.addEventListener('DOMContentLoaded', function() {
     
     .form-check {
         min-width: auto;
+    }
+    
+    /* Adjust multi-select for mobile */
+    select[multiple] {
+        min-height: 100px;
     }
 }
 </style>
