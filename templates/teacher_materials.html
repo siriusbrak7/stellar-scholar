@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>📚 Study Materials</h2>
+        <a href="{{ url_for('upload_material') }}" class="btn btn-success">➕ Upload Material</a>
+    </div>
+
+    <div class="row">
+        {% for material in materials %}
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title">{{ material.title }}</h5>
+                    <small class="text-muted">
+                        {{ material.material_type|title }} • {{ material.subject|title }} • Grade {{ material.grade_level }}
+                    </small>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">{{ material.description }}</p>
+                    
+                    {% if material.material_type == 'file' %}
+                        <span class="badge bg-primary">📄 File</span>
+                    {% elif material.material_type == 'video' %}
+                        <span class="badge bg-danger">🎥 Video</span>
+                    {% elif material.material_type == 'web' %}
+                        <span class="badge bg-info">🌐 Web Link</span>
+                    {% elif material.material_type == 'text' %}
+                        <span class="badge bg-secondary">📝 Text</span>
+                    {% endif %}
+                    
+                    {% if material.tags %}
+                        <div class="mt-2">
+                            {% for tag in material.tags %}
+                            <span class="badge bg-light text-dark">{{ tag }}</span>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="card-footer">
+                    <form method="POST" action="{{ url_for('delete_material', material_id=material.id) }}" 
+                          class="d-inline" onsubmit="return confirm('Delete this material?')">
+                        <button type="submit" class="btn btn-outline-danger btn-sm">🗑️ Delete</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="col-12 text-center py-5">
+            <h4>No study materials yet</h4>
+            <p class="text-muted">Upload your first study material to get started!</p>
+            <a href="{{ url_for('upload_material') }}" class="btn btn-success">Upload Material</a>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

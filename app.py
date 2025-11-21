@@ -4,6 +4,8 @@ from functools import wraps
 import json
 import os
 from datetime import datetime, timedelta
+import uuid
+from werkzeug.utils import secure_filename
 
 import supabase
 from config import Config
@@ -13,6 +15,13 @@ import logging
 
 app = Flask(__name__)
 app.config.from_object(Config)
+
+# Configure upload settings
+ALLOWED_EXTENSIONS = {'pdf', 'doc', 'docx', 'txt', 'ppt', 'pptx', 'jpg', 'jpeg', 'png'}
+MAX_FILE_SIZE = 16 * 1024 * 1024  # 16MB
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -3329,6 +3338,123 @@ def super_admin_delete_school(school_id):
         flash('Error deleting school. Please try again.', 'danger')
     
     return redirect(url_for('super_admin_schools'))
+
+@app.route('/teacher/materials')
+@teacher_required
+def teacher_materials():
+    """Teacher's study materials management"""
+    supabase = get_supabase()
+    user_response = supabase.table('users').select('school_id').eq('username', session['user_id']).execute()
+    school_id = user_response.data[0]['school_id'] if user_response.data else None
+    
+    materials_response = supabase.table('study_materials').select('*').eq('school_id', school_id).order('created_at', desc=True).execute()
+    materials = materials_response.data if materials_response.data else []
+    
+    return render_template('teacher_materials.html', materials=materials)
+
+@app.route('/teacher/upload_material', methods=['GET', 'POST'])
+@teacher_required
+def upload_material():
+    """Upload study materials"""
+    if request.method == 'POST':
+        supabase = get_supabase()
+        
+        # Get form data
+        title = request.form.get('title', '').strip()
+        description = request.form.get('description', '').strip()
+        material_type = request.form.get('material_type')
+        subject = request.form.get('subject')
+        grade_level = request.form.get('grade_level')
+        tags = [tag.strip() for tag in request.form.get('tags', '').split(',') if tag.strip()]
+        
+        # Get user and school info
+        user_response = supabase.table('users').select('school_id').eq('username', session['user_id']).execute()
+        school_id = user_response.data[0]['school_id'] if user_response.data else None
+        
+        # Handle different material types
+        file_url = None
+        video_url = None
+        web_url = None
+        content_text = None
+        
+        if material_type == 'file':
+            file = request.files.get('file')
+            if file and allowed_file(file.filename):
+                filename = secure_filename(file.filename)
+                # In production, you'd upload to cloud storage
+                # For now, we'll store metadata only
+                file_url = f"uploaded/{filename}"
+        
+        elif material_type == 'video':
+            video_url = request.form.get('video_url', '').strip()
+        
+        elif material_type == 'web':
+            web_url = request.form.get('web_url', '').strip()
+        
+        elif material_type == 'text':
+            content_text = request.form.get('content_text', '').strip()
+        
+        # Create material record
+        material_id = f"material_{uuid.uuid4().hex[:12]}"
+        material_data = {
+            'id': material_id,
+            'title': title,
+            'description': description,
+            'material_type': material_type,
+            'subject': subject,
+            'grade_level': grade_level,
+            'created_by': session['user_id'],
+            'school_id': school_id,
+            'tags': tags,
+            'file_url': file_url,
+            'video_url': video_url,
+            'web_url': web_url,
+            'content_text': content_text,
+            'created_at': datetime.now().isoformat()
+        }
+        
+        result = supabase.table('study_materials').insert(material_data).execute()
+        
+        if result.data:
+            flash('Study material uploaded successfully!', 'success')
+            return redirect(url_for('teacher_materials'))
+        else:
+            flash('Error uploading material.', 'danger')
+    
+    return render_template('upload_material.html')
+
+@app.route('/student/materials')
+@student_required
+def student_materials():
+    """Student view of study materials"""
+    supabase = get_supabase()
+    user_response = supabase.table('users').select('school_id, grade').eq('username', session['user_id']).execute()
+    user_data = user_response.data[0] if user_response.data else None
+    
+    if not user_data:
+        return redirect(url_for('student_dashboard'))
+    
+    # Get materials for student's grade and school
+    materials_response = supabase.table('study_materials').select('*').eq('school_id', user_data['school_id']).eq('grade_level', user_data['grade']).order('created_at', desc=True).execute()
+    materials = materials_response.data if materials_response.data else []
+    
+    return render_template('student_materials.html', materials=materials)
+
+@app.route('/material/delete/<material_id>', methods=['POST'])
+@teacher_required
+def delete_material(material_id):
+    """Delete a study material"""
+    supabase = get_supabase()
+    
+    # Verify ownership
+    material_response = supabase.table('study_materials').select('created_by').eq('id', material_id).execute()
+    if material_response.data and material_response.data[0]['created_by'] == session['user_id']:
+        supabase.table('study_materials').delete().eq('id', material_id).execute()
+        flash('Material deleted successfully!', 'success')
+    else:
+        flash('Access denied or material not found.', 'danger')
+    
+    return redirect(url_for('teacher_materials'))
 
 if __name__ == '__main__':
     app.run(debug=True)
