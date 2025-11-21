@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>📚 Study Materials</h2>
+        <small class="text-muted">AI-powered explanations available</small>
+    </div>
+
+    <!-- Filter Options -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4">
+                    <label class="form-label">Filter by Subject:</label>
+                    <select class="form-select" id="subjectFilter">
+                        <option value="all">All Subjects</option>
+                        <option value="math">Mathematics</option>
+                        <option value="science">Science</option>
+                        <option value="english">English</option>
+                        <option value="history">History</option>
+                        <option value="geography">Geography</option>
+                        <option value="art">Art</option>
+                        <option value="music">Music</option>
+                        <option value="pe">Physical Education</option>
+                        <option value="computers">Computer Science</option>
+                        <option value="language">Foreign Language</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Filter by Type:</label>
+                    <select class="form-select" id="typeFilter">
+                        <option value="all">All Types</option>
+                        <option value="file">Files</option>
+                        <option value="video">Videos</option>
+                        <option value="web">Web Links</option>
+                        <option value="text">Text</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row" id="materialsContainer">
+        {% for material in materials %}
+        <div class="col-md-6 col-lg-4 mb-4 material-card" 
+             data-subject="{{ material.subject }}" 
+             data-type="{{ material.material_type }}">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="card-title">{{ material.title }}</h5>
+                    <small class="text-muted">
+                        {{ material.material_type|title }} • {{ material.subject|title }}
+                    </small>
+                </div>
+                <div class="card-body">
+                    {% if material.description %}
+                    <p class="card-text">{{ material.description }}</p>
+                    {% endif %}
+                    
+                    <!-- Material Type Badge -->
+                    {% if material.material_type == 'file' %}
+                        <span class="badge bg-primary">📄 File</span>
+                    {% elif material.material_type == 'video' %}
+                        <span class="badge bg-danger">🎥 Video</span>
+                    {% elif material.material_type == 'web' %}
+                        <span class="badge bg-info">🌐 Web Link</span>
+                    {% elif material.material_type == 'text' %}
+                        <span class="badge bg-secondary">📝 Text</span>
+                    {% endif %}
+                    
+                    <!-- Tags -->
+                    {% if material.tags %}
+                        <div class="mt-2">
+                            {% for tag in material.tags %}
+                            <span class="badge bg-light text-dark">{{ tag }}</span>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                    
+                    <!-- Resource Links -->
+                    <div class="mt-3">
+                        {% if material.material_type == 'file' and material.file_url %}
+                        <a href="{{ material.file_url }}" class="btn btn-outline-primary btn-sm w-100 mb-2" target="_blank">
+                            📄 Download File
+                        </a>
+                        {% elif material.material_type == 'video' and material.video_url %}
+                        <a href="{{ material.video_url }}" class="btn btn-outline-danger btn-sm w-100 mb-2" target="_blank">
+                            🎥 Watch Video
+                        </a>
+                        {% elif material.material_type == 'web' and material.web_url %}
+                        <a href="{{ material.web_url }}" class="btn btn-outline-info btn-sm w-100 mb-2" target="_blank">
+                            🌐 Visit Website
+                        </a>
+                        {% elif material.material_type == 'text' and material.content_text %}
+                        <button class="btn btn-outline-secondary btn-sm w-100 mb-2" 
+                                onclick="showTextContent('{{ material.content_text|replace("'", "\\'")|replace('\n', '\\n') }}')">
+                            📖 Read Text
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <div class="btn-group w-100">
+                        <a href="{{ url_for('ai_explain', material_id=material.id) }}" class="btn btn-primary btn-sm">
+                            🤖 Explain with AI
+                        </a>
+                        <a href="{{ url_for('ai_summarize', material_id=material.id) }}" class="btn btn-outline-info btn-sm">
+                            📋 AI Summary
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="col-12 text-center py-5">
+            <h4>No study materials available</h4>
+            <p class="text-muted">Your teachers haven't uploaded any materials for your grade yet.</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Text Content Modal -->
+<div class="modal fade" id="textModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Text Content</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="textContent" style="white-space: pre-wrap; line-height: 1.6;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function showTextContent(content) {
+    document.getElementById('textContent').textContent = content;
+    new bootstrap.Modal(document.getElementById('textModal')).show();
+}
+
+// Filter functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const subjectFilter = document.getElementById('subjectFilter');
+    const typeFilter = document.getElementById('typeFilter');
+    const materials = document.querySelectorAll('.material-card');
+    
+    function filterMaterials() {
+        const subjectValue = subjectFilter.value;
+        const typeValue = typeFilter.value;
+        
+        materials.forEach(card => {
+            const subjectMatch = subjectValue === 'all' || card.dataset.subject === subjectValue;
+            const typeMatch = typeValue === 'all' || card.dataset.type === typeValue;
+            
+            card.style.display = (subjectMatch && typeMatch) ? 'block' : 'none';
+        });
+    }
+    
+    subjectFilter.addEventListener('change', filterMaterials);
+    typeFilter.addEventListener('change', filterMaterials);
+});
+</script>
+
+<style>
+.material-card {
+    transition: transform 0.2s;
+}
+
+.material-card:hover {
+    transform: translateY(-2px);
+}
+
+.card {
+    border: none;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+</style>
+{% endblock %}

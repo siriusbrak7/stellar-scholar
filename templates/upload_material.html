@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">📤 Upload Study Material</h4>
+                </div>
+                <div class="card-body">
+                    <form method="POST" enctype="multipart/form-data">
+                        <!-- Basic Info -->
+                        <div class="mb-3">
+                            <label class="form-label">Title *</label>
+                            <input type="text" class="form-control" name="title" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Description</label>
+                            <textarea class="form-control" name="description" rows="3" placeholder="Brief description of the material..."></textarea>
+                        </div>
+                        
+                        <!-- Material Type Selection -->
+                        <div class="mb-3">
+                            <label class="form-label">Material Type *</label>
+                            <select class="form-select" name="material_type" id="materialType" required>
+                                <option value="">Select type...</option>
+                                <option value="file">File Upload (PDF, DOC, PPT, Images)</option>
+                                <option value="video">Video Link (YouTube, Vimeo, etc.)</option>
+                                <option value="web">Webpage Link</option>
+                                <option value="text">Text Content</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Dynamic Fields Based on Type -->
+                        <div id="fileFields" class="material-fields" style="display: none;">
+                            <div class="mb-3">
+                                <label class="form-label">Upload File</label>
+                                <input type="file" class="form-control" name="file" accept=".pdf,.doc,.docx,.txt,.ppt,.pptx,.jpg,.jpeg,.png">
+                                <small class="form-text text-muted">Max size: 16MB. Supported: PDF, DOC, PPT, Images</small>
+                            </div>
+                        </div>
+                        
+                        <div id="videoFields" class="material-fields" style="display: none;">
+                            <div class="mb-3">
+                                <label class="form-label">Video URL *</label>
+                                <input type="url" class="form-control" name="video_url" placeholder="https://youtube.com/watch?v=...">
+                            </div>
+                        </div>
+                        
+                        <div id="webFields" class="material-fields" style="display: none;">
+                            <div class="mb-3">
+                                <label class="form-label">Webpage URL *</label>
+                                <input type="url" class="form-control" name="web_url" placeholder="https://example.com/educational-content">
+                            </div>
+                        </div>
+                        
+                        <div id="textFields" class="material-fields" style="display: none;">
+                            <div class="mb-3">
+                                <label class="form-label">Text Content *</label>
+                                <textarea class="form-control" name="content_text" rows="6" placeholder="Paste or type your educational content here..."></textarea>
+                            </div>
+                        </div>
+                        
+                        <!-- Subject and Grade -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Subject *</label>
+                                    <select class="form-select" name="subject" required>
+                                        <option value="math">Mathematics</option>
+                                        <option value="science">Science</option>
+                                        <option value="english">English</option>
+                                        <option value="history">History</option>
+                                        <option value="geography">Geography</option>
+                                        <option value="art">Art</option>
+                                        <option value="music">Music</option>
+                                        <option value="pe">Physical Education</option>
+                                        <option value="computers">Computer Science</option>
+                                        <option value="language">Foreign Language</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Grade Level *</label>
+                                    <select class="form-select" name="grade_level" required>
+                                        {% for grade in [1,2,3,4,5,6,7,8,9,10,11,12] %}
+                                        <option value="{{ grade }}">Grade {{ grade }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Tags -->
+                        <div class="mb-3">
+                            <label class="form-label">Tags</label>
+                            <input type="text" class="form-control" name="tags" placeholder="concepts, topics, keywords (comma separated)">
+                            <small class="form-text text-muted">e.g., algebra, equations, problem-solving</small>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-success">📤 Upload Material</button>
+                            <a href="{{ url_for('teacher_materials') }}" class="btn btn-secondary">Cancel</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const materialType = document.getElementById('materialType');
+    const allFields = document.querySelectorAll('.material-fields');
+    
+    materialType.addEventListener('change', function() {
+        // Hide all fields first
+        allFields.forEach(field => field.style.display = 'none');
+        
+        // Show relevant fields
+        const type = this.value;
+        if (type) {
+            document.getElementById(type + 'Fields').style.display = 'block';
+        }
+    });
+});
+</script>
+
+<style>
+.material-fields {
+    border-left: 4px solid #007bff;
+    padding-left: 15px;
+    margin-bottom: 20px;
+}
+</style>
+{% endblock %}

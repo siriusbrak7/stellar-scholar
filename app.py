@@ -698,10 +698,9 @@ def teacher_dashboard():
             school_id = user['school_id']
         
         # -----------------------------------------------------------
-        # ✅ UPDATED SCHOOL CONTEXT LOGIC (as you requested)
+        # ✅ UPDATED SCHOOL CONTEXT LOGIC (as requested)
         # -----------------------------------------------------------
         if not school_id and session['user_id'] == 'sirius':
-            # Sirius without school context should go to super admin dashboard WITHOUT error
             return redirect(url_for('super_admin_dashboard'))
         elif not school_id:
             flash('School context required.', 'danger')
@@ -858,6 +857,13 @@ def teacher_dashboard():
             (user.get('is_admin') and user.get('role') == 'teacher')
         )
 
+        # -----------------------------------------------------------
+        # ✅ ADD STUDY MATERIALS COUNT
+        # -----------------------------------------------------------
+        materials_response = supabase.table('study_materials').select('id').eq('school_id', school_id).execute()
+        materials_count = len(materials_response.data) if materials_response.data else 0
+        # -----------------------------------------------------------
+
         return render_template(
             'teacher_dashboard.html',
             prompts=prompts,
@@ -872,13 +878,15 @@ def teacher_dashboard():
             written_count=written_count,
             mcq_count=mcq_count,
             mixed_count=mixed_count,
-            is_school_admin=is_school_admin
+            is_school_admin=is_school_admin,
+            materials_count=materials_count   # ✅ PASSED TO TEMPLATE
         )
     
     except Exception as e:
         logger.error(f"Teacher dashboard error: {e}")
         flash('Error loading dashboard.', 'danger')
         return redirect(url_for('super_admin_dashboard' if session['user_id'] == 'sirius' else 'index'))
+
 
 
 
