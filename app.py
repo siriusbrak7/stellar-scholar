@@ -7,6 +7,10 @@ from datetime import datetime, timedelta
 import uuid
 from werkzeug.utils import secure_filename
 
+import google.generativeai as genai
+import requests
+from bs4 import BeautifulSoup
+
 import supabase
 from config import Config
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -15,6 +19,120 @@ import logging
 
 app = Flask(__name__)
 app.config.from_object(Config)
+
+# ------------------------------------------------------
+# ✅ GOOGLE AI (GEMINI) CONFIGURATION
+# ------------------------------------------------------
+
+# IMPORTANT: Do NOT hardcode your API key here.
+# Set it as an environment variable instead:
+# On Windows CMD:
+#   set GOOGLE_API_KEY=your_key_here
+#
+# On Linux/Mac:
+#   export GOOGLE_API_KEY=your_key_here
+
+GOOGLE_API_KEY = os.environ.get('AIzaSyAO9bQd3zzHK5lDFDTVjbYlJxKPjIx9caA')
+
+if GOOGLE_API_KEY:
+    genai.configure(api_key=GOOGLE_API_KEY)
+else:
+    print("⚠️ GOOGLE_API_KEY not found. AI features disabled.")
+
+
+# ------------------------------------------------------
+# ✅ EXTRACT TEXT FROM WEBPAGES (for study material URL uploads)
+# ------------------------------------------------------
+
+def extract_webpage_content(url):
+    """Extract readable text content from a webpage."""
+    try:
+        response = requests.get(url, timeout=10)
+        soup = BeautifulSoup(response.content, 'html.parser')
+
+        # remove unnecessary tags
+        for tag in soup(["script", "style"]):
+            tag.decompose()
+
+        # extract visible text, clean spacing
+        text = soup.get_text()
+        lines = (line.strip() for line in text.splitlines())
+        chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
+        text = " ".join(chunk for chunk in chunks if chunk)
+
+        return text[:4000]  # limit size for AI
+    except:
+        return None
+
+
+# ------------------------------------------------------
+# ✅ GENERATE AI EXPLANATION (Gemini)
+# ------------------------------------------------------
+
+def generate_ai_explanation(content, material_type, title):
+    """Generate simplified student-friendly explanation using Gemini."""
+    if not GOOGLE_API_KEY:
+        return "AI feature is currently unavailable. Please try again later."
+
+    try:
+        model = genai.GenerativeModel("gemini-pro")
+
+        prompt = f"""
+        Explain this study material in a simple, engaging way for students:
+
+        Title: {title}
+        Type: {material_type}
+
+        Content:
+        {content}
+
+        Please provide:
+        1. A simple explanation of the main concepts
+        2. Key points to remember
+        3. Real-world examples
+        4. Study tips
+
+        Make the tone friendly, easy to understand, fun, and student-friendly.
+        """
+
+        response = model.generate_content(prompt)
+        return response.text
+
+    except Exception as e:
+        return f"AI explanation unavailable: {str(e)}"
+
+
+# ------------------------------------------------------
+# ✅ GENERATE AI SUMMARY (Gemini)
+# ------------------------------------------------------
+
+def generate_ai_summary(content, material_type, title):
+    """Generate 3–5 bullet summary using Gemini."""
+    if not GOOGLE_API_KEY:
+        return "AI feature is currently unavailable. Please try again later."
+
+    try:
+        model = genai.GenerativeModel("gemini-pro")
+
+        prompt = f"""
+        Create a simple summary for students:
+
+        Title: {title}
+        Type: {material_type}
+
+        Content:
+        {content}
+
+        Provide a concise 3–5 bullet summary focusing on the MOST important ideas.
+        Keep it clear and friendly.
+        """
+
+        response = model.generate_content(prompt)
+        return response.text
+
+    except Exception as e:
+        return f"AI summary unavailable: {str(e)}"
+
 
 # Configure upload settings
 ALLOWED_EXTENSIONS = {'pdf', 'doc', 'docx', 'txt', 'ppt', 'pptx', 'jpg', 'jpeg', 'png'}
@@ -3463,6 +3581,82 @@ def delete_material(material_id):
         flash('Access denied or material not found.', 'danger')
     
     return redirect(url_for('teacher_materials'))
+
+@app.route('/ai/explain/<material_id>')
+@login_required
+def ai_explain(material_id):
+    """AI explanation for study materials"""
+    supabase = get_supabase()
+    
+    # Get material details
+    material_response = supabase.table('study_materials').select('*').eq('id', material_id).execute()
+    material = material_response.data[0] if material_response.data else None
+    
+    if not material:
+        flash('Material not found.', 'danger')
+        return redirect(request.referrer or url_for('student_materials'))
+    
+    # Prepare content for AI based on material type
+    content = ""
+    
+    if material['material_type'] == 'text':
+        content = material['content_text'] or ""
+    elif material['material_type'] == 'web' and material['web_url']:
+        content = extract_webpage_content(material['web_url']) or "Web content unavailable"
+    elif material['material_type'] == 'file':
+        content = f"File: {material.get('file_url', 'No file content available')}"
+    elif material['material_type'] == 'video' and material['video_url']:
+        content = f"Video resource: {material['video_url']}"
+    else:
+        content = material['description'] or material['title']
+    
+    # Generate AI explanation
+    explanation = generate_ai_explanation(
+        content, 
+        material['material_type'], 
+        material['title']
+    )
+    
+    return render_template('ai_explanation.html', 
+                         material=material, 
+                         explanation=explanation,
+                         type='explanation')
+
+@app.route('/ai/summarize/<material_id>')
+@login_required
+def ai_summarize(material_id):
+    """AI summary of study materials"""
+    supabase = get_supabase()
+    
+    # Get material details
+    material_response = supabase.table('study_materials').select('*').eq('id', material_id).execute()
+    material = material_response.data[0] if material_response.data else None
+    
+    if not material:
+        flash('Material not found.', 'danger')
+        return redirect(request.referrer or url_for('student_materials'))
+    
+    # Prepare content for AI
+    content = ""
+    
+    if material['material_type'] == 'text':
+        content = material['content_text'] or ""
+    elif material['material_type'] == 'web' and material['web_url']:
+        content = extract_webpage_content(material['web_url']) or "Web content unavailable"
+    else:
+        content = material['description'] or material['title']
+    
+    # Generate AI summary
+    summary = generate_ai_summary(
+        content, 
+        material['material_type'], 
+        material['title']
+    )
+    
+    return render_template('ai_explanation.html', 
+                         material=material, 
+                         explanation=summary,
+                         type='summary')
 
 if __name__ == '__main__':
     app.run(debug=True)

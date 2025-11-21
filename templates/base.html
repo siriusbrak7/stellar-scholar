@@ -216,6 +216,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     <!-- REGULAR TEACHER NAVIGATION -->
                     {% elif session.role == 'teacher' %}
                         <a class="nav-link" href="{{ url_for('teacher_dashboard') }}">📊 Dashboard</a>
+                        <a class="nav-link" href="{{ url_for('teacher_materials') }}">📚 Materials</a>
                         
                         <!-- School admins see admin links -->
                         {% if is_school_admin %}
@@ -227,6 +228,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     {% else %}
                         <a class="nav-link" href="{{ url_for('student_dashboard') }}">📚 Dashboard</a>
                         <a class="nav-link" href="{{ url_for('student_history') }}">📖 My History</a>
+                        <a class="nav-link" href="{{ url_for('student_materials') }}">📚 Study Materials</a>
                     {% endif %}
 
                     <!-- User Info & Logout -->

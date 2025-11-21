@@ -54,6 +54,20 @@
                 </div>
             </div>
 
+            <!-- NEW SECOND ROW FOR STUDY MATERIALS CARD (Option B) -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card text-white bg-info">
+                        <div class="card-body text-center">
+                            <h4 class="card-title">{{ materials_count }}</h4>
+                            <p class="card-text">Study Materials</p>
+                            <a href="{{ url_for('teacher_materials') }}" class="btn btn-light btn-sm">Manage</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- END NEW ROW -->
+
             <!-- Filters -->
             <div class="card mb-4">
                 <div class="card-body">
@@ -303,3 +317,5 @@
 </style>
 
 {% endblock %}
+
+
