@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2>🤖 AI {{ type|title }}</h2>
+                    <p class="text-muted">Powered by Google AI</p>
+                </div>
+                <a href="{{ url_for('student_materials') }}" class="btn btn-secondary">← Back to Materials</a>
+            </div>
+
+            <!-- Material Info -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h4 class="mb-0">{{ material.title }}</h4>
+                    <small class="text-muted">
+                        {{ material.material_type|title }} • {{ material.subject|title }} • Grade {{ material.grade_level }}
+                    </small>
+                </div>
+                <div class="card-body">
+                    {% if material.description %}
+                    <p class="card-text">{{ material.description }}</p>
+                    {% endif %}
+                    
+                    <div class="mb-3">
+                        {% if material.material_type == 'file' and material.file_url %}
+                        <a href="{{ material.file_url }}" class="btn btn-outline-primary btn-sm">📄 View File</a>
+                        {% elif material.material_type == 'video' and material.video_url %}
+                        <a href="{{ material.video_url }}" class="btn btn-outline-danger btn-sm">🎥 Watch Video</a>
+                        {% elif material.material_type == 'web' and material.web_url %}
+                        <a href="{{ material.web_url }}" class="btn btn-outline-info btn-sm">🌐 Visit Website</a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- AI Explanation -->
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        {% if type == 'explanation' %}
+                        🧠 AI Explanation
+                        {% else %}
+                        📋 AI Summary
+                        {% endif %}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="ai-content">
+                        {{ explanation|replace('\n', '<br>')|safe }}
+                    </div>
+                    
+                    <div class="mt-4 p-3 bg-light rounded">
+                        <small class="text-muted">
+                            <strong>Note:</strong> This AI explanation is generated automatically and should be used as a study aid. 
+                            Always refer to your teacher for official guidance.
+                        </small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="text-center mt-4">
+                {% if type == 'explanation' %}
+                <a href="{{ url_for('ai_summarize', material_id=material.id) }}" class="btn btn-outline-info">
+                    📋 Get Quick Summary
+                </a>
+                {% else %}
+                <a href="{{ url_for('ai_explain', material_id=material.id) }}" class="btn btn-outline-primary">
+                    🧠 Get Detailed Explanation
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.ai-content {
+    line-height: 1.6;
+    font-size: 1.1rem;
+}
+
+.ai-content br {
+    margin-bottom: 1rem;
+    display: block;
+    content: "";
+}
+</style>
+{% endblock %}
