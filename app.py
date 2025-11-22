@@ -174,6 +174,7 @@ logger = logging.getLogger(__name__)
 
 # Initialize Supabase client
 # Initialize Supabase client with better error handling
+# Initialize Supabase client with better error handling
 def get_supabase():
     """Initialize and return Supabase client with enhanced error handling"""
     try:
@@ -184,6 +185,7 @@ def get_supabase():
             logger.error("Missing Supabase environment variables: SUPABASE_URL or SUPABASE_KEY")
             return None
             
+        # FIXED: Remove any proxy parameter that might be causing issues
         client = create_client(url, key)
         
         # Test connection with a simple query
