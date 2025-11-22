@@ -181,12 +181,16 @@ def get_supabase():
         url = os.environ.get('SUPABASE_URL')
         key = os.environ.get('SUPABASE_KEY')
         
+        print(f"DEBUG: SUPABASE_URL exists: {bool(url)}")
+        print(f"DEBUG: SUPABASE_KEY exists: {bool(key)}")
+        
         if not url or not key:
             logger.error("Missing Supabase environment variables: SUPABASE_URL or SUPABASE_KEY")
             return None
             
-        # FIXED: Remove any proxy parameter that might be causing issues
+        print(f"DEBUG: Creating client with URL: {url[:20]}... and key: {key[:10]}...")
         client = create_client(url, key)
+        print("DEBUG: Client created successfully")
         
         # Test connection with a simple query
         try:
@@ -200,6 +204,8 @@ def get_supabase():
         
     except Exception as e:
         logger.error(f"Error initializing Supabase client: {e}")
+        import traceback
+        logger.error(f"Full traceback: {traceback.format_exc()}")
         return None
 
 # ===== ENHANCED DECORATORS =====
