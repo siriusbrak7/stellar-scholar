@@ -3483,6 +3483,7 @@ def upload_material():
                 # In production, you'd upload to cloud storage
                 # For now, we'll store metadata only
                 file_url = f"uploaded/{filename}"
+                flash(f'File "{filename}" metadata saved. File storage coming soon!', 'info')
         
         elif material_type == 'video':
             video_url = request.form.get('video_url', '').strip()
@@ -3658,6 +3659,12 @@ def ai_summarize(material_id):
                          material=material, 
                          explanation=summary,
                          type='summary')
+
+@app.route('/student/uploaded/<path:filename>')
+def uploaded_files(filename):
+    """Handle requests for uploaded files"""
+    flash('📁 File storage is currently being set up. Your teachers are working on making files available for download soon!', 'info')
+    return redirect(url_for('student_materials'))
 
 # Production configuration
 if __name__ == '__main__':
