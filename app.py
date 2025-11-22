@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
+from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify, send_from_directory
 from functools import wraps
 import json
 import os
@@ -43,10 +43,12 @@ GOOGLE_API_KEY = os.environ.get('GOOGLE_API_KEY')
 if GOOGLE_API_KEY:
     try:
         genai.configure(api_key=GOOGLE_API_KEY)
-        print("✅ Google AI configured successfully")
+        # Test the configuration
+        model = genai.GenerativeModel("gemini-1.5-flash-latest")
+        print("✅ Google AI configured successfully with gemini-1.5-pro-latest")
     except Exception as e:
         print(f"❌ Google AI configuration failed: {e}")
-        GOOGLE_API_KEY = None  # Reset if configuration fails
+        GOOGLE_API_KEY = None
 else:
     print("⚠️ GOOGLE_API_KEY not found. AI features disabled.")
 
@@ -88,7 +90,7 @@ def generate_ai_explanation(content, material_type, title):
         return "🔧 AI features are being set up! Please check back soon for AI-powered explanations. In the meantime, try discussing the material with your teacher or classmates. ✨"
 
     try:
-        model = genai.GenerativeModel("gemini-pro")
+        model = genai.GenerativeModel("gemini-1.5-flash-latest")
 
         prompt = f"""
         Explain this study material in a simple, engaging way for students:
@@ -121,13 +123,15 @@ def generate_ai_explanation(content, material_type, title):
 # ✅ GENERATE AI SUMMARY (Gemini)
 # ------------------------------------------------------
 
+
+
 def generate_ai_summary(content, material_type, title):
     """Generate 3–5 bullet summary using Gemini."""
     if not GOOGLE_API_KEY:
         return "📚 AI Summary feature is being set up. Please check back soon!"
 
     try:
-        model = genai.GenerativeModel("gemini-pro")
+        model = genai.GenerativeModel("gemini-1.5-flash-latest")
 
         prompt = f"""
         Create a simple summary for students:
@@ -149,6 +153,7 @@ def generate_ai_summary(content, material_type, title):
     except Exception as e:
         logger.error(f"AI summary error: {e}")
         return f"📋 Summary feature unavailable. Error: {str(e)}\n\nTry creating your own summary by noting the key points!"
+
 
 
 # Configure upload settings
@@ -3665,6 +3670,17 @@ def uploaded_files(filename):
     """Handle requests for uploaded files"""
     flash('📁 File storage is currently being set up. Your teachers are working on making files available for download soon!', 'info')
     return redirect(url_for('student_materials'))
+
+@app.route('/uploads/<filename>')
+def serve_uploaded_file(filename):
+    """Serve uploaded study material files"""
+    try:
+        flash('📁 File download feature is coming soon! Your teachers are working on it.', 'info')
+        return redirect(url_for('student_materials'))
+    except Exception as e:
+        logger.error(f"File serving error: {e}")
+        flash('File not available yet.', 'info')
+        return redirect(url_for('student_materials'))
 
 # Production configuration
 if __name__ == '__main__':
