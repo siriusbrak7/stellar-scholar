@@ -3509,7 +3509,7 @@ def upload_material():
 @app.route('/student/materials')
 @student_required
 def student_materials():
-    """Student view of study materials - FIXED VERSION"""
+    """Student view of study materials - FIXED VERSION with error handling"""
     supabase = get_supabase()
     if not supabase:
         flash('Database connection error.', 'danger')
@@ -3529,11 +3529,10 @@ def student_materials():
         else:
             # Regular student
             user_response = supabase.table('users').select('school_id, grade').eq('username', session['user_id']).execute()
-            user_data = user_response.data[0] if user_response.data else None
-        
-        if not user_data:
-            flash('User data not found.', 'danger')
-            return redirect(url_for('student_dashboard'))
+            if not user_response.data:
+                flash('User data not found.', 'danger')
+                return redirect(url_for('student_dashboard'))
+            user_data = user_response.data[0]
         
         # Get materials for student's grade and school
         materials_response = supabase.table('study_materials')\
