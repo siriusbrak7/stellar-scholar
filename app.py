@@ -1344,7 +1344,7 @@ def student_dashboard():
                 'role': 'teacher', 
                 'school_id': None, 
                 'grade': '9',
-                'id': 'sirius_special_id'  # Add a special ID for Sirius
+                'id': 'school_demo_academy'  # Add a special ID for Sirius
             }  # Default values
         else:
             # Regular student
@@ -1421,7 +1421,7 @@ def student_dashboard():
         else:
             # Regular student ranking
             all_students_response = supabase.table('users')\
-                .select('id')\
+                .select('username')\
                 .eq('school_id', user['school_id'])\
                 .eq('role', 'student')\
                 .eq('grade', user['grade'])\
