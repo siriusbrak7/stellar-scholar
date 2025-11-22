@@ -41,8 +41,12 @@ except Exception as e:
 GOOGLE_API_KEY = os.environ.get('GOOGLE_API_KEY')
 
 if GOOGLE_API_KEY:
-    genai.configure(api_key=GOOGLE_API_KEY)
-    print("✅ Google AI configured successfully")
+    try:
+        genai.configure(api_key=GOOGLE_API_KEY)
+        print("✅ Google AI configured successfully")
+    except Exception as e:
+        print(f"❌ Google AI configuration failed: {e}")
+        GOOGLE_API_KEY = None  # Reset if configuration fails
 else:
     print("⚠️ GOOGLE_API_KEY not found. AI features disabled.")
 
@@ -81,7 +85,7 @@ def extract_webpage_content(url):
 def generate_ai_explanation(content, material_type, title):
     """Generate simplified student-friendly explanation using Gemini."""
     if not GOOGLE_API_KEY:
-        return "AI feature is currently unavailable. Please try again later."
+        return "🔧 AI features are being set up! Please check back soon for AI-powered explanations. In the meantime, try discussing the material with your teacher or classmates. ✨"
 
     try:
         model = genai.GenerativeModel("gemini-pro")
@@ -102,13 +106,15 @@ def generate_ai_explanation(content, material_type, title):
         4. Study tips
 
         Make the tone friendly, easy to understand, fun, and student-friendly.
+        Keep it under 500 words.
         """
 
         response = model.generate_content(prompt)
-        return response.text
+        return response.text if response.text else "Sorry, I couldn't generate an explanation right now. Please try again later."
 
     except Exception as e:
-        return f"AI explanation unavailable: {str(e)}"
+        logger.error(f"AI explanation error: {e}")
+        return f"🤖 Oops! The AI is having trouble right now. Error: {str(e)}\n\nPlease try again later or ask your teacher for help!"
 
 
 # ------------------------------------------------------
@@ -118,7 +124,7 @@ def generate_ai_explanation(content, material_type, title):
 def generate_ai_summary(content, material_type, title):
     """Generate 3–5 bullet summary using Gemini."""
     if not GOOGLE_API_KEY:
-        return "AI feature is currently unavailable. Please try again later."
+        return "📚 AI Summary feature is being set up. Please check back soon!"
 
     try:
         model = genai.GenerativeModel("gemini-pro")
@@ -134,13 +140,15 @@ def generate_ai_summary(content, material_type, title):
 
         Provide a concise 3–5 bullet summary focusing on the MOST important ideas.
         Keep it clear and friendly.
+        Use bullet points with emojis to make it engaging.
         """
 
         response = model.generate_content(prompt)
-        return response.text
+        return response.text if response.text else "Sorry, I couldn't generate a summary right now. Please try again later."
 
     except Exception as e:
-        return f"AI summary unavailable: {str(e)}"
+        logger.error(f"AI summary error: {e}")
+        return f"📋 Summary feature unavailable. Error: {str(e)}\n\nTry creating your own summary by noting the key points!"
 
 
 # Configure upload settings
