@@ -101,7 +101,25 @@ def extract_webpage_content(url):
     except:
         return None
 
+# Test available models
+def test_gemini_models():
+    if GOOGLE_API_KEY:
+        try:
+            models = genai.list_models()
+            available_models = []
+            for model in models:
+                if 'generateContent' in model.supported_generation_methods:
+                    available_models.append(model.name)
+            print("✅ Available Gemini models:")
+            for model_name in available_models:
+                print(f"   - {model_name}")
+            return available_models
+        except Exception as e:
+            print(f"❌ Error listing models: {e}")
+    return []
 
+# Call this function after Google AI config
+test_gemini_models()
 # ------------------------------------------------------
 # ✅ GENERATE AI EXPLANATION (Gemini)
 # ------------------------------------------------------
@@ -914,12 +932,11 @@ def teacher_dashboard():
             return redirect(url_for('login'))
 
         # Get teacher info - FIXED: use username instead of id
-        teacher_res = supabase.table("users").select("*").eq("username", user_id).execute()
-        if not teacher_res.data:
+        teacher = get_user_by_username(user_id)
+        if not teacher:
             flash("Teacher record not found.", "danger")
             return redirect(url_for('index'))
 
-        teacher = teacher_res.data[0]
         school_id = teacher.get("school_id")
         is_school_admin = teacher.get("is_admin", False)
 
@@ -965,7 +982,7 @@ def teacher_dashboard():
             submissions_res = supabase.table("submissions").select("*").eq("prompt_id", pid).execute()
             submissions = submissions_res.data if submissions_res.data else []
 
-            graded = len([s for s in submissions if s.get("graded")])
+            graded = len([s for s in submissions if s.get("grade") is not None])
             total = len(submissions)
 
             prompt_stats[pid] = {
@@ -973,27 +990,58 @@ def teacher_dashboard():
                 "total": total
             }
 
-        # Class analytics - SIMPLIFIED to avoid RPC errors
+        # FIXED: Real Analytics Data
+        # Get students in this school
+        students_res = supabase.table("users").select("*").eq("school_id", school_id).eq("role", "student").execute()
+        all_students = students_res.data if students_res.data else []
+        
+        # Get approved students
+        active_students = [s for s in all_students if s.get('approval_status') == 'approved']
+        
+        # Get all submissions for analytics
+        all_submissions_res = supabase.table("submissions").select("*").execute()
+        all_submissions = all_submissions_res.data if all_submissions_res.data else []
+        
+        # Calculate completion rate
+        total_completion = 0
+        student_count_with_submissions = 0
+        
+        for student in active_students:
+            student_submissions = len([s for s in all_submissions if s['student_id'] == student['username']])
+            student_prompts = len([p for p in prompts_raw if p.get('grade_level') == student.get('grade')])
+            
+            if student_prompts > 0:
+                completion_rate = (student_submissions / student_prompts) * 100
+                total_completion += completion_rate
+                student_count_with_submissions += 1
+        
+        avg_completion_rate = round(total_completion / student_count_with_submissions) if student_count_with_submissions > 0 else 0
+
+        # FIXED: Real Class Analytics
         class_analytics = {
-            "total_students": 0,
-            "active_students": 0,
-            "total_submissions": 0,
-            "average_completion_rate": 0
+            "total_students": len(all_students),
+            "active_students": len(active_students),
+            "total_submissions": len(all_submissions),
+            "average_completion_rate": avg_completion_rate
         }
 
-        # Get students count for this school
-        students_res = supabase.table("users").select("username").eq("school_id", school_id).eq("role", "student").execute()
-        if students_res.data:
-            class_analytics["total_students"] = len(students_res.data)
-            class_analytics["active_students"] = len(students_res.data)  # Simplified
-
-        # Get total submissions
-        all_submissions_res = supabase.table("submissions").select("id").execute()
-        if all_submissions_res.data:
-            class_analytics["total_submissions"] = len(all_submissions_res.data)
-
-        # Student progress - SIMPLIFIED
+        # FIXED: Student Progress with Real Data
         student_progress = []
+        for student in active_students[:5]:  # Show top 5 students
+            student_submissions = [s for s in all_submissions if s['student_id'] == student['username']]
+            graded_submissions = [s for s in student_submissions if s.get('grade') is not None]
+            
+            avg_grade = 0
+            if graded_submissions:
+                avg_grade = sum(s['grade'] for s in graded_submissions) / len(graded_submissions)
+            
+            student_progress.append({
+                'username': student['username'],
+                'grade_level': student.get('grade', 'N/A'),
+                'submissions_count': len(student_submissions),
+                'average_grade': round(avg_grade, 1),
+                'completion_rate': round((len(student_submissions) / len([p for p in prompts_raw if p.get('grade_level') == student.get('grade')])) * 100) if student.get('grade') else 0
+            })
 
         # Study materials count
         materials_response = (
@@ -1009,7 +1057,7 @@ def teacher_dashboard():
             "teacher_dashboard.html",
             prompts=prompts,
             prompt_stats=prompt_stats,
-            top_students=None,
+            top_students=student_progress[:3],  # Top 3 students for highlights
             current_grade_filter=grade_filter,
             current_category_filter=category_filter,
             available_grades=unique_grades,
