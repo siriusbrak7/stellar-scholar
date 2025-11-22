@@ -244,6 +244,7 @@ def student_required(f):
             return redirect(url_for('index'))
             
         try:
+            # FIX: Remove get_user_from_session and use direct query
             user_response = supabase.table('users').select('*').eq('username', session['user_id']).execute()
             user = user_response.data[0] if user_response.data else None
             
