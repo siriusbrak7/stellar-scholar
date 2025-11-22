@@ -16,6 +16,16 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from supabase import create_client, Client
 import logging
 
+# File upload configuration - ADD AT TOP OF FILE
+UPLOAD_FOLDER = 'uploads'
+ALLOWED_EXTENSIONS = {'pdf', 'doc', 'docx', 'txt', 'ppt', 'pptx', 'jpg', 'jpeg', 'png'}
+MAX_FILE_SIZE = 16 * 1024 * 1024  # 16MB
+
+# Create uploads directory if it doesn't exist
+if not os.path.exists(UPLOAD_FOLDER):
+    os.makedirs(UPLOAD_FOLDER)
+
+
 app = Flask(__name__)
 
 # ------------------------------------------------------
@@ -87,72 +97,84 @@ def extract_webpage_content(url):
 def generate_ai_explanation(content, material_type, title):
     """Generate simplified student-friendly explanation using Gemini."""
     if not GOOGLE_API_KEY:
-        return "🔧 AI features are being set up! Please check back soon for AI-powered explanations. In the meantime, try discussing the material with your teacher or classmates. ✨"
+        return "🔧 AI features are being set up! Please check back soon."
 
-    try:
-        model = genai.GenerativeModel("gemini-1.5-flash-latest")
+    # Try different model names
+    model_names = [
+        "gemini-1.5-flash",
+        "gemini-1.0-pro",
+        "models/gemini-1.5-flash",
+        "models/gemini-1.0-pro"
+    ]
+    
+    for model_name in model_names:
+        try:
+            model = genai.GenerativeModel(model_name)
+            prompt = f"""
+            Explain this study material in a simple, engaging way for Grade 9 students:
 
-        prompt = f"""
-        Explain this study material in a simple, engaging way for students:
+            Title: {title}
+            Type: {material_type}
 
-        Title: {title}
-        Type: {material_type}
+            Content:
+            {content}
 
-        Content:
-        {content}
+            Please provide:
+            1. A simple explanation of the main concepts
+            2. Key points to remember  
+            3. Real-world examples
+            4. Study tips
 
-        Please provide:
-        1. A simple explanation of the main concepts
-        2. Key points to remember
-        3. Real-world examples
-        4. Study tips
+            Make it fun, easy to understand, and student-friendly.
+            Keep it under 300 words.
+            """
 
-        Make the tone friendly, easy to understand, fun, and student-friendly.
-        Keep it under 500 words.
-        """
-
-        response = model.generate_content(prompt)
-        return response.text if response.text else "Sorry, I couldn't generate an explanation right now. Please try again later."
-
-    except Exception as e:
-        logger.error(f"AI explanation error: {e}")
-        return f"🤖 Oops! The AI is having trouble right now. Error: {str(e)}\n\nPlease try again later or ask your teacher for help!"
-
-
-# ------------------------------------------------------
-# ✅ GENERATE AI SUMMARY (Gemini)
-# ------------------------------------------------------
-
-
+            response = model.generate_content(prompt)
+            if response.text:
+                return response.text
+        except Exception as e:
+            print(f"❌ Model {model_name} failed: {e}")
+            continue
+    
+    return "🤖 AI is busy right now. Please try again later or ask your teacher!"
 
 def generate_ai_summary(content, material_type, title):
     """Generate 3–5 bullet summary using Gemini."""
     if not GOOGLE_API_KEY:
-        return "📚 AI Summary feature is being set up. Please check back soon!"
+        return "📚 AI Summary coming soon!"
 
-    try:
-        model = genai.GenerativeModel("gemini-1.5-flash-latest")
+    # Try different model names
+    model_names = [
+        "gemini-1.5-flash",
+        "gemini-1.0-pro", 
+        "models/gemini-1.5-flash",
+        "models/gemini-1.0-pro"
+    ]
+    
+    for model_name in model_names:
+        try:
+            model = genai.GenerativeModel(model_name)
+            prompt = f"""
+            Create a simple 3-5 bullet summary for Grade 9 students:
 
-        prompt = f"""
-        Create a simple summary for students:
+            Title: {title}
+            Type: {material_type}
 
-        Title: {title}
-        Type: {material_type}
+            Content:
+            {content}
 
-        Content:
-        {content}
+            Provide only the most important points as bullet points.
+            Make it clear and easy to remember.
+            """
 
-        Provide a concise 3–5 bullet summary focusing on the MOST important ideas.
-        Keep it clear and friendly.
-        Use bullet points with emojis to make it engaging.
-        """
-
-        response = model.generate_content(prompt)
-        return response.text if response.text else "Sorry, I couldn't generate a summary right now. Please try again later."
-
-    except Exception as e:
-        logger.error(f"AI summary error: {e}")
-        return f"📋 Summary feature unavailable. Error: {str(e)}\n\nTry creating your own summary by noting the key points!"
+            response = model.generate_content(prompt)
+            if response.text:
+                return response.text
+        except Exception as e:
+            print(f"❌ Model {model_name} failed: {e}")
+            continue
+    
+    return "📋 Summary unavailable. Try creating your own summary!"
 
 
 
@@ -180,6 +202,25 @@ def validate_file_size(file_storage):
     file_storage.seek(current_pos)  # Reset to original position
     
     return file_size <= MAX_FILE_SIZE
+
+# Add this function to debug available models
+def list_available_models():
+    """List available Gemini models"""
+    try:
+        if GOOGLE_API_KEY:
+            models = genai.list_models()
+            available_models = []
+            for model in models:
+                if 'generateContent' in model.supported_generation_methods:
+                    available_models.append(model.name)
+            print("✅ Available Gemini models for generateContent:")
+            for model_name in available_models:
+                print(f"   - {model_name}")
+            return available_models
+        return []
+    except Exception as e:
+        print(f"❌ Error listing models: {e}")
+        return []
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -3481,14 +3522,27 @@ def upload_material():
         web_url = None
         content_text = None
         
+        # ---------------------------------------------------
+        # ✅ UPDATED FILE HANDLING SECTION (YOUR REQUEST)
+        # ---------------------------------------------------
         if material_type == 'file':
             file = request.files.get('file')
             if file and allowed_file(file.filename):
+                if not validate_file_size(file):
+                    flash('File too large. Maximum size is 16MB.', 'danger')
+                    return render_template('upload_material.html')
+                
                 filename = secure_filename(file.filename)
-                # In production, you'd upload to cloud storage
-                # For now, we'll store metadata only
-                file_url = f"uploaded/{filename}"
-                flash(f'File "{filename}" metadata saved. File storage coming soon!', 'info')
+                file_path = os.path.join(UPLOAD_FOLDER, filename)
+                file.save(file_path)
+
+                file_url = f"/uploads/{filename}"
+                
+                # Store basic content text (for AI explanation)
+                content_text = f"File: {filename} (uploaded successfully)"
+            else:
+                flash('Invalid file type.', 'danger')
+                return render_template('upload_material.html')
         
         elif material_type == 'video':
             video_url = request.form.get('video_url', '').strip()
@@ -3527,6 +3581,7 @@ def upload_material():
             flash('Error uploading material.', 'danger')
     
     return render_template('upload_material.html')
+
 
 @app.route('/student/materials')
 @student_required
@@ -3675,11 +3730,10 @@ def uploaded_files(filename):
 def serve_uploaded_file(filename):
     """Serve uploaded study material files"""
     try:
-        flash('📁 File download feature is coming soon! Your teachers are working on it.', 'info')
-        return redirect(url_for('student_materials'))
+        return send_from_directory(UPLOAD_FOLDER, filename)
     except Exception as e:
         logger.error(f"File serving error: {e}")
-        flash('File not available yet.', 'info')
+        flash('File not found.', 'danger')
         return redirect(url_for('student_materials'))
 
 # Production configuration
