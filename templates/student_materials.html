@@ -100,8 +100,9 @@
                         </a>
 
                         {% elif material.material_type == 'text' and material.content_text %}
-                        <button class="btn btn-outline-secondary btn-sm w-100 mb-2"
-                                onclick="showTextContent('{{ material.content_text|replace(\"'\", \"\\\\'\")|replace('\\n', '\\n') }}')">
+                        <button class="btn btn-outline-secondary btn-sm w-100 mb-2 text-content-btn"
+                                data-content="{{ material.content_text | replace('"', '&quot;') | replace("'", "&#39;") }}"
+                                onclick="showTextContent(this.getAttribute('data-content'))">
                             📖 Read Text
                         </button>
                         {% endif %}
@@ -148,7 +149,12 @@
 
 <script>
 function showTextContent(content) {
-    document.getElementById('textContent').textContent = content;
+    // Handle HTML entities and decode them for display
+    const textArea = document.createElement('textarea');
+    textArea.innerHTML = content;
+    const decodedContent = textArea.value;
+    
+    document.getElementById('textContent').textContent = decodedContent;
     new bootstrap.Modal(document.getElementById('textModal')).show();
 }
 
