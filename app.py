@@ -1,4 +1,3 @@
-# app.py
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
 from functools import wraps
 import json
@@ -9,35 +8,45 @@ from werkzeug.utils import secure_filename
 
 import google.generativeai as genai
 import requests
-from bs4 import BeautifulSoup # type: ignore
+from bs4 import BeautifulSoup
 
 import supabase
-from config import Config
+from config import Config  # ✅ Make sure this import is correct
 from werkzeug.security import generate_password_hash, check_password_hash
 from supabase import create_client, Client
 import logging
 
 app = Flask(__name__)
-app.config.from_object(Config)
 
 # ------------------------------------------------------
-# ✅ GOOGLE AI (GEMINI) CONFIGURATION
+# ✅ CONFIGURATION SETUP - FIXED
 # ------------------------------------------------------
 
-# IMPORTANT: Do NOT hardcode your API key here.
-# Set it as an environment variable instead:
-# On Windows CMD:
-#   set GOOGLE_API_KEY=your_key_here
-#
-# On Linux/Mac:
-#   export GOOGLE_API_KEY=your_key_here
+# Method 1: Direct configuration (if Config import fails)
+try:
+    app.config.from_object(Config)
+    print("✅ Config loaded successfully from config.py")
+except Exception as e:
+    print(f"⚠️ Config import failed: {e}")
+    print("🔄 Using direct configuration...")
+    # Fallback configuration
+    app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY') or 'dev-key-change-in-production'
+    app.config['SESSION_PERMANENT'] = True
+    app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=7)
+
+# ------------------------------------------------------
+# ✅ GOOGLE AI CONFIGURATION - FIXED
+# ------------------------------------------------------
 
 GOOGLE_API_KEY = os.environ.get('GOOGLE_API_KEY')
 
 if GOOGLE_API_KEY:
     genai.configure(api_key=GOOGLE_API_KEY)
+    print("✅ Google AI configured successfully")
 else:
     print("⚠️ GOOGLE_API_KEY not found. AI features disabled.")
+
+# ... rest of your app.py code continues normally ...
 
 
 # ------------------------------------------------------
@@ -135,30 +144,60 @@ def generate_ai_summary(content, material_type, title):
 
 
 # Configure upload settings
+# Configure upload settings with enhanced security
 ALLOWED_EXTENSIONS = {'pdf', 'doc', 'docx', 'txt', 'ppt', 'pptx', 'jpg', 'jpeg', 'png'}
 MAX_FILE_SIZE = 16 * 1024 * 1024  # 16MB
 
 def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+    """Check if file extension is allowed"""
+    if not filename or '.' not in filename:
+        return False
+    extension = filename.rsplit('.', 1)[1].lower()
+    return extension in ALLOWED_EXTENSIONS
+
+def validate_file_size(file_storage):
+    """Validate file size before upload"""
+    if not file_storage:
+        return False
+        
+    # Save current position
+    current_pos = file_storage.tell()
+    file_storage.seek(0, 2)  # Seek to end
+    file_size = file_storage.tell()
+    file_storage.seek(current_pos)  # Reset to original position
+    
+    return file_size <= MAX_FILE_SIZE
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Initialize Supabase client
+# Initialize Supabase client with better error handling
 def get_supabase():
-    """Initialize and return Supabase client"""
+    """Initialize and return Supabase client with enhanced error handling"""
     try:
         url = os.environ.get('SUPABASE_URL')
         key = os.environ.get('SUPABASE_KEY')
         
         if not url or not key:
-            logger.error("Missing Supabase environment variables")
+            logger.error("Missing Supabase environment variables: SUPABASE_URL or SUPABASE_KEY")
             return None
             
-        return create_client(url, key)
+        client = create_client(url, key)
+        
+        # Test connection with a simple query
+        try:
+            test_response = client.table('users').select('username').limit(1).execute()
+            logger.info("✅ Supabase connection successful")
+        except Exception as test_error:
+            logger.error(f"Supabase connection test failed: {test_error}")
+            return None
+            
+        return client
+        
     except Exception as e:
-        logger.error(f"Error initializing Supabase: {e}")
+        logger.error(f"Error initializing Supabase client: {e}")
         return None
 
 # ===== ENHANCED DECORATORS =====
@@ -301,8 +340,7 @@ def login_required(f):
 
 @app.context_processor
 def inject_user_info():
-    """Context processor with special handling for Sirius and regular school admin logic."""
-
+    """Enhanced context processor with better error handling"""
     context = {
         "is_school_admin": False,
         "user_school_id": None,
@@ -322,6 +360,7 @@ def inject_user_info():
 
     supabase = get_supabase()
     if not supabase:
+        logger.warning("No Supabase connection in context processor")
         return context
 
     try:
@@ -330,25 +369,26 @@ def inject_user_info():
         # ---------------------------------------------------------------------
         if session["user_id"] == "sirius":
             # Always admin
-            context.update(
-                {
-                    "is_school_admin": True,
-                    "teacher_permissions": "admin",
-                    "is_classroom_teacher": False,
-                }
-            )
+            context.update({
+                "is_school_admin": True,
+                "teacher_permissions": "admin",
+                "is_classroom_teacher": False,
+            })
 
             # Load all schools for school switcher
-            schools_response = (
-                supabase.table("schools").select("*").order("name").execute()
-            )
-            context["available_schools"] = schools_response.data or []
+            try:
+                schools_response = supabase.table("schools").select("*").order("name").execute()
+                context["available_schools"] = schools_response.data or []
+            except Exception as e:
+                logger.error(f"Error loading schools for Sirius: {e}")
+                context["available_schools"] = []
 
             # If a school is selected in session
             current_school_id = session.get("current_school_id")
             if current_school_id:
                 context["current_school_id"] = current_school_id
 
+                # Find current school name
                 current_school = next(
                     (s for s in context["available_schools"] if s["id"] == current_school_id),
                     None,
@@ -357,14 +397,18 @@ def inject_user_info():
                     context["current_school_name"] = current_school["name"]
 
                 # Load all teachers in selected school
-                teachers_response = (
-                    supabase.table("users")
-                    .select("username")
-                    .eq("school_id", current_school_id)
-                    .eq("role", "teacher")
-                    .execute()
-                )
-                context["available_teachers"] = teachers_response.data or []
+                try:
+                    teachers_response = (
+                        supabase.table("users")
+                        .select("username")
+                        .eq("school_id", current_school_id)
+                        .eq("role", "teacher")
+                        .execute()
+                    )
+                    context["available_teachers"] = teachers_response.data or []
+                except Exception as e:
+                    logger.error(f"Error loading teachers for Sirius: {e}")
+                    context["available_teachers"] = []
 
             # Teacher selection
             current_teacher_id = session.get("current_teacher_id")
@@ -383,37 +427,41 @@ def inject_user_info():
             .eq("username", session["user_id"])
             .execute()
         )
-        user = user_response.data[0] if user_response.data else None
-
-        if not user:
+        
+        if not user_response.data:
+            logger.warning(f"User {session['user_id']} not found in database")
             return context
+            
+        user = user_response.data[0]
 
         # School admin logic (NOT Sirius)
         is_school_admin = user.get("is_admin", False) and session.get("role") == "teacher"
         teacher_permissions = user.get("teacher_permissions", "classroom")
 
-        context.update(
-            {
-                "is_school_admin": is_school_admin,
-                "user_school_id": user.get("school_id"),
-                "teacher_permissions": teacher_permissions,
-                "is_classroom_teacher": teacher_permissions == "classroom",
-            }
-        )
+        context.update({
+            "is_school_admin": is_school_admin,
+            "user_school_id": user.get("school_id"),
+            "teacher_permissions": teacher_permissions,
+            "is_classroom_teacher": teacher_permissions == "classroom",
+        })
 
         # If user is school admin, load teachers from their school
         if is_school_admin and user.get("school_id"):
             school_id = user["school_id"]
             context["current_school_id"] = school_id
 
-            teachers_response = (
-                supabase.table("users")
-                .select("username")
-                .eq("school_id", school_id)
-                .eq("role", "teacher")
-                .execute()
-            )
-            context["available_teachers"] = teachers_response.data or []
+            try:
+                teachers_response = (
+                    supabase.table("users")
+                    .select("username")
+                    .eq("school_id", school_id)
+                    .eq("role", "teacher")
+                    .execute()
+                )
+                context["available_teachers"] = teachers_response.data or []
+            except Exception as e:
+                logger.error(f"Error loading teachers for school admin: {e}")
+                context["available_teachers"] = []
 
         # Teacher switching context
         current_teacher_id = session.get("current_teacher_id")
@@ -3596,5 +3644,14 @@ def ai_summarize(material_id):
                          explanation=summary,
                          type='summary')
 
+# Production configuration
 if __name__ == '__main__':
-    app.run(debug=True)
+    # Use environment variable to determine debug mode
+    debug_mode = os.environ.get('FLASK_DEBUG', 'False').lower() == 'true'
+    
+    if debug_mode:
+        print("🚀 Running in DEVELOPMENT mode with debug enabled")
+        app.run(debug=True, host='0.0.0.0', port=5000)
+    else:
+        print("🚀 Running in PRODUCTION mode")
+        app.run(debug=False, host='0.0.0.0', port=5000)
