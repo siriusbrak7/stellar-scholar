@@ -9,7 +9,7 @@ from werkzeug.utils import secure_filename
 
 import google.generativeai as genai
 import requests
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup # type: ignore
 
 import supabase
 from config import Config
@@ -784,209 +784,105 @@ def reset_password(token):
 @teacher_required
 def teacher_dashboard():
     supabase = get_supabase()
-    
-    # DETERMINE WHOSE DASHBOARD TO SHOW
-    if session.get('current_teacher_id'):
-        viewing_user_id = session['current_teacher_id']
-    else:
-        viewing_user_id = session['user_id']
-    
-    user_response = supabase.table('users').select('*').eq('username', viewing_user_id).execute()
-    user = user_response.data[0] if user_response.data else None
-    
-    if not supabase or not user:
-        flash('Database connection error.', 'danger')
-        return redirect(url_for('index'))
-    
-    # ENHANCED PERMISSION CHECK - Allow Sirius and teachers
-    if session['user_id'] != 'sirius':
-        if user.get('role') != 'teacher' and not user.get('teacher_permissions'):
-            flash('Teacher access required.', 'danger')
-            return redirect(url_for('index'))
-    
+
     try:
-        # Get filters from query parameters
+        user_id = session.get('user_id')
+        if not user_id:
+            flash("Session expired. Please log in again.", "danger")
+            return redirect(url_for('login'))
+
+        # Get teacher info
+        teacher_res = supabase.table("users").select("*").eq("id", user_id).execute()
+        if not teacher_res.data:
+            flash("Teacher record not found.", "danger")
+            return redirect(url_for('index'))
+
+        teacher = teacher_res.data[0]
+        school_id = teacher.get("school_id")
+        is_school_admin = teacher.get("is_school_admin", False)
+
+        # Filters
         grade_filter = request.args.get('grade', 'all')
         category_filter = request.args.get('category', 'all')
-        
-        # Get school context
-        if session['user_id'] == 'sirius':
-            school_id = session.get('current_school_id') or user.get('school_id')
-        else:
-            school_id = user['school_id']
-        
-        # -----------------------------------------------------------
-        # ✅ UPDATED SCHOOL CONTEXT LOGIC (as requested)
-        # -----------------------------------------------------------
-        if not school_id and session['user_id'] == 'sirius':
-            return redirect(url_for('super_admin_dashboard'))
-        elif not school_id:
-            flash('School context required.', 'danger')
-            return redirect(url_for('index'))
-        # -----------------------------------------------------------
 
-        # -----------------------------------------------------------
-        # SUBJECT FILTERING (correct logic)
-        # -----------------------------------------------------------
-        prompts_query = supabase.table('prompts').select('*').eq('school_id', school_id)
+        # Get all prompts for this school
+        prompts_response = supabase.table("prompts").select("*").eq("school_id", school_id).execute()
+        prompts_raw = prompts_response.data if prompts_response.data else []
 
-        is_regular_teacher = (
-            session['user_id'] != 'sirius' and
-            user.get('teacher_permissions') == 'classroom' and
-            user.get('subjects')
-        )
+        # Organize prompts
+        prompts = {p["id"]: p for p in prompts_raw}
 
-        if is_regular_teacher:
-            prompts_query = prompts_query.in_("subject", user['subjects'])
-        
-        prompts_response = prompts_query.order('created_at', desc=True).execute()
-        all_prompts = prompts_response.data if prompts_response.data else []
-        # -----------------------------------------------------------
+        # Filter grades
+        unique_grades = sorted(list({p["grade_level"] for p in prompts_raw if p.get("grade_level")}))
 
-        # Assessment stats
-        written_count = len([p for p in all_prompts if p.get('assessment_type') == 'written'])
-        mcq_count = len([p for p in all_prompts if p.get('assessment_type') == 'mcq'])
-        mixed_count = len([p for p in all_prompts if p.get('assessment_type') == 'mixed'])
+        if grade_filter != "all":
+            prompts = {pid: p for pid, p in prompts.items() if str(p.get("grade_level")) == str(grade_filter)}
 
-        # Available grades + categories
-        unique_grades = sorted(list({p['grade_level'] for p in all_prompts if p.get('grade_level')}))
-        unique_categories = sorted(list({p.get('category', 'general') for p in all_prompts if p.get('category') is not None}))
+        # Filter categories
+        unique_categories = sorted(list({p["assessment_type"] for p in prompts_raw if p.get("assessment_type")}))
 
-        # Apply filters
-        filtered_prompts = all_prompts
-        if grade_filter != 'all':
-            filtered_prompts = [p for p in filtered_prompts if p.get('grade_level') == grade_filter]
-        if category_filter != 'all':
-            filtered_prompts = [p for p in filtered_prompts if (p.get('category') or 'general') == category_filter]
+        if category_filter != "all":
+            prompts = {pid: p for pid, p in prompts.items() if p.get("assessment_type") == category_filter}
 
-        prompts = {p['id']: p for p in filtered_prompts}
+        # Prompt statistics
+        prompt_stats = {}
+        written_count = 0
+        mcq_count = 0
+        mixed_count = 0
 
-        # Get all submissions
-        submissions_response = supabase.table('submissions').select('*').execute()
-        submissions = submissions_response.data if submissions_response.data else []
+        for pid, prompt in prompts.items():
+            assessment_type = prompt.get("assessment_type", "")
 
-        # Get all users for the school
-        users_response = supabase.table('users').select('*').eq('school_id', school_id).execute()
-        users_data = users_response.data if users_response.data else []
+            if assessment_type == "written":
+                written_count += 1
+            elif assessment_type == "mcq":
+                mcq_count += 1
+            elif assessment_type == "mixed":
+                mixed_count += 1
 
-        # Prompt stats
-        prompt_stats = {pid: {'total': 0, 'graded': 0} for pid in prompts}
-        for sub in submissions:
-            pid = sub.get('prompt_id')
-            if pid in prompt_stats:
-                prompt_stats[pid]['total'] += 1
-                if sub.get('grade') is not None:
-                    prompt_stats[pid]['graded'] += 1
+            submissions_res = supabase.table("submissions").select("*").eq("prompt_id", pid).execute()
+            submissions = submissions_res.data if submissions_res.data else []
 
-        # Student progress tracking
-        student_progress = {}
-        class_analytics = {
-            'total_students': 0,
-            'active_students': 0,
-            'total_submissions': 0,
-            'average_completion_rate': 0,
-            'average_grade': 0,
-            'grade_breakdown': {}
+            graded = len([s for s in submissions if s.get("graded")])
+            total = len(submissions)
+
+            prompt_stats[pid] = {
+                "graded": graded,
+                "total": total
+            }
+
+        # Class analytics
+        analytics_res = supabase.rpc("get_teacher_class_analytics", {"teacherid": user_id}).execute()
+        class_analytics = analytics_res.data[0] if analytics_res.data else {
+            "total_students": 0,
+            "active_students": 0,
+            "total_submissions": 0,
+            "average_completion_rate": 0
         }
 
-        for u in users_data:
-            if u.get('role') == 'student':
-                student_grade = u.get('grade')
-                grade_prompts = [p for p in all_prompts if p.get('grade_level') == student_grade]
-                total_prompts = len(grade_prompts)
+        # Student progress
+        progress_res = supabase.rpc("get_teacher_student_progress", {"teacherid": user_id}).execute()
+        student_progress = progress_res.data if progress_res.data else []
 
-                if total_prompts > 0:
-                    student_subs = [s for s in submissions if s.get('student_id') == u.get('username')]
-                    submitted_count = len(student_subs)
-                    graded_subs = [s for s in student_subs if s.get('grade') is not None]
-
-                    completion_rate = (submitted_count / total_prompts) * 100
-                    avg_grade = (
-                        sum(s['grade'] for s in graded_subs) / len(graded_subs)
-                        if graded_subs else 0
-                    )
-
-                    student_progress[u['username']] = {
-                        'username': u['username'],
-                        'grade_level': student_grade,
-                        'completed_prompts': submitted_count,
-                        'total_prompts': total_prompts,
-                        'completion_rate': round(completion_rate, 1),
-                        'average_grade': round(avg_grade, 1) if graded_subs else 'N/A',
-                        'graded_count': len(graded_subs)
-                    }
-
-                    class_analytics['total_students'] += 1
-                    if submitted_count > 0:
-                        class_analytics['active_students'] += 1
-
-                    class_analytics['total_submissions'] += submitted_count
-
-                    if student_grade not in class_analytics['grade_breakdown']:
-                        class_analytics['grade_breakdown'][student_grade] = {
-                            'students': 0,
-                            'active': 0,
-                            'completion_rate': 0
-                        }
-
-                    class_analytics['grade_breakdown'][student_grade]['students'] += 1
-                    if submitted_count > 0:
-                        class_analytics['grade_breakdown'][student_grade]['active'] += 1
-
-        if class_analytics['total_students'] > 0:
-            completion_rates = [s['completion_rate'] for s in student_progress.values()]
-            if completion_rates:
-                class_analytics['average_completion_rate'] = round(sum(completion_rates) / len(completion_rates), 1)
-
-            grades = [s['average_grade'] for s in student_progress.values() if s['average_grade'] != 'N/A']
-            if grades:
-                class_analytics['average_grade'] = round(sum(grades) / len(grades), 1)
-
-        # Leaderboard
-        student_scores = {}
-        top_students = []
-
-        for sub in submissions:
-            if sub.get('grade') is not None:
-                sid = sub.get('student_id')
-                if sid not in student_scores:
-                    resp = supabase.table('users').select('grade').eq('username', sid).eq('school_id', school_id).execute()
-                    grade_level = resp.data[0]['grade'] if resp.data else 'N/A'
-
-                    student_scores[sid] = {'grades': [], 'username': sid, 'grade_level': grade_level}
-
-                student_scores[sid]['grades'].append(sub.get('grade'))
-
-        for sid, data in student_scores.items():
-            if data['grades']:
-                avg_score = sum(data['grades']) / len(data['grades'])
-                top_students.append({
-                    'username': data['username'],
-                    'grade_level': data['grade_level'],
-                    'avg_score': round(avg_score, 2)
-                })
-
-        top_students.sort(key=lambda x: x['avg_score'], reverse=True)
-        top_students = top_students[:5]
-
-        # Admin context
-        is_school_admin = (
-            session['user_id'] == 'sirius' or
-            (user.get('is_admin') and user.get('role') == 'teacher')
+        # -----------------------------
+        # ⭐ NEW: STUDY MATERIALS COUNT
+        # -----------------------------
+        materials_response = (
+            supabase.table("study_materials")
+            .select("id")
+            .eq("school_id", school_id)
+            .execute()
         )
-
-        # -----------------------------------------------------------
-        # ✅ ADD STUDY MATERIALS COUNT
-        # -----------------------------------------------------------
-        materials_response = supabase.table('study_materials').select('id').eq('school_id', school_id).execute()
         materials_count = len(materials_response.data) if materials_response.data else 0
-        # -----------------------------------------------------------
 
+        # -----------------------------
+        # Render template
+        # -----------------------------
         return render_template(
-            'teacher_dashboard.html',
+            "teacher_dashboard.html",
             prompts=prompts,
             prompt_stats=prompt_stats,
-            top_students=top_students,
+            top_students=None,  # optional, remove if unused
             current_grade_filter=grade_filter,
             current_category_filter=category_filter,
             available_grades=unique_grades,
@@ -997,16 +893,13 @@ def teacher_dashboard():
             mcq_count=mcq_count,
             mixed_count=mixed_count,
             is_school_admin=is_school_admin,
-            materials_count=materials_count   # ✅ PASSED TO TEMPLATE
+            materials_count=materials_count   # ⭐ added
         )
-    
+
     except Exception as e:
         logger.error(f"Teacher dashboard error: {e}")
-        flash('Error loading dashboard.', 'danger')
-        return redirect(url_for('super_admin_dashboard' if session['user_id'] == 'sirius' else 'index'))
-
-
-
+        flash("Error loading dashboard.", "danger")
+        return redirect(url_for("super_admin_dashboard" if session['user_id'] == 'sirius' else 'index'))
 
 
 @app.route('/teacher/create_prompt', methods=['GET', 'POST'])
@@ -1435,105 +1328,79 @@ def fix_database():
         return f"Database error: {str(e)}"
 
 @app.route('/student/dashboard')
-@student_required # type: ignore
+@student_required
 def student_dashboard():
-    supabase = get_supabase()
-    if not supabase:
-        flash('Database connection error.', 'danger')
-        return redirect(url_for('logout'))
-    
+    user = get_user_from_session()
+    if not user:
+        return redirect(url_for('login'))
+
     try:
-        # Get current user
-        user_response = supabase.table('users').select('*').eq('username', session['user_id']).execute()
-        user = user_response.data[0] if user_response.data else None
-        
-        if not user:
-            flash("User not found. Please log in again.", "danger")
-            return redirect(url_for('logout'))
-        
-        # Get all prompts for student's grade and school - FIXED DATA LEAK
+        # Get all prompts for the student's school and grade
         prompts_response = supabase.table('prompts')\
             .select('*')\
-            .eq('grade_level', user['grade'])\
             .eq('school_id', user['school_id'])\
-            .order('created_at', desc=True)\
+            .eq('grade_level', user['grade'])\
             .execute()
         
         prompts = prompts_response.data if prompts_response.data else []
         
-        # Get all student submissions
+        # Get student's submissions
         submissions_response = supabase.table('submissions')\
             .select('*')\
-            .eq('student_id', session['user_id'])\
+            .eq('student_id', user['id'])\
             .execute()
         
         submissions = submissions_response.data if submissions_response.data else []
-        submissions_dict = {sub['prompt_id']: sub for sub in submissions}
         
-        # Enrich prompts with submission status
+        # Create a dictionary of prompt_id to submission for quick lookup
+        submission_dict = {sub['prompt_id']: sub for sub in submissions}
+        
+        # Enhance prompts with submission info
         for prompt in prompts:
-            prompt['has_submitted'] = prompt['id'] in submissions_dict
-            prompt['submission'] = submissions_dict.get(prompt['id'])
+            prompt['has_submitted'] = prompt['id'] in submission_dict
+            prompt['submission'] = submission_dict.get(prompt['id'])
         
         # Calculate statistics
-        total_prompts = len(prompts)
-        completed_assignments = sum(1 for p in prompts if p['has_submitted'])
-        pending_assignments = total_prompts - completed_assignments
+        completed_assignments = len([p for p in prompts if p['has_submitted']])
+        pending_assignments = len(prompts) - completed_assignments
         
-        # Calculate average grade (only from graded submissions)
-        graded_submissions = [s for s in submissions if s.get('grade') is not None]
-        average_grade = round(sum(s['grade'] for s in graded_submissions) / len(graded_submissions)) if graded_submissions else 0
+        # Calculate average grade
+        graded_submissions = [sub for sub in submissions if sub.get('grade') is not None]
+        average_grade = round(sum(sub['grade'] for sub in graded_submissions) / len(graded_submissions), 1) if graded_submissions else 0
         
         # Calculate completion rate
-        completion_rate = round((completed_assignments / total_prompts * 100)) if total_prompts > 0 else 0
+        completion_rate = round((completed_assignments / len(prompts)) * 100, 1) if prompts else 0
         
-        # Calculate subject mastery (real data from submissions)
-        subject_mastery = {}
-        for submission in graded_submissions:
-            # Find the corresponding prompt to get subject
-            prompt = next((p for p in prompts if p['id'] == submission['prompt_id']), None)
-            if prompt and prompt.get('subject'):
-                subject = prompt['subject']
-                if subject not in subject_mastery:
-                    subject_mastery[subject] = {'total': 0, 'count': 0}
-                subject_mastery[subject]['total'] += submission['grade']
-                subject_mastery[subject]['count'] += 1
-        
-        # Calculate average per subject
+        # Calculate subject averages
         subject_averages = {}
-        for subject, data in subject_mastery.items():
-            subject_averages[subject] = round(data['total'] / data['count']) if data['count'] > 0 else 0
+        for prompt in prompts:
+            if prompt['has_submitted'] and prompt['submission'].get('grade') is not None:
+                subject = prompt['subject']
+                if subject not in subject_averages:
+                    subject_averages[subject] = []
+                subject_averages[subject].append(prompt['submission']['grade'])
         
-        # Get leaderboard rank - School-scoped
+        # Calculate average for each subject
+        for subject, grades in subject_averages.items():
+            subject_averages[subject] = round(sum(grades) / len(grades), 1)
+        
+        # Get leaderboard rank (simplified - you might want to implement a proper ranking system)
         all_students_response = supabase.table('users')\
-            .select('username')\
-            .eq('role', 'student')\
+            .select('id')\
             .eq('school_id', user['school_id'])\
+            .eq('role', 'student')\
             .eq('grade', user['grade'])\
             .execute()
         
-        all_students = all_students_response.data if all_students_response.data else []
+        leaderboard_rank = len(all_students_response.data) if all_students_response.data else 1
         
-        # Calculate grades for all students
-        student_grades = []
-        for student in all_students:
-            student_subs = supabase.table('submissions')\
-                .select('grade')\
-                .eq('student_id', student['username'])\
-                .execute()
-            
-            student_graded = [s for s in (student_subs.data or []) if s.get('grade') is not None]
-            avg = sum(s['grade'] for s in student_graded) / len(student_graded) if student_graded else 0
-            student_grades.append({
-                'username': student['username'],
-                'average': avg
-            })
-        
-        # Sort by average descending
-        student_grades.sort(key=lambda x: x['average'], reverse=True)
-        
-        # Find current student's rank
-        leaderboard_rank = next((i + 1 for i, sg in enumerate(student_grades) if sg['username'] == session['user_id']), len(student_grades))
+        # ADD THIS: Get study materials count for student's grade
+        materials_response = supabase.table('study_materials')\
+            .select('id')\
+            .eq('school_id', user['school_id'])\
+            .eq('grade_level', user['grade'])\
+            .execute()
+        materials_count = len(materials_response.data) if materials_response.data else 0
         
         return render_template(
             'student_dashboard.html',
@@ -1544,8 +1411,9 @@ def student_dashboard():
             average_grade=average_grade,
             completion_rate=completion_rate,
             leaderboard_rank=leaderboard_rank,
-            subject_averages=subject_averages,  # Real subject mastery data
-            now=datetime.now()
+            subject_averages=subject_averages,
+            now=datetime.now(),
+            materials_count=materials_count  # ADD THIS LINE
         )
         
     except Exception as e:

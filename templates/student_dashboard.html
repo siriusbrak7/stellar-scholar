@@ -46,6 +46,15 @@
                     <p>Class Rank</p>
                 </div>
             </div>
+            <!-- Study Materials Card -->
+            <div class="stat-card materials">
+                <div class="stat-icon">📚</div>
+                <div class="stat-info">
+                    <h3>{{ materials_count }}</h3>
+                    <p>Study Materials</p>
+                    <a href="{{ url_for('student_materials') }}" class="materials-btn">View All</a>
+                </div>
+            </div>
         </div>
 
         <!-- Science Fact of the Moment -->
@@ -196,6 +205,10 @@
                     <span class="action-icon">📖</span>
                     <span class="action-text">My History</span>
                 </a>
+                <a href="{{ url_for('student_materials') }}" class="action-card">
+                    <span class="action-icon">📚</span>
+                    <span class="action-text">Study Materials</span>
+                </a>
             </div>
         </div>
     </div>
@@ -271,6 +284,7 @@
     padding: 1.5rem;
     text-align: center;
     transition: transform 0.3s ease;
+    position: relative;
 }
 
 .stat-card:hover {
@@ -290,7 +304,25 @@
 
 .stat-info p {
     opacity: 0.8;
-    margin: 0;
+    margin: 0 0 0.75rem 0;
+}
+
+.materials-btn {
+    display: inline-block;
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    padding: 0.4rem 1rem;
+    border-radius: 15px;
+    text-decoration: none;
+    font-size: 0.8rem;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.materials-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: translateY(-2px);
 }
 
 /* Science Fact Container */
@@ -718,6 +750,20 @@
     
     .welcome-title {
         font-size: 2rem;
+    }
+    
+    .progress-cards {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 480px) {
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .action-buttons {
+        grid-template-columns: 1fr;
     }
 }
 </style>
