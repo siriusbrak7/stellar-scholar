@@ -1377,7 +1377,7 @@ def student_dashboard():
             # Regular student - only their submissions
             submissions_response = supabase.table('submissions')\
                 .select('*')\
-                .eq('student_id', user['id'])\
+                .eq('student_id', user['username'])\
                 .execute()
         
         submissions = submissions_response.data if submissions_response.data else []
