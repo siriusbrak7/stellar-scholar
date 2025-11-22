@@ -227,16 +227,16 @@ def school_admin_required(f):
     return decorated_function
 
 def student_required(f):
-    """Enhanced student access control with school scoping"""
+    """Enhanced student access control - ALLOWS SIRIUS"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if 'user_id' not in session:
             flash('Please log in first.', 'warning')
             return redirect(url_for('login'))
         
-        # Super admin and teachers should not access student routes
+        # ALLOW sirius to access student features
         if session['user_id'] == 'sirius':
-            return redirect(url_for('super_admin_dashboard'))
+            return f(*args, **kwargs)  # Sirius can access student routes
         
         supabase = get_supabase()
         if not supabase:
@@ -244,7 +244,6 @@ def student_required(f):
             return redirect(url_for('index'))
             
         try:
-            # FIX: Remove get_user_from_session and use direct query
             user_response = supabase.table('users').select('*').eq('username', session['user_id']).execute()
             user = user_response.data[0] if user_response.data else None
             
@@ -1331,25 +1330,55 @@ def fix_database():
 @app.route('/student/dashboard')
 @student_required
 def student_dashboard():
-    user = get_user_from_session()
-    if not user:
-        return redirect(url_for('login'))
-
+    supabase = get_supabase()
+    if not supabase:
+        flash('Database connection error.', 'danger')
+        return redirect(url_for('logout'))
+    
     try:
+        # Handle Sirius differently
+        if session['user_id'] == 'sirius':
+            # Sirius can view any student's dashboard - maybe add student switcher?
+            user = {
+                'username': 'sirius', 
+                'role': 'teacher', 
+                'school_id': None, 
+                'grade': '9',
+                'id': 'sirius_special_id'  # Add a special ID for Sirius
+            }  # Default values
+        else:
+            # Regular student
+            user_response = supabase.table('users').select('*').eq('username', session['user_id']).execute()
+            user = user_response.data[0] if user_response.data else None
+        
+        if not user:
+            flash("User not found. Please log in again.", "danger")
+            return redirect(url_for('logout'))
+        
         # Get all prompts for the student's school and grade
-        prompts_response = supabase.table('prompts')\
-            .select('*')\
-            .eq('school_id', user['school_id'])\
-            .eq('grade_level', user['grade'])\
-            .execute()
+        if session['user_id'] == 'sirius':
+            # Sirius can see all prompts across all schools/grades
+            prompts_response = supabase.table('prompts').select('*').execute()
+        else:
+            # Regular student - only their school and grade
+            prompts_response = supabase.table('prompts')\
+                .select('*')\
+                .eq('school_id', user['school_id'])\
+                .eq('grade_level', user['grade'])\
+                .execute()
         
         prompts = prompts_response.data if prompts_response.data else []
         
         # Get student's submissions
-        submissions_response = supabase.table('submissions')\
-            .select('*')\
-            .eq('student_id', user['id'])\
-            .execute()
+        if session['user_id'] == 'sirius':
+            # Sirius can see all submissions (or limit to demo data)
+            submissions_response = supabase.table('submissions').select('*').limit(50).execute()
+        else:
+            # Regular student - only their submissions
+            submissions_response = supabase.table('submissions')\
+                .select('*')\
+                .eq('student_id', user['id'])\
+                .execute()
         
         submissions = submissions_response.data if submissions_response.data else []
         
@@ -1375,8 +1404,8 @@ def student_dashboard():
         # Calculate subject averages
         subject_averages = {}
         for prompt in prompts:
-            if prompt['has_submitted'] and prompt['submission'].get('grade') is not None:
-                subject = prompt['subject']
+            if prompt['has_submitted'] and prompt['submission'] and prompt['submission'].get('grade') is not None:
+                subject = prompt.get('subject', 'General')
                 if subject not in subject_averages:
                     subject_averages[subject] = []
                 subject_averages[subject].append(prompt['submission']['grade'])
@@ -1385,22 +1414,33 @@ def student_dashboard():
         for subject, grades in subject_averages.items():
             subject_averages[subject] = round(sum(grades) / len(grades), 1)
         
-        # Get leaderboard rank (simplified - you might want to implement a proper ranking system)
-        all_students_response = supabase.table('users')\
-            .select('id')\
-            .eq('school_id', user['school_id'])\
-            .eq('role', 'student')\
-            .eq('grade', user['grade'])\
-            .execute()
+        # Get leaderboard rank
+        if session['user_id'] == 'sirius':
+            # For Sirius, show a demo rank
+            leaderboard_rank = 1
+        else:
+            # Regular student ranking
+            all_students_response = supabase.table('users')\
+                .select('id')\
+                .eq('school_id', user['school_id'])\
+                .eq('role', 'student')\
+                .eq('grade', user['grade'])\
+                .execute()
+            
+            leaderboard_rank = len(all_students_response.data) if all_students_response.data else 1
         
-        leaderboard_rank = len(all_students_response.data) if all_students_response.data else 1
+        # Get study materials count
+        if session['user_id'] == 'sirius':
+            # Sirius can see all study materials
+            materials_response = supabase.table('study_materials').select('id').execute()
+        else:
+            # Regular student - only their school and grade
+            materials_response = supabase.table('study_materials')\
+                .select('id')\
+                .eq('school_id', user['school_id'])\
+                .eq('grade_level', user['grade'])\
+                .execute()
         
-        # ADD THIS: Get study materials count for student's grade
-        materials_response = supabase.table('study_materials')\
-            .select('id')\
-            .eq('school_id', user['school_id'])\
-            .eq('grade_level', user['grade'])\
-            .execute()
         materials_count = len(materials_response.data) if materials_response.data else 0
         
         return render_template(
@@ -1414,7 +1454,7 @@ def student_dashboard():
             leaderboard_rank=leaderboard_rank,
             subject_averages=subject_averages,
             now=datetime.now(),
-            materials_count=materials_count  # ADD THIS LINE
+            materials_count=materials_count
         )
         
     except Exception as e:
