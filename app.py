@@ -1061,16 +1061,21 @@ def teacher_dashboard():
             flash("Session expired. Please log in again.", "danger")
             return redirect(url_for('login'))
 
-        # Get teacher info
-        teacher = get_user_by_username(user_id)
+        # 🚨 CRITICAL FIX: Get the CORRECT teacher context
+        current_viewing_teacher = session.get('current_teacher_id') or user_id
+        
+        # Get teacher info - use the teacher we're actually viewing
+        teacher = get_user_by_username(current_viewing_teacher)
         if not teacher:
             flash("Teacher record not found.", "danger")
             return redirect(url_for('index'))
 
-        school_id = teacher.get("school_id")
+        school_id = teacher.get("school_id")  # 🎯 This is the KEY FIX
         is_school_admin = teacher.get("is_admin", False)
 
-        # Get prompts as list
+        print(f"DEBUG: Viewing teacher {current_viewing_teacher}, school_id: {school_id}")
+
+        # Get prompts for the CORRECT school
         prompts_response = supabase.table("prompts").select("*").eq("school_id", school_id).execute()
         prompts = prompts_response.data if prompts_response.data else []
 
@@ -1078,7 +1083,7 @@ def teacher_dashboard():
         grade_filter = request.args.get('grade', 'all')
         category_filter = request.args.get('category', 'all')
 
-        filtered_prompts = prompts.copy()  # Work with a copy
+        filtered_prompts = prompts.copy()
 
         if grade_filter != "all":
             filtered_prompts = [p for p in filtered_prompts if str(p.get("grade_level")) == str(grade_filter)]
@@ -1090,14 +1095,14 @@ def teacher_dashboard():
         unique_grades = sorted(list({p["grade_level"] for p in prompts if p.get("grade_level")}))
         unique_categories = sorted(list({p["assessment_type"] for p in prompts if p.get("assessment_type")}))
 
-        # Count assessment types from ALL prompts (not filtered)
+        # Count assessment types from ALL prompts
         written_count = len([p for p in prompts if p.get("assessment_type") == "written"])
         mcq_count = len([p for p in prompts if p.get("assessment_type") == "mcq"])
         mixed_count = len([p for p in prompts if p.get("assessment_type") == "mixed"])
 
         # Get submissions for each prompt
         prompt_stats = {}
-        for prompt in prompts:  # Use ALL prompts for stats
+        for prompt in prompts:
             submissions_res = supabase.table("submissions").select("*").eq("prompt_id", prompt['id']).execute()
             submissions = submissions_res.data if submissions_res.data else []
             
@@ -1109,43 +1114,43 @@ def teacher_dashboard():
                 "total": total
             }
 
-        # Basic analytics
+        # 🎯 FIXED: Get students from the CORRECT school
         students_res = supabase.table("users").select("*").eq("school_id", school_id).eq("role", "student").execute()
         all_students = students_res.data if students_res.data else []
         
         active_students = len([s for s in all_students if s.get('approval_status') == 'approved'])
         
-        all_submissions_res = supabase.table("submissions").select("*").execute()
-        all_submissions = all_submissions_res.data if all_submissions_res.data else []
+        # 🎯 FIXED: Get submissions from the CORRECT school
+        all_submissions_res = supabase.table("submissions").select("*, prompts(school_id)").execute()
+        school_submissions = [s for s in all_submissions_res.data if s.get('prompts', {}).get('school_id') == school_id] if all_submissions_res.data else []
 
         class_analytics = {
             "total_students": len(all_students),
             "active_students": active_students,
-            "total_submissions": len(all_submissions),
-            "average_completion_rate": 65  # Simple placeholder
+            "total_submissions": len(school_submissions),  # 🎯 Use school-specific submissions
+            "average_completion_rate": 65  # Placeholder - we'll fix this next
         }
 
         # Student progress (basic)
         student_progress = []
-        for student in all_students[:5]:  # Just show first 5
-            student_submissions = len([s for s in all_submissions if s['student_id'] == student['username']])
+        for student in all_students[:5]:
+            student_submissions = len([s for s in school_submissions if s['student_id'] == student['username']])
             student_progress.append({
                 'username': student['username'],
                 'grade_level': student.get('grade', 'N/A'),
                 'submissions_count': student_submissions,
-                'average_grade': 75,  # Placeholder
-                'completion_rate': 60  # Placeholder
+                'average_grade': 75,
+                'completion_rate': 60
             })
 
-        # Study materials count
+        # Study materials count - FIXED school context
         materials_response = supabase.table("study_materials").select("id").eq("school_id", school_id).execute()
         materials_count = len(materials_response.data) if materials_response.data else 0
 
-        # ✅ FIXED: Use filtered_prompts for display, but keep prompt_stats for all prompts
         return render_template(
             "teacher_dashboard.html",
-            prompts=filtered_prompts,  # This is the FILTERED list for display
-            prompt_stats=prompt_stats,  # This contains stats for ALL prompts
+            prompts=filtered_prompts,
+            prompt_stats=prompt_stats,
             current_grade_filter=grade_filter,
             current_category_filter=category_filter,
             available_grades=unique_grades,
