@@ -131,57 +131,83 @@ test_gemini_models()
 # ------------------------------------------------------
 
 def generate_ai_explanation(content, material_type, title):
-    """Smart study guide - works without API key"""
-    # Always use study guides until new API key is configured
-    return f"""
-🎯 **Smart Study Guide: {title}**
+    """Fully working AI explanation with your new API key"""
+    if not GOOGLE_API_KEY:
+        return get_fallback_explanation(title, material_type)
 
-**📖 About This {material_type.upper()} Resource:**
+    # ✅ YOUR WORKING MODELS
+    working_models = [
+        "models/gemini-2.0-flash",           # Fast & reliable
+        "models/gemini-2.5-flash",           # Latest flash
+        "models/gemini-2.0-pro-exp",         # High quality
+        "models/gemini-flash-latest",        # Always current
+    ]
 
-This material was shared by your teacher to help you learn. Here's how to master it:
+    content = content[:2500] if len(content) > 2500 else content
 
-**🔍 Key Learning Strategies:**
-• **Active Reading**: Don't just read - question, summarize, and connect
-• **Note-Taking**: Use the Cornell method or mind maps
-• **Spaced Repetition**: Review multiple times over days
-• **Teach Others**: Explain concepts to friends or family
+    prompt = f"""Explain this study material in a simple, engaging way for students:
 
-**💡 Understanding the Content:**
-• What's the main idea in one sentence?
-• How does this connect to previous lessons?
-• Can you create your own examples?
-• What would you ask the teacher about this?
+Title: {title}
+Type: {material_type}
 
-**🎒 Pro Study Tips:**
-• Study in 25-minute focused sessions (Pomodoro technique)
-• Create flashcards for key terms
-• Form study groups for discussion
-• Practice retrieval - test yourself without notes
+Content:
+{content}
 
-**Remember**: The best learning happens when you're actively engaged! You've got this! 💪
+Please provide:
+1. A simple explanation of the main concepts
+2. Key points to remember  
+3. Real-world examples that students can relate to
+4. Practical study tips
 
-*AI features temporarily unavailable - this study guide provides the same learning benefits!*
-"""
+Make it fun, easy to understand, and student-friendly. Use emojis to make it engaging!
+Keep it under 300 words."""
+
+    for model_name in working_models:
+        try:
+            model = genai.GenerativeModel(model_name)
+            response = model.generate_content(prompt)
+            
+            if response.text and len(response.text.strip()) > 50:
+                print(f"✅ AI EXPLANATION SUCCESS with {model_name}")
+                return response.text.strip()
+                
+        except Exception as e:
+            print(f"❌ Model {model_name} failed: {e}")
+            continue
+
+    return get_fallback_explanation(title, material_type)
 
 def generate_ai_summary(content, material_type, title):
-    """Smart summary framework - works without API key"""
-    return f"""
-📋 **Study Summary Framework: {title}**
+    """Fully working AI summary with your new API key"""
+    if not GOOGLE_API_KEY:
+        return get_fallback_summary(title, material_type)
 
-• **Main Topic**: {title}
-• **Resource Type**: {material_type}
-• **3 Key Concepts**: 
-  1. [Write the most important idea]
-  2. [Write the second key concept] 
-  3. [Write the third main point]
-• **Essential Terms**: [List 3-5 key vocabulary words]
-• **Real-World Connection**: [How is this used in real life?]
-• **Questions to Explore**: [What do you still wonder about?]
+    content = content[:1800] if len(content) > 1800 else content
 
-💡 **Fill this framework as you study!** This active note-taking method is proven to boost learning by 50% compared to passive reading.
+    prompt = f"""Create a simple 3-5 bullet summary for students:
 
-*AI summary temporarily enhanced with proven learning techniques!*
-"""
+Title: {title}
+Type: {material_type}
+
+Content:
+{content}
+
+Provide only the most important points as bullet points.
+Make it clear, concise, and easy to remember.
+Use emojis to make it engaging!"""
+
+    for model_name in ["models/gemini-2.0-flash", "models/gemini-2.5-flash"]:
+        try:
+            model = genai.GenerativeModel(model_name)
+            response = model.generate_content(prompt)
+            if response.text and len(response.text.strip()) > 20:
+                print(f"✅ AI SUMMARY SUCCESS with {model_name}")
+                return response.text.strip()
+        except Exception as e:
+            print(f"❌ Summary model {model_name} failed: {e}")
+            continue
+
+    return get_fallback_summary(title, material_type)
 
 def get_fallback_explanation(title, material_type):
     """Provide helpful fallback explanations"""

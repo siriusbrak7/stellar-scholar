@@ -11,6 +11,7 @@
     <div class="card mb-4">
         <div class="card-body">
             <div class="row">
+
                 <div class="col-md-4">
                     <label class="form-label">Filter by Subject:</label>
                     <select class="form-select" id="subjectFilter">
@@ -38,6 +39,7 @@
                         <option value="text">Text</option>
                     </select>
                 </div>
+
             </div>
         </div>
     </div>
@@ -46,8 +48,8 @@
     <div class="row" id="materialsContainer">
         {% for material in materials %}
         <div class="col-md-6 col-lg-4 mb-4 material-card"
-            data-subject="{{ material.subject }}"
-            data-type="{{ material.material_type }}">
+             data-subject="{{ material.subject }}"
+             data-type="{{ material.material_type }}">
 
             <div class="card h-100">
                 <div class="card-header">
@@ -58,8 +60,9 @@
                 </div>
 
                 <div class="card-body">
+
                     {% if material.description %}
-                    <p class="card-text">{{ material.description }}</p>
+                        <p class="card-text">{{ material.description }}</p>
                     {% endif %}
 
                     <!-- Type Badge -->
@@ -75,37 +78,42 @@
 
                     <!-- Tags -->
                     {% if material.tags %}
-                    <div class="mt-2">
-                        {% for tag in material.tags %}
-                        <span class="badge bg-light text-dark">{{ tag }}</span>
-                        {% endfor %}
-                    </div>
+                        <div class="mt-2">
+                            {% for tag in material.tags %}
+                                <span class="badge bg-light text-dark">{{ tag }}</span>
+                            {% endfor %}
+                        </div>
                     {% endif %}
 
-                    <!-- Links -->
+                    <!-- File / Video / Web / Text Buttons -->
                     <div class="mt-3">
 
                         {% if material.material_type == 'file' and material.file_url %}
                             {% set filename = material.file_url.replace('/uploads/', '') %}
-                            <a href="{{ url_for('download_file', filename=filename) }}" class="btn btn-outline-primary btn-sm w-100 mb-2">
+                            <a href="{{ url_for('download_file', filename=filename) }}"
+                               class="btn btn-outline-primary btn-sm w-100 mb-2">
                                 📥 Download File
                             </a>
 
                         {% elif material.material_type == 'video' and material.video_url %}
-                        <a href="{{ material.video_url }}" class="btn btn-outline-danger btn-sm w-100 mb-2" target="_blank">
-                            🎥 Watch Video
-                        </a>
+                            <a href="{{ material.video_url }}" 
+                               class="btn btn-outline-danger btn-sm w-100 mb-2" 
+                               target="_blank">
+                                🎥 Watch Video
+                            </a>
 
                         {% elif material.material_type == 'web' and material.web_url %}
-                        <a href="{{ material.web_url }}" class="btn btn-outline-info btn-sm w-100 mb-2" target="_blank">
-                            🌐 Visit Website
-                        </a>
+                            <a href="{{ material.web_url }}" 
+                               class="btn btn-outline-info btn-sm w-100 mb-2" 
+                               target="_blank">
+                                🌐 Visit Website
+                            </a>
 
                         {% elif material.material_type == 'text' and material.content_text %}
-                        <button class="btn btn-outline-secondary btn-sm w-100 mb-2"
-                            onclick="showTextContent(`{{ material.content_text | e }}`)">
-                            📖 Read Text
-                        </button>
+                            <button class="btn btn-outline-secondary btn-sm w-100 mb-2"
+                                onclick="showTextContent(`{{ material.content_text | e }}`)">
+                                📖 Read Text
+                            </button>
                         {% endif %}
 
                     </div>
@@ -115,18 +123,19 @@
                 <div class="card-footer">
                     <div class="btn-group w-100">
 
-                        <!-- UPDATED: Smart Study Guide -->
-                        <a href="{{ url_for('ai_explain', material_id=material.id) }}" class="btn btn-outline-info btn-sm">
-                            📚 Smart Study Guide
+                        <a href="{{ url_for('ai_explain', material_id=material.id) }}" 
+                           class="btn btn-outline-info btn-sm">
+                            🤖 AI Explain
                         </a>
 
-                        <!-- UPDATED: Learning Framework -->
-                        <a href="{{ url_for('ai_summarize', material_id=material.id) }}" class="btn btn-outline-success btn-sm">
-                            📋 Learning Framework
+                        <a href="{{ url_for('ai_summarize', material_id=material.id) }}" 
+                           class="btn btn-outline-success btn-sm">
+                            📋 AI Summary
                         </a>
 
                     </div>
                 </div>
+
             </div>
         </div>
 
@@ -139,17 +148,20 @@
     </div>
 </div>
 
-<!-- Text Content Modal -->
+<!-- Text Modal -->
 <div class="modal fade" id="textModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
+
             <div class="modal-header">
                 <h5 class="modal-title">Text Content</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
+
             <div class="modal-body">
                 <div id="textContent" style="white-space: pre-wrap; line-height: 1.6;"></div>
             </div>
+
         </div>
     </div>
 </div>
@@ -166,14 +178,13 @@ document.addEventListener('DOMContentLoaded', function() {
     const materials = document.querySelectorAll('.material-card');
 
     function filterMaterials() {
-        const subjectValue = subjectFilter.value;
-        const typeValue = typeFilter.value;
+        const s = subjectFilter.value;
+        const t = typeFilter.value;
 
         materials.forEach(card => {
-            const matchSubject = subjectValue === 'all' || card.dataset.subject === subjectValue;
-            const matchType = typeValue === 'all' || card.dataset.type === typeValue;
-
-            card.style.display = (matchSubject && matchType) ? 'block' : 'none';
+            const matchS = (s === 'all' || card.dataset.subject === s);
+            const matchT = (t === 'all' || card.dataset.type === t);
+            card.style.display = (matchS && matchT) ? 'block' : 'none';
         });
     }
 
@@ -196,4 +207,5 @@ document.addEventListener('DOMContentLoaded', function() {
 </style>
 
 {% endblock %}
+
 
