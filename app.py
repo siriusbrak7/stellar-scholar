@@ -1061,16 +1061,16 @@ def teacher_dashboard():
             flash("Session expired. Please log in again.", "danger")
             return redirect(url_for('login'))
 
-        # 🚨 CRITICAL FIX: Get the CORRECT teacher context
+        # Get the CORRECT teacher context
         current_viewing_teacher = session.get('current_teacher_id') or user_id
         
-        # Get teacher info - use the teacher we're actually viewing
+        # Get teacher info
         teacher = get_user_by_username(current_viewing_teacher)
         if not teacher:
             flash("Teacher record not found.", "danger")
             return redirect(url_for('index'))
 
-        school_id = teacher.get("school_id")  # 🎯 This is the KEY FIX
+        school_id = teacher.get("school_id")
         is_school_admin = teacher.get("is_admin", False)
 
         print(f"DEBUG: Viewing teacher {current_viewing_teacher}, school_id: {school_id}")
@@ -1100,13 +1100,16 @@ def teacher_dashboard():
         mcq_count = len([p for p in prompts if p.get("assessment_type") == "mcq"])
         mixed_count = len([p for p in prompts if p.get("assessment_type") == "mixed"])
 
-        # Get submissions for each prompt
+        # Get submissions for each prompt - FIXED: No join needed
         prompt_stats = {}
+        all_school_submissions = []  # Track all submissions for this school
+        
         for prompt in prompts:
             submissions_res = supabase.table("submissions").select("*").eq("prompt_id", prompt['id']).execute()
             submissions = submissions_res.data if submissions_res.data else []
+            all_school_submissions.extend(submissions)  # Collect for school totals
             
-            graded = len([s for s in submissions if s.get("grade") is not None])
+            graded = len([s for s in submissions if s.get('grade') is not None])
             total = len(submissions)
 
             prompt_stats[prompt['id']] = {
@@ -1114,36 +1117,47 @@ def teacher_dashboard():
                 "total": total
             }
 
-        # 🎯 FIXED: Get students from the CORRECT school
+        # Get students from the CORRECT school
         students_res = supabase.table("users").select("*").eq("school_id", school_id).eq("role", "student").execute()
         all_students = students_res.data if students_res.data else []
         
         active_students = len([s for s in all_students if s.get('approval_status') == 'approved'])
         
-        # 🎯 FIXED: Get submissions from the CORRECT school
-        all_submissions_res = supabase.table("submissions").select("*, prompts(school_id)").execute()
-        school_submissions = [s for s in all_submissions_res.data if s.get('prompts', {}).get('school_id') == school_id] if all_submissions_res.data else []
+        # 🎯 FIXED: Calculate completion rate properly
+        total_possible_submissions = len(prompts) * len(all_students)
+        actual_submissions = len(all_school_submissions)
+        
+        completion_rate = 0
+        if total_possible_submissions > 0:
+            completion_rate = round((actual_submissions / total_possible_submissions) * 100)
 
         class_analytics = {
             "total_students": len(all_students),
             "active_students": active_students,
-            "total_submissions": len(school_submissions),  # 🎯 Use school-specific submissions
-            "average_completion_rate": 65  # Placeholder - we'll fix this next
+            "total_submissions": len(all_school_submissions),
+            "average_completion_rate": completion_rate  # 🎯 Now calculated properly
         }
 
         # Student progress (basic)
         student_progress = []
-        for student in all_students[:5]:
-            student_submissions = len([s for s in school_submissions if s['student_id'] == student['username']])
+        for student in all_students[:5]:  # Show first 5 students
+            student_submissions = len([s for s in all_school_submissions if s['student_id'] == student['username']])
+            
+            # Calculate student's completion rate
+            student_prompts = [p for p in prompts if p.get('grade_level') == student.get('grade')]
+            student_completion = 0
+            if student_prompts:
+                student_completion = round((student_submissions / len(student_prompts)) * 100)
+            
             student_progress.append({
                 'username': student['username'],
                 'grade_level': student.get('grade', 'N/A'),
                 'submissions_count': student_submissions,
-                'average_grade': 75,
-                'completion_rate': 60
+                'average_grade': 75,  # Placeholder
+                'completion_rate': student_completion
             })
 
-        # Study materials count - FIXED school context
+        # Study materials count
         materials_response = supabase.table("study_materials").select("id").eq("school_id", school_id).execute()
         materials_count = len(materials_response.data) if materials_response.data else 0
 
@@ -3950,6 +3964,36 @@ def debug_ai_status():
             status['test_success'] = False
     
     return jsonify(status)
+
+@app.route('/debug/teacher-context')
+@super_admin_required
+def debug_teacher_context():
+    """Debug teacher context switching"""
+    current_teacher = session.get('current_teacher_id')
+    current_school = session.get('current_school_id')
+    
+    supabase = get_supabase()
+    
+    debug_info = {
+        'current_teacher': current_teacher,
+        'current_school': current_school,
+        'session_user': session.get('user_id')
+    }
+    
+    if current_teacher:
+        teacher_data = get_user_by_username(current_teacher)
+        debug_info['teacher_data'] = teacher_data
+        
+        if teacher_data and teacher_data.get('school_id'):
+            # Check students in that school
+            students = supabase.table("users").select("*").eq("school_id", teacher_data['school_id']).eq("role", "student").execute()
+            debug_info['students_in_school'] = students.data if students.data else []
+            
+            # Check prompts in that school
+            prompts = supabase.table("prompts").select("*").eq("school_id", teacher_data['school_id']).execute()
+            debug_info['prompts_in_school'] = prompts.data if prompts.data else []
+    
+    return jsonify(debug_info)
 
 # Production configuration
 if __name__ == '__main__':
