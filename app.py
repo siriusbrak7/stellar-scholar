@@ -125,29 +125,30 @@ test_gemini_models()
 # ------------------------------------------------------
 
 def generate_ai_explanation(content, material_type, title):
-    """Generate simplified student-friendly explanation using Gemini."""
+    """Generate AI explanation with robust fallbacks"""
     if not GOOGLE_API_KEY:
-        return "🔧 AI features are being set up! Please check back soon."
-
-    # Try different model names
-    model_names = [
-        "gemini-1.5-flash",
+        return get_fallback_explanation(title, material_type)
+    
+    # Try multiple model approaches
+    model_attempts = [
+        "gemini-2.0-flash",
+        "gemini-1.5-flash", 
         "gemini-1.0-pro",
-        "models/gemini-1.5-flash",
-        "models/gemini-1.0-pro"
+        "models/gemini-2.0-flash",
+        "models/gemini-1.5-flash"
     ]
     
-    for model_name in model_names:
+    for model_name in model_attempts:
         try:
             model = genai.GenerativeModel(model_name)
             prompt = f"""
-            Explain this study material in a simple, engaging way for Grade 9 students:
+            Explain this study material in a simple, engaging way for students:
 
             Title: {title}
             Type: {material_type}
 
             Content:
-            {content}
+            {content[:3000]}  # Limit content size
 
             Please provide:
             1. A simple explanation of the main concepts
@@ -156,55 +157,184 @@ def generate_ai_explanation(content, material_type, title):
             4. Study tips
 
             Make it fun, easy to understand, and student-friendly.
-            Keep it under 300 words.
+            Keep it under 250 words.
             """
 
             response = model.generate_content(prompt)
-            if response.text:
+            if response.text and len(response.text.strip()) > 50:  # Ensure meaningful response
                 return response.text
+                
         except Exception as e:
-            print(f"❌ Model {model_name} failed: {e}")
+            print(f"❌ AI model {model_name} failed: {e}")
             continue
     
-    return "🤖 AI is busy right now. Please try again later or ask your teacher!"
+    # If all AI attempts fail, use fallback
+    return get_fallback_explanation(title, material_type)
 
 def generate_ai_summary(content, material_type, title):
-    """Generate 3–5 bullet summary using Gemini."""
+    """Generate AI summary with fallbacks"""
     if not GOOGLE_API_KEY:
-        return "📚 AI Summary coming soon!"
-
-    # Try different model names
-    model_names = [
+        return get_fallback_summary(title, material_type)
+    
+    model_attempts = [
+        "gemini-2.0-flash",
         "gemini-1.5-flash",
-        "gemini-1.0-pro", 
-        "models/gemini-1.5-flash",
-        "models/gemini-1.0-pro"
+        "models/gemini-2.0-flash"
     ]
     
-    for model_name in model_names:
+    for model_name in model_attempts:
         try:
             model = genai.GenerativeModel(model_name)
             prompt = f"""
-            Create a simple 3-5 bullet summary for Grade 9 students:
+            Create a simple 3-5 bullet summary for students:
 
             Title: {title}
             Type: {material_type}
 
             Content:
-            {content}
+            {content[:2000]}
 
             Provide only the most important points as bullet points.
             Make it clear and easy to remember.
+            Maximum 5 bullet points.
             """
 
             response = model.generate_content(prompt)
-            if response.text:
+            if response.text and len(response.text.strip()) > 30:
                 return response.text
+                
         except Exception as e:
-            print(f"❌ Model {model_name} failed: {e}")
+            print(f"❌ AI summary model {model_name} failed: {e}")
             continue
     
-    return "📋 Summary unavailable. Try creating your own summary!"
+    return get_fallback_summary(title, material_type)
+
+def get_fallback_explanation(title, material_type):
+    """Provide helpful fallback explanations"""
+    fallbacks = {
+        'text': f"""
+        **📚 Understanding '{title}'**
+
+        **Main Concepts:**
+        This material covers important concepts that your teacher wants you to understand. Take your time to read through it carefully.
+
+        **Key Points to Remember:**
+        • Focus on the main ideas presented
+        • Note down any important definitions
+        • Look for examples that illustrate the concepts
+
+        **Study Tips:**
+        • Read through the material at least twice
+        • Create your own summary notes
+        • Discuss with classmates for better understanding
+        • Ask your teacher about anything unclear
+
+        💡 **Tip:** Try explaining the concepts in your own words to reinforce learning!
+        """,
+        
+        'file': f"""
+        **📄 About '{title}'**
+
+        **What this file contains:**
+        This file includes important learning materials shared by your teacher. It might be notes, exercises, or reference material.
+
+        **How to use it:**
+        • Download and open the file
+        • Look for key sections and headings
+        • Pay attention to examples and exercises
+        • Use it for review and practice
+
+        **Study Tips:**
+        • Take notes as you go through the file
+        • Highlight important information
+        • Try any exercises included
+        • Refer back to it when studying
+
+        📝 **Remember:** Active engagement with the material helps learning!
+        """,
+        
+        'video': f"""
+        **🎥 Video: '{title}'**
+
+        **What to expect:**
+        This video explains important concepts visually. Videos can help you understand complex topics through demonstrations and examples.
+
+        **How to get the most from this video:**
+        • Watch it actively, not passively
+        • Pause and take notes
+        • Re-watch confusing sections
+        • Connect it to what you've learned in class
+
+        **Key things to look for:**
+        • Main concepts being explained
+        • Examples and demonstrations
+        • Important terms and definitions
+        • Summary points
+
+        ⏯️ **Tip:** Take breaks during longer videos to process information!
+        """,
+        
+        'web': f"""
+        **🌐 Web Resource: '{title}'**
+
+        **About this resource:**
+        This online resource provides additional information on the topic. It might include articles, interactive content, or reference materials.
+
+        **How to use it effectively:**
+        • Skim through first to understand the structure
+        • Read carefully for important details
+        • Take notes on key points
+        • Look for examples and applications
+
+        **What to focus on:**
+        • Main ideas and concepts
+        • Supporting examples
+        • Definitions of key terms
+        • Any practice questions or activities
+
+        🔍 **Remember:** Not everything online is equally valuable - focus on the core concepts!
+        """
+    }
+    
+    return fallbacks.get(material_type, fallbacks['text'])
+
+def get_fallback_summary(title, material_type):
+    """Provide helpful fallback summaries"""
+    summaries = {
+        'text': f"""
+        • **{title}** covers key concepts in this subject
+        • Focus on understanding the main ideas presented
+        • Note important definitions and examples
+        • Review the material regularly for better retention
+        • Ask questions about anything unclear
+        """,
+        
+        'file': f"""
+        • **{title}** contains important learning materials
+        • Download and review the file carefully
+        • Look for key sections and examples
+        • Use it for practice and review
+        • Keep it for future reference
+        """,
+        
+        'video': f"""
+        • **{title}** explains concepts visually
+        • Watch actively and take notes
+        • Pay attention to demonstrations
+        • Re-watch confusing sections
+        • Connect to classroom learning
+        """,
+        
+        'web': f"""
+        • **{title}** provides online learning resources
+        • Browse for main concepts and examples
+        • Focus on reliable information
+        • Take notes on key points
+        • Use as supplementary material
+        """
+    }
+    
+    return summaries.get(material_type, summaries['text'])
 
 
 
@@ -3663,42 +3793,56 @@ def delete_material(material_id):
 @app.route('/ai/explain/<material_id>')
 @login_required
 def ai_explain(material_id):
-    """AI explanation for study materials"""
-    supabase = get_supabase()
-    
-    # Get material details
-    material_response = supabase.table('study_materials').select('*').eq('id', material_id).execute()
-    material = material_response.data[0] if material_response.data else None
-    
-    if not material:
-        flash('Material not found.', 'danger')
-        return redirect(request.referrer or url_for('student_materials'))
-    
-    # Prepare content for AI based on material type
-    content = ""
-    
-    if material['material_type'] == 'text':
-        content = material['content_text'] or ""
-    elif material['material_type'] == 'web' and material['web_url']:
-        content = extract_webpage_content(material['web_url']) or "Web content unavailable"
-    elif material['material_type'] == 'file':
-        content = f"File: {material.get('file_url', 'No file content available')}"
-    elif material['material_type'] == 'video' and material['video_url']:
-        content = f"Video resource: {material['video_url']}"
-    else:
-        content = material['description'] or material['title']
-    
-    # Generate AI explanation
-    explanation = generate_ai_explanation(
-        content, 
-        material['material_type'], 
-        material['title']
-    )
-    
-    return render_template('ai_explanation.html', 
-                         material=material, 
-                         explanation=explanation,
-                         type='explanation')
+    """AI explanation with better error handling"""
+    try:
+        supabase = get_supabase()
+        
+        # Get material details
+        material_response = supabase.table('study_materials').select('*').eq('id', material_id).execute()
+        material = material_response.data[0] if material_response.data else None
+        
+        if not material:
+            flash('Material not found.', 'danger')
+            return redirect(request.referrer or url_for('student_materials'))
+        
+        # Prepare content for AI
+        content = ""
+        
+        if material['material_type'] == 'text':
+            content = material['content_text'] or ""
+        elif material['material_type'] == 'web' and material['web_url']:
+            content = extract_webpage_content(material['web_url']) or "Web content unavailable"
+        else:
+            content = material['description'] or material['title']
+        
+        # Generate AI explanation with fallback
+        explanation = generate_ai_explanation(
+            content, 
+            material['material_type'], 
+            material['title']
+        )
+        
+        return render_template('ai_explanation.html', 
+                             material=material, 
+                             explanation=explanation,
+                             type='explanation')
+                             
+    except Exception as e:
+        logger.error(f"AI explanation error: {e}")
+        # Still show the page with a fallback message
+        supabase = get_supabase()
+        material_response = supabase.table('study_materials').select('*').eq('id', material_id).execute()
+        material = material_response.data[0] if material_response.data else None
+        
+        fallback_explanation = get_fallback_explanation(
+            material['title'] if material else "Study Material",
+            material['material_type'] if material else 'text'
+        )
+        
+        return render_template('ai_explanation.html', 
+                             material=material or {'title': 'Study Material'}, 
+                             explanation=fallback_explanation,
+                             type='explanation')
 
 @app.route('/ai/summarize/<material_id>')
 @login_required
@@ -3777,6 +3921,28 @@ def download_file(filename):
         logger.error(f"File download error: {e}")
         flash('Error downloading file.', 'danger')
         return redirect(url_for('student_materials'))
+
+@app.route('/debug/ai-status')
+@login_required
+def debug_ai_status():
+    """Check AI configuration status"""
+    status = {
+        'api_key_configured': bool(GOOGLE_API_KEY),
+        'api_key_length': len(GOOGLE_API_KEY) if GOOGLE_API_KEY else 0,
+        'available_models': list_available_models(),
+        'test_result': 'Not tested'
+    }
+    
+    # Test with a simple prompt
+    if GOOGLE_API_KEY:
+        try:
+            model = genai.GenerativeModel("gemini-2.0-flash")
+            response = model.generate_content("Say 'AI is working' in one word.")
+            status['test_result'] = response.text if response.text else "No response"
+        except Exception as e:
+            status['test_result'] = f"Error: {str(e)}"
+    
+    return jsonify(status)
 
 # Production configuration
 if __name__ == '__main__':
