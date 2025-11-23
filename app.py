@@ -11,10 +11,47 @@ import requests
 from bs4 import BeautifulSoup
 
 import supabase
-from config import Config  # ✅ Make sure this import is correct
+from config import Config
 from werkzeug.security import generate_password_hash, check_password_hash
 from supabase import create_client, Client
 import logging
+
+# ===== AI RATE LIMITING USING SUPABASE (PRODUCTION) =====
+def check_ai_rate_limit(user_id, feature='ai_explain'):
+    """Production rate limiting using Supabase database"""
+    supabase = get_supabase()
+    if not supabase:
+        return True  # Fail open if no database connection
+    
+    try:
+        now = datetime.now()
+        one_hour_ago = (now - timedelta(hours=1)).isoformat()
+        
+        # Count usage in the last hour
+        response = supabase.table('ai_usage_logs').select('id', count='exact').eq('user_id', user_id).eq('feature', feature).gte('timestamp', one_hour_ago).execute()
+        
+        # Get the count from response
+        if hasattr(response, 'count'):
+            usage_count = response.count
+        else:
+            usage_count = len(response.data) if response.data else 0
+        
+        # Limit: 20 requests per hour per feature
+        if usage_count >= 20:
+            return False
+        
+        # Log this usage
+        supabase.table('ai_usage_logs').insert({
+            'user_id': user_id,
+            'feature': feature,
+            'timestamp': now.isoformat()
+        }).execute()
+        
+        return True
+        
+    except Exception as e:
+        logger.error(f"Rate limit check failed: {e}")
+        return True  # Fail open on error - never block users due to system errors
 
 def get_user_by_username(username):
     """Get user by username (since we don't have id column)"""
@@ -941,7 +978,7 @@ def login():
             user = response.data[0] if response.data else None
             
             if user and check_password_hash(user['password_hash'], password):
-                # NEW: Check if user is approved
+                # Check if user is approved
                 if user.get('approval_status') != 'approved':
                     flash('Your account is pending admin approval. Please wait for activation.', 'warning')
                     return render_template('login.html')
@@ -950,7 +987,10 @@ def login():
                 session['role'] = user['role']
                 flash(f'Welcome back, {username}!', 'success')
                 
-                if user['role'] == 'teacher':
+                # 🎯 FIX: Super Admin goes to super admin dashboard
+                if username == 'sirius':
+                    return redirect(url_for('super_admin_dashboard'))
+                elif user['role'] == 'teacher':
                     return redirect(url_for('teacher_dashboard'))
                 else:
                     return redirect(url_for('student_dashboard'))
@@ -3664,7 +3704,7 @@ def teacher_materials():
 @app.route('/teacher/upload_material', methods=['GET', 'POST'])
 @teacher_required
 def upload_material():
-    """Upload study materials with proper file handling"""
+    """Upload study materials with fixed database schema"""
     if request.method == 'POST':
         supabase = get_supabase()
         
@@ -3685,7 +3725,7 @@ def upload_material():
         video_url = None
         web_url = None
         content_text = None
-        filename = None
+        original_filename = None  # Store original filename separately
         
         if material_type == 'file':
             file = request.files.get('file')
@@ -3695,15 +3735,15 @@ def upload_material():
                     return render_template('upload_material.html')
                 
                 # Generate secure filename
-                filename = secure_filename(file.filename)
-                file_path = os.path.join(UPLOAD_FOLDER, filename)
+                original_filename = secure_filename(file.filename)
+                file_path = os.path.join(UPLOAD_FOLDER, original_filename)
                 file.save(file_path)
 
                 # Store URL that points to your download route
-                file_url = f"/download/{filename}"
+                file_url = f"/download/{original_filename}"
                 
                 # Store basic content text (for AI explanation)
-                content_text = f"File: {filename} (uploaded successfully)"
+                content_text = f"File: {original_filename} (uploaded successfully)"
             else:
                 flash('Invalid file type.', 'danger')
                 return render_template('upload_material.html')
@@ -3717,7 +3757,7 @@ def upload_material():
         elif material_type == 'text':
             content_text = request.form.get('content_text', '').strip()
         
-        # Create material record
+        # Create material record - FIXED: Don't include filename if column doesn't exist
         material_id = f"material_{uuid.uuid4().hex[:12]}"
         material_data = {
             'id': material_id,
@@ -3733,7 +3773,7 @@ def upload_material():
             'video_url': video_url,
             'web_url': web_url,
             'content_text': content_text,
-            'filename': filename,  # Store original filename
+            # 🎯 REMOVED: 'filename': original_filename,  # Column doesn't exist
             'created_at': datetime.now().isoformat()
         }
         
@@ -3809,10 +3849,16 @@ def delete_material(material_id):
     
     return redirect(url_for('teacher_materials'))
 
+# ===== AI ROUTES WITH RATE LIMITING =====
 @app.route('/ai/explain/<material_id>')
 @login_required
 def ai_explain(material_id):
-    """AI explanation with better error handling"""
+    """AI explanation with production rate limiting"""
+    # Rate limiting check
+    if not check_ai_rate_limit(session['user_id'], 'ai_explain'):
+        flash('🚫 AI usage limit reached (20 requests per hour). Please try again later.', 'warning')
+        return redirect(request.referrer or url_for('student_materials'))
+    
     try:
         supabase = get_supabase()
         
@@ -3826,20 +3872,17 @@ def ai_explain(material_id):
         
         # Prepare content for AI
         content = ""
+        material_type = material['material_type']
         
-        if material['material_type'] == 'text':
+        if material_type == 'text':
             content = material['content_text'] or ""
-        elif material['material_type'] == 'web' and material['web_url']:
+        elif material_type == 'web' and material['web_url']:
             content = extract_webpage_content(material['web_url']) or "Web content unavailable"
         else:
             content = material['description'] or material['title']
         
-        # Generate AI explanation with fallback
-        explanation = generate_ai_explanation(
-            content, 
-            material['material_type'], 
-            material['title']
-        )
+        # Generate AI explanation
+        explanation = generate_ai_explanation(content, material_type, material['title'])
         
         return render_template('ai_explanation.html', 
                              material=material, 
@@ -3848,7 +3891,7 @@ def ai_explain(material_id):
                              
     except Exception as e:
         logger.error(f"AI explanation error: {e}")
-        # Still show the page with a fallback message
+        # Fallback to study guide
         supabase = get_supabase()
         material_response = supabase.table('study_materials').select('*').eq('id', material_id).execute()
         material = material_response.data[0] if material_response.data else None
@@ -3866,38 +3909,58 @@ def ai_explain(material_id):
 @app.route('/ai/summarize/<material_id>')
 @login_required
 def ai_summarize(material_id):
-    """AI summary of study materials"""
-    supabase = get_supabase()
-    
-    # Get material details
-    material_response = supabase.table('study_materials').select('*').eq('id', material_id).execute()
-    material = material_response.data[0] if material_response.data else None
-    
-    if not material:
-        flash('Material not found.', 'danger')
+    """AI summary with production rate limiting"""
+    # Rate limiting check
+    if not check_ai_rate_limit(session['user_id'], 'ai_summarize'):
+        flash('🚫 AI usage limit reached (20 requests per hour). Please try again later.', 'warning')
         return redirect(request.referrer or url_for('student_materials'))
     
-    # Prepare content for AI
-    content = ""
-    
-    if material['material_type'] == 'text':
-        content = material['content_text'] or ""
-    elif material['material_type'] == 'web' and material['web_url']:
-        content = extract_webpage_content(material['web_url']) or "Web content unavailable"
-    else:
-        content = material['description'] or material['title']
-    
-    # Generate AI summary
-    summary = generate_ai_summary(
-        content, 
-        material['material_type'], 
-        material['title']
-    )
-    
-    return render_template('ai_explanation.html', 
-                         material=material, 
-                         explanation=summary,
-                         type='summary')
+    try:
+        supabase = get_supabase()
+        
+        # Get material details
+        material_response = supabase.table('study_materials').select('*').eq('id', material_id).execute()
+        material = material_response.data[0] if material_response.data else None
+        
+        if not material:
+            flash('Material not found.', 'danger')
+            return redirect(request.referrer or url_for('student_materials'))
+        
+        # Prepare content for AI
+        content = ""
+        material_type = material['material_type']
+        
+        if material_type == 'text':
+            content = material['content_text'] or ""
+        elif material_type == 'web' and material['web_url']:
+            content = extract_webpage_content(material['web_url']) or "Web content unavailable"
+        else:
+            content = material['description'] or material['title']
+        
+        # Generate AI summary
+        summary = generate_ai_summary(content, material_type, material['title'])
+        
+        return render_template('ai_explanation.html', 
+                             material=material, 
+                             explanation=summary,
+                             type='summary')
+                             
+    except Exception as e:
+        logger.error(f"AI summary error: {e}")
+        # Fallback to summary framework
+        supabase = get_supabase()
+        material_response = supabase.table('study_materials').select('*').eq('id', material_id).execute()
+        material = material_response.data[0] if material_response.data else None
+        
+        fallback_summary = get_fallback_summary(
+            material['title'] if material else "Study Material", 
+            material['material_type'] if material else 'text'
+        )
+        
+        return render_template('ai_explanation.html', 
+                             material=material or {'title': 'Study Material'}, 
+                             explanation=fallback_summary,
+                             type='summary')
 
 @app.route('/student/uploaded/<path:filename>')
 def uploaded_files(filename):
@@ -3994,6 +4057,7 @@ def debug_teacher_context():
             debug_info['prompts_in_school'] = prompts.data if prompts.data else []
     
     return jsonify(debug_info)
+
 
 # Production configuration
 if __name__ == '__main__':
