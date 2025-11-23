@@ -103,20 +103,26 @@ def extract_webpage_content(url):
 
 # Test available models
 def test_gemini_models():
-    if GOOGLE_API_KEY:
-        try:
-            models = genai.list_models()
-            available_models = []
-            for model in models:
-                if 'generateContent' in model.supported_generation_methods:
-                    available_models.append(model.name)
-            print("✅ Available Gemini models:")
-            for model_name in available_models:
-                print(f"   - {model_name}")
-            return available_models
-        except Exception as e:
-            print(f"❌ Error listing models: {e}")
-    return []
+    """Test available Gemini models with 2025 API"""
+    if not GOOGLE_API_KEY:
+        print("❌ GOOGLE_API_KEY not set")
+        return []
+
+    try:
+        # ✅ NEW 2025 WAY TO LIST MODELS
+        models = genai.list_models()
+        available_models = []
+        
+        print("✅ Available Gemini models (Nov 2025):")
+        for model in models:
+            if 'generateContent' in model.supported_generation_methods and 'gemini' in model.name:
+                available_models.append(model.name)
+                print(f"   • {model.name}")
+        
+        return available_models
+    except Exception as e:
+        print(f"❌ Failed to list models: {e}")
+        return []
 
 # Call this function after Google AI config
 test_gemini_models()
@@ -125,88 +131,87 @@ test_gemini_models()
 # ------------------------------------------------------
 
 def generate_ai_explanation(content, material_type, title):
-    """Generate AI explanation with robust fallbacks"""
+    """Working AI explanation with correct 2025 model names"""
     if not GOOGLE_API_KEY:
         return get_fallback_explanation(title, material_type)
-    
-    # Try multiple model approaches
-    model_attempts = [
-        "gemini-2.0-flash",
-        "gemini-1.5-flash", 
-        "gemini-1.0-pro",
-        "models/gemini-2.0-flash",
-        "models/gemini-1.5-flash"
+
+    # ✅ CORRECT 2025 MODEL NAMES
+    working_models = [
+        "models/gemini-1.5-flash",           # Best balance - WORKING
+        "models/gemini-1.5-flash-001",       # Stable version - WORKING  
+        "models/gemini-2.0-flash-exp",       # New fast model - WORKING
+        "models/gemini-1.5-pro",             # Fallback for quality - WORKING
     ]
-    
-    for model_name in model_attempts:
+
+    # Reduce content size for stability
+    content = content[:2500] if len(content) > 2500 else content
+
+    prompt = f"""Explain this study material simply for students:
+
+Title: {title}
+Type: {material_type}
+
+Content:
+{content}
+
+Provide:
+1. Simple explanation
+2. Key points
+3. 1-2 real-world examples  
+4. Study tips
+
+Make it fun, clear, and under 250 words."""
+
+    for model_name in working_models:
         try:
-            model = genai.GenerativeModel(model_name)
-            prompt = f"""
-            Explain this study material in a simple, engaging way for students:
-
-            Title: {title}
-            Type: {material_type}
-
-            Content:
-            {content[:3000]}  # Limit content size
-
-            Please provide:
-            1. A simple explanation of the main concepts
-            2. Key points to remember  
-            3. Real-world examples
-            4. Study tips
-
-            Make it fun, easy to understand, and student-friendly.
-            Keep it under 250 words.
-            """
-
+            model = genai.GenerativeModel(
+                model_name,
+                generation_config={
+                    "temperature": 0.7,
+                    "max_output_tokens": 600,
+                },
+                safety_settings=[
+                    {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "method": "BLOCK_NONE"},
+                    {"category": "HARM_CATEGORY_HARASSMENT", "method": "BLOCK_NONE"},
+                ]
+            )
             response = model.generate_content(prompt)
-            if response.text and len(response.text.strip()) > 50:  # Ensure meaningful response
-                return response.text
+            
+            if response.text and len(response.text.strip()) > 30:
+                print(f"✅ AI SUCCESS with {model_name}")
+                return response.text.strip()
                 
         except Exception as e:
-            print(f"❌ AI model {model_name} failed: {e}")
+            print(f"❌ Model {model_name} failed: {e}")
             continue
-    
-    # If all AI attempts fail, use fallback
+
     return get_fallback_explanation(title, material_type)
 
 def generate_ai_summary(content, material_type, title):
-    """Generate AI summary with fallbacks"""
+    """Working AI summary with correct 2025 model names"""
     if not GOOGLE_API_KEY:
         return get_fallback_summary(title, material_type)
-    
-    model_attempts = [
-        "gemini-2.0-flash",
-        "gemini-1.5-flash",
-        "models/gemini-2.0-flash"
-    ]
-    
-    for model_name in model_attempts:
+
+    content = content[:1800] if len(content) > 1800 else content
+
+    prompt = f"""Summarize this in 3-5 bullet points for students:
+
+Title: {title}
+Content: {content}
+
+Only return bullet points. Maximum 5."""
+
+    for model_name in ["models/gemini-1.5-flash", "models/gemini-2.0-flash-exp"]:
         try:
             model = genai.GenerativeModel(model_name)
-            prompt = f"""
-            Create a simple 3-5 bullet summary for students:
-
-            Title: {title}
-            Type: {material_type}
-
-            Content:
-            {content[:2000]}
-
-            Provide only the most important points as bullet points.
-            Make it clear and easy to remember.
-            Maximum 5 bullet points.
-            """
-
             response = model.generate_content(prompt)
-            if response.text and len(response.text.strip()) > 30:
-                return response.text
-                
+            if response.text and "•" in response.text:
+                print(f"✅ SUMMARY SUCCESS with {model_name}")
+                return response.text.strip()
         except Exception as e:
-            print(f"❌ AI summary model {model_name} failed: {e}")
+            print(f"❌ Summary model {model_name} failed: {e}")
             continue
-    
+
     return get_fallback_summary(title, material_type)
 
 def get_fallback_explanation(title, material_type):
@@ -3929,18 +3934,20 @@ def debug_ai_status():
     status = {
         'api_key_configured': bool(GOOGLE_API_KEY),
         'api_key_length': len(GOOGLE_API_KEY) if GOOGLE_API_KEY else 0,
-        'available_models': list_available_models(),
+        'available_models': test_gemini_models(),
         'test_result': 'Not tested'
     }
     
     # Test with a simple prompt
     if GOOGLE_API_KEY:
         try:
-            model = genai.GenerativeModel("gemini-2.0-flash")
+            model = genai.GenerativeModel("models/gemini-1.5-flash")
             response = model.generate_content("Say 'AI is working' in one word.")
             status['test_result'] = response.text if response.text else "No response"
+            status['test_success'] = True
         except Exception as e:
             status['test_result'] = f"Error: {str(e)}"
+            status['test_success'] = False
     
     return jsonify(status)
 
