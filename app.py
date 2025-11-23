@@ -131,19 +131,19 @@ test_gemini_models()
 # ------------------------------------------------------
 
 def generate_ai_explanation(content, material_type, title):
-    """Working AI explanation with correct 2025 model names"""
+    """AI explanation using YOUR available models"""
     if not GOOGLE_API_KEY:
         return get_fallback_explanation(title, material_type)
 
-    # ✅ CORRECT 2025 MODEL NAMES
+    # ✅ USE MODELS FROM YOUR DEBUG OUTPUT
     working_models = [
-        "models/gemini-1.5-flash",           # Best balance - WORKING
-        "models/gemini-1.5-flash-001",       # Stable version - WORKING  
-        "models/gemini-2.0-flash-exp",       # New fast model - WORKING
-        "models/gemini-1.5-pro",             # Fallback for quality - WORKING
+        "models/gemini-2.0-flash",           # Fast & reliable
+        "models/gemini-2.0-flash-001",       # Stable version
+        "models/gemini-2.5-flash",           # Latest flash
+        "models/gemini-2.0-pro-exp",         # High quality
+        "models/gemini-flash-latest",        # Always current
     ]
 
-    # Reduce content size for stability
     content = content[:2500] if len(content) > 2500 else content
 
     prompt = f"""Explain this study material simply for students:
@@ -164,17 +164,7 @@ Make it fun, clear, and under 250 words."""
 
     for model_name in working_models:
         try:
-            model = genai.GenerativeModel(
-                model_name,
-                generation_config={
-                    "temperature": 0.7,
-                    "max_output_tokens": 600,
-                },
-                safety_settings=[
-                    {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "method": "BLOCK_NONE"},
-                    {"category": "HARM_CATEGORY_HARASSMENT", "method": "BLOCK_NONE"},
-                ]
-            )
+            model = genai.GenerativeModel(model_name)
             response = model.generate_content(prompt)
             
             if response.text and len(response.text.strip()) > 30:
@@ -188,7 +178,7 @@ Make it fun, clear, and under 250 words."""
     return get_fallback_explanation(title, material_type)
 
 def generate_ai_summary(content, material_type, title):
-    """Working AI summary with correct 2025 model names"""
+    """AI summary using YOUR available models"""
     if not GOOGLE_API_KEY:
         return get_fallback_summary(title, material_type)
 
@@ -201,11 +191,11 @@ Content: {content}
 
 Only return bullet points. Maximum 5."""
 
-    for model_name in ["models/gemini-1.5-flash", "models/gemini-2.0-flash-exp"]:
+    for model_name in ["models/gemini-2.0-flash", "models/gemini-2.5-flash"]:
         try:
             model = genai.GenerativeModel(model_name)
             response = model.generate_content(prompt)
-            if response.text and "•" in response.text:
+            if response.text and len(response.text.strip()) > 10:
                 print(f"✅ SUMMARY SUCCESS with {model_name}")
                 return response.text.strip()
         except Exception as e:
@@ -3938,10 +3928,10 @@ def debug_ai_status():
         'test_result': 'Not tested'
     }
     
-    # Test with a simple prompt
+    # Test with a WORKING model from your list
     if GOOGLE_API_KEY:
         try:
-            model = genai.GenerativeModel("models/gemini-1.5-flash")
+            model = genai.GenerativeModel("models/gemini-2.0-flash")
             response = model.generate_content("Say 'AI is working' in one word.")
             status['test_result'] = response.text if response.text else "No response"
             status['test_success'] = True
