@@ -46,8 +46,8 @@
     <div class="row" id="materialsContainer">
         {% for material in materials %}
         <div class="col-md-6 col-lg-4 mb-4 material-card"
-             data-subject="{{ material.subject }}"
-             data-type="{{ material.material_type }}">
+            data-subject="{{ material.subject }}"
+            data-type="{{ material.material_type }}">
 
             <div class="card h-100">
                 <div class="card-header">
@@ -82,44 +82,32 @@
                     </div>
                     {% endif %}
 
-                    <!-- Updated File / Video / Web / Text Sections -->
+                    <!-- Links -->
                     <div class="mt-3">
 
-                        {# ----- UPDATED FILE SECTION WITH DOWNLOAD ----- #}
                         {% if material.material_type == 'file' and material.file_url %}
-                        <div class="file-preview">
-                            <div class="file-info">
-                                <span class="file-icon">📄</span>
-                                <span class="file-name">{{ material.file_url|replace('uploads/', '') }}</span>
-                            </div>
-                            <a href="{{ material.file_url }}" class="btn btn-outline-primary btn-sm w-100 mb-2" target="_blank" download>
+                            {% set filename = material.file_url.replace('/uploads/', '') %}
+                            <a href="{{ url_for('download_file', filename=filename) }}" class="btn btn-outline-primary btn-sm w-100 mb-2">
                                 📥 Download File
                             </a>
-                        </div>
-                        {% endif %}
 
-                        {# Video #}
-                        {% if material.material_type == 'video' and material.video_url %}
+                        {% elif material.material_type == 'video' and material.video_url %}
                         <a href="{{ material.video_url }}" class="btn btn-outline-danger btn-sm w-100 mb-2" target="_blank">
                             🎥 Watch Video
                         </a>
-                        {% endif %}
 
-                        {# Web Link #}
-                        {% if material.material_type == 'web' and material.web_url %}
+                        {% elif material.material_type == 'web' and material.web_url %}
                         <a href="{{ material.web_url }}" class="btn btn-outline-info btn-sm w-100 mb-2" target="_blank">
                             🌐 Visit Website
                         </a>
-                        {% endif %}
 
-                        {# Text #}
-                        {% if material.material_type == 'text' and material.content_text %}
-                        <button class="btn btn-outline-secondary btn-sm w-100 mb-2 text-content-btn"
-                                data-content="{{ material.content_text | replace('"', '&quot;') | replace("'", "&#39;") }}"
-                                onclick="showTextContent(this.getAttribute('data-content'))">
+                        {% elif material.material_type == 'text' and material.content_text %}
+                        <button class="btn btn-outline-secondary btn-sm w-100 mb-2"
+                            onclick="showTextContent(`{{ material.content_text | e }}`)">
                             📖 Read Text
                         </button>
                         {% endif %}
+
                     </div>
                 </div>
 
@@ -163,10 +151,7 @@
 
 <script>
 function showTextContent(content) {
-    const textArea = document.createElement('textarea');
-    textArea.innerHTML = content;
-    const decodedContent = textArea.value;
-    document.getElementById('textContent').textContent = decodedContent;
+    document.getElementById('textContent').textContent = content;
     new bootstrap.Modal(document.getElementById('textModal')).show();
 }
 
@@ -180,9 +165,10 @@ document.addEventListener('DOMContentLoaded', function() {
         const typeValue = typeFilter.value;
 
         materials.forEach(card => {
-            const subjectMatch = subjectValue === 'all' || card.dataset.subject === subjectValue;
-            const typeMatch = typeValue === 'all' || card.dataset.type === typeValue;
-            card.style.display = (subjectMatch && typeMatch) ? 'block' : 'none';
+            const matchSubject = subjectValue === 'all' || card.dataset.subject === subjectValue;
+            const matchType = typeValue === 'all' || card.dataset.type === typeValue;
+
+            card.style.display = (matchSubject && matchType) ? 'block' : 'none';
         });
     }
 
@@ -195,40 +181,12 @@ document.addEventListener('DOMContentLoaded', function() {
 .material-card {
     transition: transform 0.2s;
 }
-
 .material-card:hover {
     transform: translateY(-2px);
 }
-
 .card {
     border: none;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.file-preview {
-    text-align: center;
-}
-
-.file-info {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    margin-bottom: 8px;
-}
-
-.file-icon {
-    font-size: 1.2rem;
-}
-
-.file-name {
-    font-size: 0.9rem;
-    color: #666;
-    word-break: break-all;
-}
-
-.btn-group .btn {
-    flex: 1;
 }
 </style>
 {% endblock %}

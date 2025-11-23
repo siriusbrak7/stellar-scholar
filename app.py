@@ -3515,7 +3515,7 @@ def teacher_materials():
 @app.route('/teacher/upload_material', methods=['GET', 'POST'])
 @teacher_required
 def upload_material():
-    """Upload study materials"""
+    """Upload study materials with proper file handling"""
     if request.method == 'POST':
         supabase = get_supabase()
         
@@ -3536,10 +3536,8 @@ def upload_material():
         video_url = None
         web_url = None
         content_text = None
+        filename = None
         
-        # ---------------------------------------------------
-        # ✅ UPDATED FILE HANDLING SECTION (YOUR REQUEST)
-        # ---------------------------------------------------
         if material_type == 'file':
             file = request.files.get('file')
             if file and allowed_file(file.filename):
@@ -3547,11 +3545,13 @@ def upload_material():
                     flash('File too large. Maximum size is 16MB.', 'danger')
                     return render_template('upload_material.html')
                 
+                # Generate secure filename
                 filename = secure_filename(file.filename)
                 file_path = os.path.join(UPLOAD_FOLDER, filename)
                 file.save(file_path)
 
-                file_url = f"/uploads/{filename}"
+                # Store URL that points to your download route
+                file_url = f"/download/{filename}"
                 
                 # Store basic content text (for AI explanation)
                 content_text = f"File: {filename} (uploaded successfully)"
@@ -3584,6 +3584,7 @@ def upload_material():
             'video_url': video_url,
             'web_url': web_url,
             'content_text': content_text,
+            'filename': filename,  # Store original filename
             'created_at': datetime.now().isoformat()
         }
         
@@ -3749,6 +3750,32 @@ def serve_uploaded_file(filename):
     except Exception as e:
         logger.error(f"File serving error: {e}")
         flash('File not found.', 'danger')
+        return redirect(url_for('student_materials'))
+    
+@app.route('/download/<filename>')
+@login_required
+def download_file(filename):
+    """Download study material files"""
+    try:
+        # Security check: ensure the file exists and user has access
+        safe_filename = secure_filename(filename)
+        file_path = os.path.join(UPLOAD_FOLDER, safe_filename)
+        
+        if not os.path.exists(file_path):
+            flash('File not found.', 'danger')
+            return redirect(url_for('student_materials'))
+        
+        # Send file for download with original filename
+        return send_from_directory(
+            UPLOAD_FOLDER, 
+            safe_filename, 
+            as_attachment=True,
+            download_name=filename  # Use original filename for download
+        )
+        
+    except Exception as e:
+        logger.error(f"File download error: {e}")
+        flash('Error downloading file.', 'danger')
         return redirect(url_for('student_materials'))
 
 # Production configuration
