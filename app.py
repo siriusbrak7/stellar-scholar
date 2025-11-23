@@ -940,32 +940,34 @@ def teacher_dashboard():
         school_id = teacher.get("school_id")
         is_school_admin = teacher.get("is_admin", False)
 
-        # SIMPLE: Get prompts as list (not dictionary)
+        # Get prompts as list
         prompts_response = supabase.table("prompts").select("*").eq("school_id", school_id).execute()
         prompts = prompts_response.data if prompts_response.data else []
 
-        # SIMPLE: Filter prompts if filters applied
+        # Apply filters
         grade_filter = request.args.get('grade', 'all')
         category_filter = request.args.get('category', 'all')
 
+        filtered_prompts = prompts.copy()  # Work with a copy
+
         if grade_filter != "all":
-            prompts = [p for p in prompts if str(p.get("grade_level")) == str(grade_filter)]
+            filtered_prompts = [p for p in filtered_prompts if str(p.get("grade_level")) == str(grade_filter)]
 
         if category_filter != "all":
-            prompts = [p for p in prompts if p.get("assessment_type") == category_filter]
+            filtered_prompts = [p for p in filtered_prompts if p.get("assessment_type") == category_filter]
 
-        # SIMPLE: Get unique values for filters
+        # Get unique values for filters
         unique_grades = sorted(list({p["grade_level"] for p in prompts if p.get("grade_level")}))
         unique_categories = sorted(list({p["assessment_type"] for p in prompts if p.get("assessment_type")}))
 
-        # SIMPLE: Count assessment types
+        # Count assessment types from ALL prompts (not filtered)
         written_count = len([p for p in prompts if p.get("assessment_type") == "written"])
         mcq_count = len([p for p in prompts if p.get("assessment_type") == "mcq"])
         mixed_count = len([p for p in prompts if p.get("assessment_type") == "mixed"])
 
-        # SIMPLE: Get submissions for each prompt
+        # Get submissions for each prompt
         prompt_stats = {}
-        for prompt in prompts:
+        for prompt in prompts:  # Use ALL prompts for stats
             submissions_res = supabase.table("submissions").select("*").eq("prompt_id", prompt['id']).execute()
             submissions = submissions_res.data if submissions_res.data else []
             
@@ -977,7 +979,7 @@ def teacher_dashboard():
                 "total": total
             }
 
-        # SIMPLE: Basic analytics
+        # Basic analytics
         students_res = supabase.table("users").select("*").eq("school_id", school_id).eq("role", "student").execute()
         all_students = students_res.data if students_res.data else []
         
@@ -993,7 +995,7 @@ def teacher_dashboard():
             "average_completion_rate": 65  # Simple placeholder
         }
 
-        # SIMPLE: Student progress (basic)
+        # Student progress (basic)
         student_progress = []
         for student in all_students[:5]:  # Just show first 5
             student_submissions = len([s for s in all_submissions if s['student_id'] == student['username']])
@@ -1005,15 +1007,15 @@ def teacher_dashboard():
                 'completion_rate': 60  # Placeholder
             })
 
-        # ONLY ADDITION: Study materials count
+        # Study materials count
         materials_response = supabase.table("study_materials").select("id").eq("school_id", school_id).execute()
         materials_count = len(materials_response.data) if materials_response.data else 0
 
-        # Render template
+        # ✅ FIXED: Use filtered_prompts for display, but keep prompt_stats for all prompts
         return render_template(
             "teacher_dashboard.html",
-            prompts=prompts,  # This is a LIST, not dict
-            prompt_stats=prompt_stats,
+            prompts=filtered_prompts,  # This is the FILTERED list for display
+            prompt_stats=prompt_stats,  # This contains stats for ALL prompts
             current_grade_filter=grade_filter,
             current_category_filter=category_filter,
             available_grades=unique_grades,
@@ -1031,8 +1033,6 @@ def teacher_dashboard():
         logger.error(f"Teacher dashboard error: {e}")
         flash("Error loading dashboard.", "danger")
         return redirect(url_for("index"))
-
-
 
 
 @app.route('/teacher/create_prompt', methods=['GET', 'POST'])

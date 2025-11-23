@@ -54,7 +54,7 @@
                 </div>
             </div>
 
-            <!-- NEW SECOND ROW FOR STUDY MATERIALS CARD (Option B) -->
+            <!-- Study Materials Card -->
             <div class="row mb-4">
                 <div class="col-md-3">
                     <div class="card text-white bg-info">
@@ -66,7 +66,6 @@
                     </div>
                 </div>
             </div>
-            <!-- END NEW ROW -->
 
             <!-- Filters -->
             <div class="card mb-4">
@@ -120,9 +119,9 @@
                 </div>
             </div>
 
-            <!-- Assessments Grid -->
+            <!-- Assessments Grid - FIXED: Iterate through list, not dictionary -->
             <div class="row">
-                {% for prompt_id, prompt in prompts.items() %}
+                {% for prompt in prompts %}
                 <div class="col-md-6 col-lg-4 mb-4">
                     <div class="card prompt-card">
                         <div class="card-header">
@@ -141,15 +140,16 @@
                         <div class="card-body">
                             <p class="card-text">{{ prompt.description[:100] }}{% if prompt.description|length > 100 %}...{% endif %}</p>
                             
-                            <!-- Assessment Stats -->
+                            <!-- Assessment Stats - FIXED: Access stats by prompt.id -->
                             <div class="assessment-stats mb-3">
+                                {% set stats = prompt_stats.get(prompt.id, {'graded': 0, 'total': 0}) %}
                                 <div class="progress mb-2" style="height: 8px;">
                                     <div class="progress-bar bg-success" 
-                                         style="width: {{ (prompt_stats[prompt_id].graded / prompt_stats[prompt_id].total * 100) if prompt_stats[prompt_id].total > 0 else 0 }}%">
+                                         style="width: {{ (stats.graded / stats.total * 100) if stats.total > 0 else 0 }}%">
                                     </div>
                                 </div>
                                 <small class="text-muted">
-                                    📊 {{ prompt_stats[prompt_id].graded }}/{{ prompt_stats[prompt_id].total }} graded
+                                    📊 {{ stats.graded }}/{{ stats.total }} graded
                                     ({{ prompt.total_points }} points)
                                 </small>
                             </div>
@@ -208,6 +208,7 @@
             </div>
             {% endif %}
 
+            <!-- Student Progress Table - FIXED: student_progress is a list, not dict -->
             {% if student_progress %}
             <div class="card mt-4">
                 <div class="card-header">
@@ -220,31 +221,27 @@
                                 <tr>
                                     <th>Student</th>
                                     <th>Grade</th>
-                                    <th>Completed</th>
+                                    <th>Submissions</th>
                                     <th>Completion Rate</th>
                                     <th>Avg Grade</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {% for username, progress in student_progress.items() %}
+                                {% for student in student_progress %}
                                 <tr>
-                                    <td>{{ progress.username }}</td>
-                                    <td>Grade {{ progress.grade_level }}</td>
-                                    <td>{{ progress.completed_prompts }}/{{ progress.total_prompts }}</td>
+                                    <td>{{ student.username }}</td>
+                                    <td>Grade {{ student.grade_level }}</td>
+                                    <td>{{ student.submissions_count }}</td>
                                     <td>
                                         <div class="progress" style="height: 10px;">
-                                            <div class="progress-bar bg-success" style="width: {{ progress.completion_rate }}%">
+                                            <div class="progress-bar bg-success" style="width: {{ student.completion_rate }}%">
                                             </div>
                                         </div>
-                                        <small>{{ progress.completion_rate }}%</small>
+                                        <small>{{ student.completion_rate }}%</small>
                                     </td>
                                     <td>
-                                        {% if progress.average_grade != 'N/A' %}
-                                        <span class="badge bg-info">{{ progress.average_grade }}/100</span>
-                                        {% else %}
-                                        <span class="badge bg-secondary">N/A</span>
-                                        {% endif %}
+                                        <span class="badge bg-info">{{ student.average_grade }}/100</span>
                                     </td>
                                     <td>
                                         <a href="#" class="btn btn-outline-primary btn-sm">
@@ -263,10 +260,7 @@
     </div>
 </div>
 
-<!-- INLINE-SAFE CSS (VS CODE WILL NOT FLAG ERRORS) -->
 <style>
-/* css-ignore-start */
-
 .prompt-card {
     border: none;
     border-radius: 15px;
@@ -312,10 +306,6 @@
 .progress {
     border-radius: 10px;
 }
-
-/* css-ignore-end */
 </style>
 
 {% endblock %}
-
-
