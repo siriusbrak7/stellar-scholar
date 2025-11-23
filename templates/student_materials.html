@@ -114,12 +114,17 @@
                 <!-- AI Buttons -->
                 <div class="card-footer">
                     <div class="btn-group w-100">
-                        <a href="{{ url_for('ai_explain', material_id=material.id) }}" class="btn btn-primary btn-sm">
-                            🤖 Explain with AI
+
+                        <!-- UPDATED: Smart Study Guide -->
+                        <a href="{{ url_for('ai_explain', material_id=material.id) }}" class="btn btn-outline-info btn-sm">
+                            📚 Smart Study Guide
                         </a>
-                        <a href="{{ url_for('ai_summarize', material_id=material.id) }}" class="btn btn-outline-info btn-sm">
-                            📋 AI Summary
+
+                        <!-- UPDATED: Learning Framework -->
+                        <a href="{{ url_for('ai_summarize', material_id=material.id) }}" class="btn btn-outline-success btn-sm">
+                            📋 Learning Framework
                         </a>
+
                     </div>
                 </div>
             </div>
@@ -189,4 +194,6 @@ document.addEventListener('DOMContentLoaded', function() {
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 </style>
+
 {% endblock %}
+
