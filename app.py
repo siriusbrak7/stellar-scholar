@@ -3614,34 +3614,28 @@ def start_science_quiz():
 @app.route('/science/quiz/submit', methods=['POST'])
 @login_required
 def submit_science_quiz():
-    """Submit and grade science quiz - FIXED VERSION"""
     supabase = get_supabase()
     
     try:
-        # Check if any answers were submitted
         if not request.form:
             flash('No answers submitted. Please complete the quiz.', 'warning')
             return redirect(url_for('start_science_quiz'))
         
-        score = 0
-        total_questions = 0
-        question_responses = []
-        question_ids = []
-        
-        # Get all form data except CSRF token
+        # Get all form data
         form_data = dict(request.form)
-        form_data.pop('csrf_token', None)  # Remove CSRF token
+        form_data.pop('csrf_token', None)
         
         if not form_data:
             flash('No answers submitted.', 'warning')
             return redirect(url_for('start_science_quiz'))
         
-        # Get question IDs from form
         question_ids_from_form = list(form_data.keys())
+        student_answers = list(form_data.values())  # Raw student answers
         
         if question_ids_from_form:
+            # Get questions and correct answers
             response = supabase.table('igcse_science_questions')\
-                .select('id, question_text, option_a, option_b, option_c, option_d, correct_answer, explanation, topic, difficulty')\
+                .select('id, correct_answer')\
                 .in_('id', question_ids_from_form)\
                 .execute()
             
@@ -3649,53 +3643,81 @@ def submit_science_quiz():
                 flash('Error loading questions. Please try again.', 'danger')
                 return redirect(url_for('science_revision'))
             
-            correct_answers = {q['id']: q['correct_answer'] for q in response.data}
-            question_details = {q['id']: q for q in response.data}
+            correct_answers = [q['correct_answer'] for q in response.data]
+            total_questions = len(correct_answers)
             
-            # Grade each question
-            for question_id, student_answer in form_data.items():
-                total_questions += 1
-                question_ids.append(question_id)
-                is_correct = correct_answers.get(question_id) == student_answer
+            # ✅ NEW: Let the database calculate the score using case-insensitive function
+            attempt_data = {
+                'student_id': session['user_id'],
+                'questions_attempted': question_ids_from_form,
+                'student_answers': student_answers,  # Store raw answers
+                'correct_answers': correct_answers,  # Store correct answers
+                'score': 0,  # Will be updated by database
+                'total_questions': total_questions,
+                'completed_at': datetime.now().isoformat()
+            }
+            
+            # Insert attempt - database will calculate score via trigger or we'll update it
+            result = supabase.table('student_quiz_attempts').insert(attempt_data).execute()
+            
+            if result.data:
+                # Get the inserted attempt
+                attempt_id = result.data[0]['id']
                 
-                if is_correct:
-                    score += 1
-                
-                question_responses.append({
-                    'question_id': question_id,
-                    'student_answer': student_answer,
-                    'correct_answer': correct_answers.get(question_id),
-                    'is_correct': is_correct,
-                    'question_text': question_details.get(question_id, {}).get('question_text', ''),
-                    'explanation': question_details.get(question_id, {}).get('explanation', ''),
-                    'topic': question_details.get(question_id, {}).get('topic', ''),
-                    'options': {
-                        'A': question_details.get(question_id, {}).get('option_a', ''),
-                        'B': question_details.get(question_id, {}).get('option_b', ''),
-                        'C': question_details.get(question_id, {}).get('option_c', ''),
-                        'D': question_details.get(question_id, {}).get('option_d', '')
+                # ✅ USE THE DATABASE FUNCTION to calculate score
+                from supabase import Client
+                score_result = supabase.rpc(
+                    'calculate_quiz_score', 
+                    {
+                        'student_answers': student_answers,
+                        'correct_answers': correct_answers
                     }
-                })
-        
-        # Calculate percentage
-        percentage = round((score / total_questions) * 100) if total_questions > 0 else 0
-        
-        # Save attempt to database
-        attempt_data = {
-            'student_id': session['user_id'],
-            'questions_attempted': question_ids,
-            'score': score,
-            'total_questions': total_questions,
-            'completed_at': datetime.now().isoformat()
-        }
-        
-        result = supabase.table('student_quiz_attempts').insert(attempt_data).execute()
-        
-        return render_template('science_quiz_results.html',
-                             score=score,
-                             total_questions=total_questions,
-                             percentage=percentage,
-                             question_responses=question_responses)
+                ).execute()
+                
+                score = score_result.data if score_result.data else 0
+                
+                # Update the attempt with the calculated score
+                supabase.table('student_quiz_attempts')\
+                    .update({'score': score})\
+                    .eq('id', attempt_id)\
+                    .execute()
+                
+                # Calculate percentage
+                percentage = round((score / total_questions) * 100) if total_questions > 0 else 0
+                
+                # Get full question details for display
+                questions_response = supabase.table('igcse_science_questions')\
+                    .select('*')\
+                    .in_('id', question_ids_from_form)\
+                    .execute()
+                
+                question_details = {q['id']: q for q in questions_response.data}
+                
+                # Prepare question responses for template
+                question_responses = []
+                for i, (question_id, student_answer) in enumerate(form_data.items()):
+                    is_correct = student_answer.upper() == correct_answers[i]
+                    question_responses.append({
+                        'question_id': question_id,
+                        'student_answer': student_answer,
+                        'correct_answer': correct_answers[i],
+                        'is_correct': is_correct,
+                        'question_text': question_details.get(question_id, {}).get('question_text', ''),
+                        'explanation': question_details.get(question_id, {}).get('explanation', ''),
+                        'topic': question_details.get(question_id, {}).get('topic', ''),
+                        'options': {
+                            'A': question_details.get(question_id, {}).get('option_a', ''),
+                            'B': question_details.get(question_id, {}).get('option_b', ''),
+                            'C': question_details.get(question_id, {}).get('option_c', ''),
+                            'D': question_details.get(question_id, {}).get('option_d', '')
+                        }
+                    })
+                
+                return render_template('science_quiz_results.html',
+                                     score=score,
+                                     total_questions=total_questions,
+                                     percentage=percentage,
+                                     question_responses=question_responses)
         
     except Exception as e:
         logger.error(f"Science quiz submission error: {e}")
