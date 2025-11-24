@@ -97,7 +97,21 @@ def get_supabase():
             return None
             
         print(f"DEBUG: Creating client with URL: {url[:20]}... and key: {key[:10]}...")
-        client = create_client(url, key)
+        
+        # ✅ FIXED: Use the correct client initialization for newer Supabase versions
+        try:
+            # Method 1: Try the newer syntax first
+            client = create_client(url, key)
+        except TypeError as e:
+            if 'proxy' in str(e):
+                # Method 2: Fallback for version compatibility issues
+                print("⚠️ Using alternative Supabase client initialization...")
+                from supabase.lib.client_options import ClientOptions
+                client_options = ClientOptions()
+                client = create_client(url, key, client_options)
+            else:
+                raise e
+        
         print("DEBUG: Client created successfully")
         
         # Test connection with a simple query
@@ -838,8 +852,6 @@ def register():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        # Manually validate CSRF first
-            
         supabase = get_supabase()
         if not supabase:
             flash('Database connection error. Please try again.', 'danger')
@@ -854,7 +866,13 @@ def login():
         
         try:
             response = supabase.table('users').select('*').eq('username', username).execute()
-            user = response.data[0] if response.data else None
+            
+            # Check if we got data back
+            if not response.data:
+                flash('Invalid username or password.', 'danger')
+                return render_template('login.html')
+                
+            user = response.data[0]
             
             if user and check_password_hash(user['password_hash'], password):
                 if user.get('approval_status') != 'approved':
@@ -878,7 +896,6 @@ def login():
             logger.error(f"Login error: {e}")
             flash('Login failed. Please try again.', 'danger')
     
-    # GET request — just render
     return render_template('login.html')
 
 @app.route('/logout')
