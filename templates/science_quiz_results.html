@@ -8,28 +8,28 @@
             <div class="card mb-4">
                 <div class="card-header {% if percentage >= 80 %}bg-success{% elif percentage >= 60 %}bg-warning{% else %}bg-danger{% endif %} text-white">
                     <div class="text-center">
-                        <h2 class="mb-1">🎯 Quiz Results</h2>
+                        <h2 class="mb-1">Quiz Results</h2>
                         <p class="mb-0">You scored {{ score }}/{{ total_questions }} ({{ percentage }}%)</p>
                     </div>
                 </div>
                 <div class="card-body text-center">
                     {% if percentage >= 80 %}
-                        <h4 class="text-success">🎉 Excellent Work!</h4>
+                        <h4 class="text-success">Excellent Work!</h4>
                         <p>You have a strong understanding of science concepts!</p>
                     {% elif percentage >= 60 %}
-                        <h4 class="text-warning">👍 Good Job!</h4>
+                        <h4 class="text-warning">Good Job!</h4>
                         <p>You're making good progress. Keep practicing!</p>
                     {% else %}
-                        <h4 class="text-danger">💪 Keep Practicing!</h4>
+                        <h4 class="text-danger">Keep Practicing!</h4>
                         <p>Review the explanations below and try again!</p>
                     {% endif %}
                     
                     <div class="mt-4">
                         <a href="{{ url_for('start_science_quiz') }}" class="btn btn-success btn-lg">
-                            🔄 Take Another Quiz
+                            Take Another Quiz
                         </a>
                         <a href="{{ url_for('science_revision') }}" class="btn btn-outline-primary btn-lg ms-2">
-                            📚 Back to Revision
+                            Back to Revision
                         </a>
                     </div>
                 </div>
@@ -38,7 +38,7 @@
             <!-- Question Review -->
             <div class="card">
                 <div class="card-header bg-dark text-white">
-                    <h4 class="mb-0">📖 Question Review</h4>
+                    <h4 class="mb-0">Question Review</h4>
                 </div>
                 <div class="card-body">
                     {% for response in question_responses %}
@@ -48,38 +48,38 @@
                         <div class="d-flex justify-content-between align-items-start mb-2">
                             <h5>Question {{ loop.index }}</h5>
                             <span class="badge {% if response.is_correct %}bg-success{% else %}bg-danger{% endif %}">
-                                {% if response.is_correct %}✅ Correct{% else %}❌ Incorrect{% endif %}
+                                {% if response.is_correct %}Correct{% else %}Incorrect{% endif %}
                             </span>
                         </div>
                         
                         <p class="fw-bold">{{ response.question_text }}</p>
                         
                         <div class="options-review">
-                            <div class="option-result {% if response.correct_answer == 'a' %}correct-answer{% endif %} {% if response.student_answer == 'a' %}student-answer{% endif %}">
+                            <div class="option-result {% if response.correct_answer == 'A' %}correct-answer{% endif %} {% if response.student_answer == 'A' %}student-answer{% endif %}">
                                 <strong>A:</strong> {{ response.options.A }}
-                                {% if response.correct_answer == 'a' %} ✅{% endif %}
-                                {% if response.student_answer == 'a' and not response.is_correct %} ❌{% endif %}
+                                {% if response.correct_answer == 'A' %} Correct{% endif %}
+                                {% if response.student_answer == 'A' and not response.is_correct %} Incorrect{% endif %}
                             </div>
-                            <div class="option-result {% if response.correct_answer == 'b' %}correct-answer{% endif %} {% if response.student_answer == 'b' %}student-answer{% endif %}">
+                            <div class="option-result {% if response.correct_answer == 'B' %}correct-answer{% endif %} {% if response.student_answer == 'B' %}student-answer{% endif %}">
                                 <strong>B:</strong> {{ response.options.B }}
-                                {% if response.correct_answer == 'b' %} ✅{% endif %}
-                                {% if response.student_answer == 'b' and not response.is_correct %} ❌{% endif %}
+                                {% if response.correct_answer == 'B' %} Correct{% endif %}
+                                {% if response.student_answer == 'B' and not response.is_correct %} Incorrect{% endif %}
                             </div>
-                            <div class="option-result {% if response.correct_answer == 'c' %}correct-answer{% endif %} {% if response.student_answer == 'c' %}student-answer{% endif %}">
+                            <div class="option-result {% if response.correct_answer == 'C' %}correct-answer{% endif %} {% if response.student_answer == 'C' %}student-answer{% endif %}">
                                 <strong>C:</strong> {{ response.options.C }}
-                                {% if response.correct_answer == 'c' %} ✅{% endif %}
-                                {% if response.student_answer == 'c' and not response.is_correct %} ❌{% endif %}
+                                {% if response.correct_answer == 'C' %} Correct{% endif %}
+                                {% if response.student_answer == 'C' and not response.is_correct %} Incorrect{% endif %}
                             </div>
-                            <div class="option-result {% if response.correct_answer == 'd' %}correct-answer{% endif %} {% if response.student_answer == 'd' %}student-answer{% endif %}">
+                            <div class="option-result {% if response.correct_answer == 'D' %}correct-answer{% endif %} {% if response.student_answer == 'D' %}student-answer{% endif %}">
                                 <strong>D:</strong> {{ response.options.D }}
-                                {% if response.correct_answer == 'd' %} ✅{% endif %}
-                                {% if response.student_answer == 'd' and not response.is_correct %} ❌{% endif %}
+                                {% if response.correct_answer == 'D' %} Correct{% endif %}
+                                {% if response.student_answer == 'D' and not response.is_correct %} Incorrect{% endif %}
                             </div>
                         </div>
                         
                         {% if response.explanation %}
                         <div class="explanation mt-3 p-3 bg-light rounded">
-                            <strong>💡 Explanation:</strong> {{ response.explanation }}
+                            <strong>Explanation:</strong> {{ response.explanation }}
                         </div>
                         {% endif %}
                     </div>
