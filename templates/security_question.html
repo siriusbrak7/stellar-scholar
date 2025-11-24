@@ -3,12 +3,15 @@
 {% block content %}
 <div class="cosmic-homepage">
     <div class="cosmic-content">
-        <h1 class="stellar-main-title">🔒 Security Question</h1>
+        <h1 class="stellar-main-title">Security Question</h1>
         <p class="hero-subtitle">Answer your security question to reset password</p>
 
         <div class="feature-card" style="max-width: 500px; margin: 0 auto;">
             <p class="text-white"><strong>Question:</strong> {{ question }}</p>
             <form method="POST" action="{{ url_for('reset_with_answer') }}">
+                <!-- CSRF TOKEN — ADDED — FIXED -->
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                
                 <div class="mb-3">
                     <label for="security_answer" class="form-label text-white">Your Answer</label>
                     <input type="text" class="form-control" id="security_answer" name="security_answer" 
@@ -19,4 +22,64 @@
         </div>
     </div>
 </div>
+
+<style>
+.cosmic-homepage {
+    background: linear-gradient(135deg, #0a0e27 0%, #16213e 50%, #1a1a2e 100%);
+    min-height: 100vh;
+    padding: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.cosmic-content { text-align: center; max-width: 900px; width: 100%; }
+.stellar-main-title {
+    font-family: 'Dancing Script', cursive;
+    font-size: 3rem;
+    background: linear-gradient(45deg, #FFD700, #32CD32);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 1rem;
+}
+.hero-subtitle { color: #FFD700; font-size: 1.2rem; margin-bottom: 2rem; }
+.feature-card {
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 20px;
+    padding: 2rem;
+    transition: all 0.3s ease;
+}
+.feature-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+}
+.form-control {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: white;
+    border-radius: 10px;
+    padding: 0.75rem;
+}
+.form-control:focus {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: #FFD700;
+    color: white;
+    box-shadow: 0 0 0 2px rgba(255, 215, 0, 0.2);
+}
+.form-control::placeholder { color: #b0b8c9; }
+.btn-primary-cta {
+    background: linear-gradient(45deg, #FFD700, #32CD32);
+    color: black;
+    border: none;
+    padding: 0.75rem 2rem;
+    border-radius: 50px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+.btn-primary-cta:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(255, 215, 0, 0.4);
+}
+</style>
 {% endblock %}
