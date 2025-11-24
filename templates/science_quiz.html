@@ -23,10 +23,8 @@
                 </div>
             </div>
 
-            <!-- Quiz Form - REMOVED CSRF TOKEN -->
+            <!-- Quiz Form -->
             <form method="POST" action="{{ url_for('submit_science_quiz') }}">
-                <!-- NO CSRF TOKEN HERE -->
-                
                 {% for question in questions %}
                 <div class="card mb-4 question-card">
                     <div class="card-body">
@@ -40,14 +38,14 @@
                         
                         <p class="card-text fs-5 mb-4">{{ question.question_text }}</p>
                         
-                        <!-- Fixed Options Container -->
+                        <!-- Fixed Options Container with proper text colors -->
                         <div class="options-container">
                             <div class="option-item">
                                 <input class="form-check-input" type="radio" 
                                        name="{{ question.id }}" id="{{ question.id }}_a" value="a" required>
                                 <label class="form-check-label option-label" for="{{ question.id }}_a">
                                     <span class="option-letter">A</span>
-                                    <span class="option-text">{{ question.option_a }}</span>
+                                    <span class="option-text text-dark">{{ question.option_a }}</span>
                                 </label>
                             </div>
                             <div class="option-item">
@@ -55,7 +53,7 @@
                                        name="{{ question.id }}" id="{{ question.id }}_b" value="b">
                                 <label class="form-check-label option-label" for="{{ question.id }}_b">
                                     <span class="option-letter">B</span>
-                                    <span class="option-text">{{ question.option_b }}</span>
+                                    <span class="option-text text-dark">{{ question.option_b }}</span>
                                 </label>
                             </div>
                             <div class="option-item">
@@ -63,7 +61,7 @@
                                        name="{{ question.id }}" id="{{ question.id }}_c" value="c">
                                 <label class="form-check-label option-label" for="{{ question.id }}_c">
                                     <span class="option-letter">C</span>
-                                    <span class="option-text">{{ question.option_c }}</span>
+                                    <span class="option-text text-dark">{{ question.option_c }}</span>
                                 </label>
                             </div>
                             <div class="option-item">
@@ -71,7 +69,7 @@
                                        name="{{ question.id }}" id="{{ question.id }}_d" value="d">
                                 <label class="form-check-label option-label" for="{{ question.id }}_d">
                                     <span class="option-letter">D</span>
-                                    <span class="option-text">{{ question.option_d }}</span>
+                                    <span class="option-text text-dark">{{ question.option_d }}</span>
                                 </label>
                             </div>
                         </div>
@@ -98,6 +96,7 @@
     border-left: 4px solid #007bff;
     border-radius: 12px;
     transition: all 0.3s ease;
+    background: white;
 }
 .question-card:hover {
     box-shadow: 0 8px 25px rgba(0,0,0,0.15);
@@ -145,6 +144,7 @@
     cursor: pointer;
     margin: 0;
     font-size: 1.1rem;
+    color: #000000 !important; /* Force black text */
 }
 
 .option-letter {
@@ -164,6 +164,8 @@
 .option-text {
     flex: 1;
     line-height: 1.4;
+    color: #000000 !important; /* Force black text */
+    font-weight: 500;
 }
 
 /* Ensure radio buttons are visible */
@@ -180,11 +182,21 @@
 .card-text {
     color: #495057;
     line-height: 1.6;
+    font-weight: 500;
 }
 
 .btn-lg {
     border-radius: 10px;
     font-weight: 600;
+}
+
+/* Force dark text throughout the quiz */
+.question-card .card-body {
+    color: #000000;
+}
+
+.options-container .option-text {
+    color: #000000 !important;
 }
 </style>
 {% endblock %}
