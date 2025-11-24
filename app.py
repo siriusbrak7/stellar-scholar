@@ -4097,30 +4097,34 @@ def science_revision():
 @app.route('/science/quiz/start')
 @login_required
 def start_science_quiz():
-    """Start a new science quiz with 20 random questions - SIMPLIFIED FIX"""
-    supabase = get_supabase()
-    
+    """Start a new science quiz with 20 random questions"""
     try:
-        # Get ALL questions first, then shuffle and pick 20
+        supabase = get_supabase()
+        if not supabase:
+            flash('Database connection failed', 'danger')
+            return redirect(url_for('science_revision'))
+        
+        # Get questions from database
         response = supabase.table('igcse_science_questions').select('*').execute()
         
         if not response.data:
-            flash('No science questions available in the database yet.', 'warning')
+            flash('No questions available', 'warning')
             return redirect(url_for('science_revision'))
         
-        all_questions = response.data
-        
-        # Shuffle and pick 20 random questions
+        # Shuffle and select questions
         import random
-        random.shuffle(all_questions)
-        questions = all_questions[:20]
+        questions = response.data
+        random.shuffle(questions)
+        questions = questions[:20]
         
-        # Let Flask-WTF handle CSRF automatically
+        # Debug: Check what we're passing to template
+        print(f"DEBUG: Passing {len(questions)} questions to template")
+        
         return render_template('science_quiz.html', questions=questions)
         
     except Exception as e:
-        logger.error(f"Science quiz error: {e}")
-        flash('Error starting science quiz. Please try again.', 'danger')
+        print(f"SCIENCE QUIZ ERROR: {e}")
+        flash('Error loading quiz', 'danger')
         return redirect(url_for('science_revision'))
 
 @app.route('/science/quiz/submit', methods=['POST'])
