@@ -4092,96 +4092,115 @@ def start_science_quiz():
     supabase = get_supabase()
     
     try:
-        # Get 20 random questions
-        response = supabase.table('igcse_science_questions')\
-            .select('*')\
-            .limit(20)\
-            .execute()
+        # Get ALL questions first, then shuffle and pick 20
+        response = supabase.table('igcse_science_questions').select('*').execute()
+        all_questions = response.data if response.data else []
         
-        questions = response.data if response.data else []
-        
-        if not questions:
-            flash('No science questions available yet.', 'warning')
+        if not all_questions:
+            flash('No science questions available in the database yet.', 'warning')
             return redirect(url_for('science_revision'))
         
-        # Shuffle questions for randomness
+        # Shuffle and pick 20 random questions
         import random
-        random.shuffle(questions)
+        random.shuffle(all_questions)
+        questions = all_questions[:20]
         
         return render_template('science_quiz.html', questions=questions)
         
     except Exception as e:
         logger.error(f"Science quiz error: {e}")
-        flash('Error starting science quiz.', 'danger')
+        flash('Error starting science quiz. Please try again.', 'danger')
         return redirect(url_for('science_revision'))
 
 @app.route('/science/quiz/submit', methods=['POST'])
 @login_required
 def submit_science_quiz():
-    """Submit and grade science quiz"""
+    """Submit and grade science quiz - UPDATED FOR YOUR DATABASE SCHEMA"""
     supabase = get_supabase()
     
     try:
+        # Check if any answers were submitted
+        if not request.form:
+            flash('No answers submitted. Please complete the quiz.', 'warning')
+            return redirect(url_for('start_science_quiz'))
+        
         score = 0
         total_questions = 0
         question_responses = []
+        question_ids = []
         
         # Get all correct answers for the questions in this quiz
-        question_ids = list(request.form.keys())
-        if question_ids:
+        form_question_ids = [key for key in request.form.keys() if key != 'csrf_token']
+        
+        if form_question_ids:
             response = supabase.table('igcse_science_questions')\
-                .select('id, correct_answer')\
-                .in_('id', question_ids)\
+                .select('id, question_text, option_a, option_b, option_c, option_d, correct_answer, explanation, topic, difficulty')\
+                .in_('id', form_question_ids)\
                 .execute()
             
             correct_answers = {q['id']: q['correct_answer'] for q in response.data} if response.data else {}
+            question_details = {q['id']: q for q in response.data} if response.data else {}
             
             # Grade each question
             for question_id, student_answer in request.form.items():
+                if question_id == 'csrf_token':  # Skip CSRF token
+                    continue
+                    
+                if not student_answer:  # Skip empty answers
+                    continue
+                    
                 total_questions += 1
-                if correct_answers.get(question_id) == student_answer:
+                question_ids.append(question_id)
+                is_correct = correct_answers.get(question_id) == student_answer
+                
+                if is_correct:
                     score += 1
                 
                 question_responses.append({
                     'question_id': question_id,
                     'student_answer': student_answer,
-                    'correct': correct_answers.get(question_id) == student_answer
+                    'correct_answer': correct_answers.get(question_id),
+                    'is_correct': is_correct,
+                    'question_text': question_details.get(question_id, {}).get('question_text', ''),
+                    'explanation': question_details.get(question_id, {}).get('explanation', ''),
+                    'topic': question_details.get(question_id, {}).get('topic', ''),
+                    'options': {
+                        'A': question_details.get(question_id, {}).get('option_a', ''),
+                        'B': question_details.get(question_id, {}).get('option_b', ''),
+                        'C': question_details.get(question_id, {}).get('option_c', ''),
+                        'D': question_details.get(question_id, {}).get('option_d', '')
+                    }
                 })
         
-        # Save attempt to database
+        # Calculate percentage
+        percentage = round((score / total_questions) * 100) if total_questions > 0 else 0
+        
+        # Save attempt to database - MATCHING YOUR SCHEMA
         attempt_data = {
             'student_id': session['user_id'],
-            'questions_attempted': question_ids,
+            'questions_attempted': question_ids,  # Array of question IDs
             'score': score,
-            'total_questions': total_questions
+            'total_questions': total_questions,
+            'completed_at': datetime.now().isoformat()
         }
         
-        supabase.table('student_quiz_attempts').insert(attempt_data).execute()
-        
-        # Get explanations for review
-        explanations_response = supabase.table('igcse_science_questions')\
-            .select('id, question_text, explanation, correct_answer')\
-            .in_('id', question_ids)\
-            .execute()
-        
-        explanations = {q['id']: q for q in explanations_response.data} if explanations_response.data else {}
+        result = supabase.table('student_quiz_attempts').insert(attempt_data).execute()
         
         return render_template('science_quiz_results.html',
                              score=score,
                              total_questions=total_questions,
-                             percentage=round((score/total_questions)*100) if total_questions > 0 else 0,
-                             question_responses=question_responses,
-                             explanations=explanations)
+                             percentage=percentage,
+                             question_responses=question_responses)
         
     except Exception as e:
         logger.error(f"Science quiz submission error: {e}")
-        flash('Error submitting quiz.', 'danger')
+        flash('Error submitting quiz. Please try again.', 'danger')
         return redirect(url_for('science_revision'))
 
 @app.route('/science/quiz/history')
 @login_required
 def science_quiz_history():
-    """View previous quiz attempts"""
+    """View previous quiz attempts - UPDATED FOR YOUR SCHEMA"""
     supabase = get_supabase()
     
     try:
@@ -4193,6 +4212,13 @@ def science_quiz_history():
             .execute()
         
         attempts = response.data if response.data else []
+        
+        # Calculate percentage for each attempt (since it's not stored in your schema)
+        for attempt in attempts:
+            if attempt['total_questions'] > 0:
+                attempt['percentage'] = round((attempt['score'] / attempt['total_questions']) * 100)
+            else:
+                attempt['percentage'] = 0
         
         return render_template('science_quiz_history.html', attempts=attempts)
         
