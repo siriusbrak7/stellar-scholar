@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <!-- Header -->
+            <div class="text-center mb-5">
+                <h1 class="text-white">🔬 IGCSE Science Revision</h1>
+                <p class="text-light">Practice with 144+ Combined Science MCQ Questions</p>
+            </div>
+
+            <!-- Stats Cards -->
+            <div class="row mb-4">
+                <div class="col-md-4">
+                    <div class="card text-white bg-primary">
+                        <div class="card-body text-center">
+                            <h2>144+</h2>
+                            <p>Questions Available</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card text-white bg-success">
+                        <div class="card-body text-center">
+                            <h2>3</h2>
+                            <p>Science Subjects</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card text-white bg-info">
+                        <div class="card-body text-center">
+                            <h2>Auto-graded</h2>
+                            <p>Instant Feedback</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Cards -->
+            <div class="row">
+                <div class="col-md-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-body text-center">
+                            <h3>🎯 Quick Quiz</h3>
+                            <p>20 random questions from all topics</p>
+                            <p class="text-muted">Perfect for daily revision</p>
+                            <a href="{{ url_for('start_science_quiz') }}" class="btn btn-primary btn-lg">
+                                Start Quick Quiz
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-body text-center">
+                            <h3>📊 My Progress</h3>
+                            <p>View your quiz history and scores</p>
+                            <p class="text-muted">Track your improvement</p>
+                            <a href="{{ url_for('science_quiz_history') }}" class="btn btn-success btn-lg">
+                                View History
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Subject Breakdown -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h4 class="mb-0">📚 Subjects Covered</h4>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <h5>🧬 Biology</h5>
+                            <ul>
+                                <li>Cell biology</li>
+                                <li>Respiration & photosynthesis</li>
+                                <li>Human physiology</li>
+                                <li>Ecology</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-4">
+                            <h5>🧪 Chemistry</h5>
+                            <ul>
+                                <li>Atomic structure</li>
+                                <li>Chemical reactions</li>
+                                <li>Organic chemistry</li>
+                                <li>Acids & bases</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-4">
+                            <h5>⚡ Physics</h5>
+                            <ul>
+                                <li>Forces & motion</li>
+                                <li>Energy & waves</li>
+                                <li>Electricity</li>
+                                <li>Nuclear physics</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.card {
+    border: none;
+    border-radius: 15px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    transition: transform 0.3s ease;
+}
+.card:hover {
+    transform: translateY(-5px);
+}
+</style>
+{% endblock %}

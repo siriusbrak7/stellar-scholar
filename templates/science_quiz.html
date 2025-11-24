@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <!-- Quiz Header -->
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h3 class="mb-0">🔬 Science Revision Quiz</h3>
+                        <span class="badge bg-light text-dark">20 Questions</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <p class="mb-2"><strong>Instructions:</strong></p>
+                    <ul class="mb-0">
+                        <li>Answer all 20 multiple-choice questions</li>
+                        <li>Questions are randomly selected from Biology, Chemistry, and Physics</li>
+                        <li>You'll receive instant feedback with explanations</li>
+                        <li>Take the quiz as many times as you want!</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Quiz Form -->
+            <form method="POST" action="{{ url_for('submit_science_quiz') }}">
+                {% for question in questions %}
+                <div class="card mb-4 question-card">
+                    <div class="card-body">
+                        <h5 class="card-title">Question {{ loop.index }}</h5>
+                        <p class="card-text">{{ question.question_text }}</p>
+                        
+                        <div class="options-container">
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="radio" 
+                                       name="{{ question.id }}" id="{{ question.id }}_a" value="a" required>
+                                <label class="form-check-label" for="{{ question.id }}_a">
+                                    <strong>A)</strong> {{ question.option_a }}
+                                </label>
+                            </div>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="radio" 
+                                       name="{{ question.id }}" id="{{ question.id }}_b" value="b">
+                                <label class="form-check-label" for="{{ question.id }}_b">
+                                    <strong>B)</strong> {{ question.option_b }}
+                                </label>
+                            </div>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="radio" 
+                                       name="{{ question.id }}" id="{{ question.id }}_c" value="c">
+                                <label class="form-check-label" for="{{ question.id }}_c">
+                                    <strong>C)</strong> {{ question.option_c }}
+                                </label>
+                            </div>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="radio" 
+                                       name="{{ question.id }}" id="{{ question.id }}_d" value="d">
+                                <label class="form-check-label" for="{{ question.id }}_d">
+                                    <strong>D)</strong> {{ question.option_d }}
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="question-meta mt-3">
+                            <small class="text-muted">
+                                Topic: <span class="badge bg-info">{{ question.topic }}</span>
+                                Difficulty: <span class="badge bg-warning">{{ question.difficulty|title }}</span>
+                            </small>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+
+                <!-- Submit Button -->
+                <div class="text-center mt-4">
+                    <button type="submit" class="btn btn-success btn-lg">
+                        📝 Submit Quiz
+                    </button>
+                    <a href="{{ url_for('science_revision') }}" class="btn btn-outline-secondary btn-lg ms-2">
+                        ↩️ Back to Revision
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+.question-card {
+    border-left: 4px solid #007bff;
+}
+.options-container {
+    background: #f8f9fa;
+    padding: 1rem;
+    border-radius: 8px;
+}
+.form-check-input {
+    transform: scale(1.2);
+}
+</style>
+{% endblock %}

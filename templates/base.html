@@ -231,6 +231,11 @@ document.addEventListener('DOMContentLoaded', function() {
                         <a class="nav-link" href="{{ url_for('student_materials') }}">📚 Study Materials</a>
                     {% endif %}
 
+                    <!-- NEW: Science Revision for Students + Teachers -->
+                    {% if session.user_id and session.role in ['student', 'teacher'] %}
+                        <a class="nav-link" href="{{ url_for('science_revision') }}">🔬 Science Revision</a>
+                    {% endif %}
+
                     <!-- User Info & Logout -->
                     <span class="nav-link text-warning">
                         <i class="fas fa-user"></i> {{ session.user_id }}
@@ -277,7 +282,7 @@ document.addEventListener('DOMContentLoaded', function() {
 <!-- FOOTER -->
 <footer class="footer mt-5 py-3 bg-dark text-light">
     <div class="container text-center">
-        <p class="mb-0">&copy; 2025 Stellar Scholar.... on a Spaceship! ✨</p>
+        <p class="mb-0">&copy; 2025 Stellar Scholar. Empowering Education with AI! ✨</p>
     </div>
 </footer>
 

@@ -4058,6 +4058,129 @@ def debug_teacher_context():
     
     return jsonify(debug_info)
 
+# ===== IGCSE SCIENCE MCQ REVISION FEATURE =====
+@app.route('/science/revision')
+@login_required
+def science_revision():
+    """IGCSE Science Revision Dashboard"""
+    return render_template('science_revision.html')
+
+@app.route('/science/quiz/start')
+@login_required
+def start_science_quiz():
+    """Start a new science quiz with 20 random questions"""
+    supabase = get_supabase()
+    
+    try:
+        # Get 20 random questions
+        response = supabase.table('igcse_science_questions')\
+            .select('*')\
+            .limit(20)\
+            .execute()
+        
+        questions = response.data if response.data else []
+        
+        if not questions:
+            flash('No science questions available yet.', 'warning')
+            return redirect(url_for('science_revision'))
+        
+        # Shuffle questions for randomness
+        import random
+        random.shuffle(questions)
+        
+        return render_template('science_quiz.html', questions=questions)
+        
+    except Exception as e:
+        logger.error(f"Science quiz error: {e}")
+        flash('Error starting science quiz.', 'danger')
+        return redirect(url_for('science_revision'))
+
+@app.route('/science/quiz/submit', methods=['POST'])
+@login_required
+def submit_science_quiz():
+    """Submit and grade science quiz"""
+    supabase = get_supabase()
+    
+    try:
+        score = 0
+        total_questions = 0
+        question_responses = []
+        
+        # Get all correct answers for the questions in this quiz
+        question_ids = list(request.form.keys())
+        if question_ids:
+            response = supabase.table('igcse_science_questions')\
+                .select('id, correct_answer')\
+                .in_('id', question_ids)\
+                .execute()
+            
+            correct_answers = {q['id']: q['correct_answer'] for q in response.data} if response.data else {}
+            
+            # Grade each question
+            for question_id, student_answer in request.form.items():
+                total_questions += 1
+                if correct_answers.get(question_id) == student_answer:
+                    score += 1
+                
+                question_responses.append({
+                    'question_id': question_id,
+                    'student_answer': student_answer,
+                    'correct': correct_answers.get(question_id) == student_answer
+                })
+        
+        # Save attempt to database
+        attempt_data = {
+            'student_id': session['user_id'],
+            'questions_attempted': question_ids,
+            'score': score,
+            'total_questions': total_questions
+        }
+        
+        supabase.table('student_quiz_attempts').insert(attempt_data).execute()
+        
+        # Get explanations for review
+        explanations_response = supabase.table('igcse_science_questions')\
+            .select('id, question_text, explanation, correct_answer')\
+            .in_('id', question_ids)\
+            .execute()
+        
+        explanations = {q['id']: q for q in explanations_response.data} if explanations_response.data else {}
+        
+        return render_template('science_quiz_results.html',
+                             score=score,
+                             total_questions=total_questions,
+                             percentage=round((score/total_questions)*100) if total_questions > 0 else 0,
+                             question_responses=question_responses,
+                             explanations=explanations)
+        
+    except Exception as e:
+        logger.error(f"Science quiz submission error: {e}")
+        flash('Error submitting quiz.', 'danger')
+        return redirect(url_for('science_revision'))
+
+@app.route('/science/quiz/history')
+@login_required
+def science_quiz_history():
+    """View previous quiz attempts"""
+    supabase = get_supabase()
+    
+    try:
+        response = supabase.table('student_quiz_attempts')\
+            .select('*')\
+            .eq('student_id', session['user_id'])\
+            .order('completed_at', desc=True)\
+            .limit(10)\
+            .execute()
+        
+        attempts = response.data if response.data else []
+        
+        return render_template('science_quiz_history.html', attempts=attempts)
+        
+    except Exception as e:
+        logger.error(f"Science quiz history error: {e}")
+        flash('Error loading quiz history.', 'danger')
+        return redirect(url_for('science_revision'))
+
 
 # Production configuration
 if __name__ == '__main__':

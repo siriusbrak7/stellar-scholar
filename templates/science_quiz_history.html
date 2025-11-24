@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2 class="text-white">📊 My Quiz History</h2>
+                <a href="{{ url_for('science_revision') }}" class="btn btn-outline-light">← Back to Revision</a>
+            </div>
+
+            {% if attempts %}
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Recent Quiz Attempts</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Score</th>
+                                    <th>Percentage</th>
+                                    <th>Questions</th>
+                                    <th>Performance</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for attempt in attempts %}
+                                <tr>
+                                    <td>{{ attempt.completed_at[:16]|replace('T', ' ') }}</td>
+                                    <td><strong>{{ attempt.score }}/{{ attempt.total_questions }}</strong></td>
+                                    <td>
+                                        {% set percentage = (attempt.score/attempt.total_questions * 100)|round %}
+                                        <span class="badge 
+                                            {% if percentage >= 80 %}bg-success
+                                            {% elif percentage >= 60 %}bg-warning
+                                            {% else %}bg-danger
+                                            {% endif %}">
+                                            {{ percentage }}%
+                                        </span>
+                                    </td>
+                                    <td>{{ attempt.total_questions }} questions</td>
+                                    <td>
+                                        {% set percentage = (attempt.score/attempt.total_questions * 100)|round %}
+                                        {% if percentage >= 80 %}🌟 Excellent
+                                        {% elif percentage >= 60 %}👍 Good
+                                        {% else %}📚 Needs Practice
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <div class="empty-state">
+                    <h3 class="text-white">📝 No Quiz Attempts Yet</h3>
+                    <p class="text-muted">Take your first science quiz to start tracking your progress!</p>
+                    <a href="{{ url_for('start_science_quiz') }}" class="btn btn-primary btn-lg">
+                        Start Your First Quiz
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
