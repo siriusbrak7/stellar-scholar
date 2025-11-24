@@ -1,4 +1,5 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify, send_from_directory
+from flask_wtf.csrf import CSRFProtect
 from functools import wraps
 import json
 import os
@@ -15,6 +16,14 @@ from config import Config
 from werkzeug.security import generate_password_hash, check_password_hash
 from supabase import create_client, Client
 import logging
+
+csrf = CSRFProtect()
+csrf.init_app(app)
+print("✅ CSRF Protection initialized")
+
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY') or 'your-secret-key-here'
+app.config['WTF_CSRF_ENABLED'] = True
+app.config['WTF_CSRF_SECRET_KEY'] = os.environ.get('CSRF_SECRET_KEY') or 'your-csrf-secret-key-here'
 
 # ===== AI RATE LIMITING USING SUPABASE (PRODUCTION) =====
 def check_ai_rate_limit(user_id, feature='ai_explain'):
@@ -4088,23 +4097,25 @@ def science_revision():
 @app.route('/science/quiz/start')
 @login_required
 def start_science_quiz():
-    """Start a new science quiz with 20 random questions"""
+    """Start a new science quiz with 20 random questions - SIMPLIFIED FIX"""
     supabase = get_supabase()
     
     try:
         # Get ALL questions first, then shuffle and pick 20
         response = supabase.table('igcse_science_questions').select('*').execute()
-        all_questions = response.data if response.data else []
         
-        if not all_questions:
+        if not response.data:
             flash('No science questions available in the database yet.', 'warning')
             return redirect(url_for('science_revision'))
+        
+        all_questions = response.data
         
         # Shuffle and pick 20 random questions
         import random
         random.shuffle(all_questions)
         questions = all_questions[:20]
         
+        # Let Flask-WTF handle CSRF automatically
         return render_template('science_quiz.html', questions=questions)
         
     except Exception as e:
@@ -4115,7 +4126,7 @@ def start_science_quiz():
 @app.route('/science/quiz/submit', methods=['POST'])
 @login_required
 def submit_science_quiz():
-    """Submit and grade science quiz - UPDATED FOR YOUR DATABASE SCHEMA"""
+    """Submit and grade science quiz - FIXED VERSION"""
     supabase = get_supabase()
     
     try:
@@ -4129,26 +4140,32 @@ def submit_science_quiz():
         question_responses = []
         question_ids = []
         
-        # Get all correct answers for the questions in this quiz
-        form_question_ids = [key for key in request.form.keys() if key != 'csrf_token']
+        # Get all form data except CSRF token
+        form_data = dict(request.form)
+        form_data.pop('csrf_token', None)  # Remove CSRF token
         
-        if form_question_ids:
+        if not form_data:
+            flash('No answers submitted.', 'warning')
+            return redirect(url_for('start_science_quiz'))
+        
+        # Get question IDs from form
+        question_ids_from_form = list(form_data.keys())
+        
+        if question_ids_from_form:
             response = supabase.table('igcse_science_questions')\
                 .select('id, question_text, option_a, option_b, option_c, option_d, correct_answer, explanation, topic, difficulty')\
-                .in_('id', form_question_ids)\
+                .in_('id', question_ids_from_form)\
                 .execute()
             
-            correct_answers = {q['id']: q['correct_answer'] for q in response.data} if response.data else {}
-            question_details = {q['id']: q for q in response.data} if response.data else {}
+            if not response.data:
+                flash('Error loading questions. Please try again.', 'danger')
+                return redirect(url_for('science_revision'))
+            
+            correct_answers = {q['id']: q['correct_answer'] for q in response.data}
+            question_details = {q['id']: q for q in response.data}
             
             # Grade each question
-            for question_id, student_answer in request.form.items():
-                if question_id == 'csrf_token':  # Skip CSRF token
-                    continue
-                    
-                if not student_answer:  # Skip empty answers
-                    continue
-                    
+            for question_id, student_answer in form_data.items():
                 total_questions += 1
                 question_ids.append(question_id)
                 is_correct = correct_answers.get(question_id) == student_answer
@@ -4175,10 +4192,10 @@ def submit_science_quiz():
         # Calculate percentage
         percentage = round((score / total_questions) * 100) if total_questions > 0 else 0
         
-        # Save attempt to database - MATCHING YOUR SCHEMA
+        # Save attempt to database
         attempt_data = {
             'student_id': session['user_id'],
-            'questions_attempted': question_ids,  # Array of question IDs
+            'questions_attempted': question_ids,
             'score': score,
             'total_questions': total_questions,
             'completed_at': datetime.now().isoformat()
@@ -4226,6 +4243,16 @@ def science_quiz_history():
         logger.error(f"Science quiz history error: {e}")
         flash('Error loading quiz history.', 'danger')
         return redirect(url_for('science_revision'))
+    
+@app.route('/debug/csrf')
+def debug_csrf():
+    """Debug CSRF setup"""
+    from flask_wtf.csrf import generate_csrf
+    return {
+        'csrf_token': generate_csrf(),
+        'secret_key_set': bool(app.config.get('SECRET_KEY')),
+        'csrf_enabled': app.config.get('WTF_CSRF_ENABLED', False)
+    }
 
 
 # Production configuration
