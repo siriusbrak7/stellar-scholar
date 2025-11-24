@@ -1660,30 +1660,24 @@ def student_dashboard():
     try:
         # Handle Sirius differently
         if session['user_id'] == 'sirius':
-            # Sirius can view any student's dashboard - maybe add student switcher?
             user = {
                 'username': 'sirius', 
                 'role': 'teacher', 
                 'school_id': None, 
                 'grade': '9',
-                'id': 'school_demo_academy'  # Add a special ID for Sirius
-            }  # Default values
+                'id': 'school_demo_academy'
+            }
         else:
-            # FIXED: Regular student - use get_user_by_username
             user = get_user_by_username(session['user_id'])
         
         if not user:
             flash("User not found. Please log in again.", "danger")
             return redirect(url_for('logout'))
         
-        # ... rest of the route remains the same ...
-        
         # Get all prompts for the student's school and grade
         if session['user_id'] == 'sirius':
-            # Sirius can see all prompts across all schools/grades
             prompts_response = supabase.table('prompts').select('*').execute()
         else:
-            # Regular student - only their school and grade
             prompts_response = supabase.table('prompts')\
                 .select('*')\
                 .eq('school_id', user['school_id'])\
@@ -1694,10 +1688,8 @@ def student_dashboard():
         
         # Get student's submissions
         if session['user_id'] == 'sirius':
-            # Sirius can see all submissions (or limit to demo data)
             submissions_response = supabase.table('submissions').select('*').limit(50).execute()
         else:
-            # Regular student - only their submissions
             submissions_response = supabase.table('submissions')\
                 .select('*')\
                 .eq('student_id', user['username'])\
@@ -1739,10 +1731,8 @@ def student_dashboard():
         
         # Get leaderboard rank
         if session['user_id'] == 'sirius':
-            # For Sirius, show a demo rank
             leaderboard_rank = 1
         else:
-            # Regular student ranking
             all_students_response = supabase.table('users')\
                 .select('username')\
                 .eq('school_id', user['school_id'])\
@@ -1754,10 +1744,8 @@ def student_dashboard():
         
         # Get study materials count
         if session['user_id'] == 'sirius':
-            # Sirius can see all study materials
             materials_response = supabase.table('study_materials').select('id').execute()
         else:
-            # Regular student - only their school and grade
             materials_response = supabase.table('study_materials')\
                 .select('id')\
                 .eq('school_id', user['school_id'])\
@@ -1765,7 +1753,38 @@ def student_dashboard():
                 .execute()
         
         materials_count = len(materials_response.data) if materials_response.data else 0
+
+        # 🆕 NEW: Get Science Revision Stats
+        science_stats = {
+            'total_quizzes': 0,
+            'average_score': 0,
+            'best_score': 0,
+            'recent_attempts': []
+        }
         
+        try:
+            # Get quiz attempts for science revision
+            attempts_response = supabase.table('student_quiz_attempts')\
+                .select('*')\
+                .eq('student_id', session['user_id'])\
+                .order('completed_at', desc=True)\
+                .limit(5)\
+                .execute()
+            
+            if attempts_response.data:
+                science_stats['total_quizzes'] = len(attempts_response.data)
+                science_stats['recent_attempts'] = attempts_response.data[:3]  # Last 3 attempts
+                
+                # Calculate average score
+                scores = [attempt['score'] for attempt in attempts_response.data if attempt['score'] is not None]
+                if scores:
+                    science_stats['average_score'] = round(sum(scores) / len(scores))
+                    science_stats['best_score'] = max(scores)
+        
+        except Exception as e:
+            logger.error(f"Science stats error: {e}")
+            # Continue without science stats if there's an error
+
         return render_template(
             'student_dashboard.html',
             user=user,
@@ -1777,7 +1796,8 @@ def student_dashboard():
             leaderboard_rank=leaderboard_rank,
             subject_averages=subject_averages,
             now=datetime.now(),
-            materials_count=materials_count
+            materials_count=materials_count,
+            science_stats=science_stats  # 🆕 NEW: Pass science stats to template
         )
         
     except Exception as e:

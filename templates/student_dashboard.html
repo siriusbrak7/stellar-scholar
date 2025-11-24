@@ -1,875 +1,276 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="student-dashboard">
-    <!-- Cosmic Header -->
-    <div class="cosmic-header">
-        <div class="container">
-            <div class="header-content">
-                <h1 class="welcome-title">🚀 Welcome, {{ session.user_id }}!</h1>
-                <p class="welcome-subtitle">Your Cosmic Learning Journey Awaits</p>
-                <div class="student-badge">
-                    <span class="grade-badge">Grade {{ user.grade }} Explorer</span>
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <!-- Welcome Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2 class="text-white">🎓 Welcome, {{ user.username }}!</h2>
+                    <p class="text-light mb-0">
+                        Grade {{ user.grade }} • 
+                        {{ user.school_id|replace('school_', '')|replace('_', ' ')|title }}
+                    </p>
                 </div>
-            </div>
-        </div>
-    </div>
 
-    <!-- Quick Stats -->
-    <div class="container">
-        <div class="stats-grid">
-            <div class="stat-card completed">
-                <div class="stat-icon">✅</div>
-                <div class="stat-info">
-                    <h3>{{ completed_assignments }}</h3>
-                    <p>Completed</p>
+                <div class="text-end">
+                    <p class="text-warning mb-1">🏆 Rank #{{ leaderboard_rank }} in your class</p>
+                    <small class="text-muted">Based on assignment completion and grades</small>
                 </div>
             </div>
-            <div class="stat-card pending">
-                <div class="stat-icon">📝</div>
-                <div class="stat-info">
-                    <h3>{{ pending_assignments }}</h3>
-                    <p>To Do</p>
-                </div>
-            </div>
-            <div class="stat-card average">
-                <div class="stat-icon">📊</div>
-                <div class="stat-info">
-                    <h3>{{ average_grade }}%</h3>
-                    <p>Avg Grade</p>
-                </div>
-            </div>
-            <div class="stat-card rank">
-                <div class="stat-icon">🏆</div>
-                <div class="stat-info">
-                    <h3>#{{ leaderboard_rank }}</h3>
-                    <p>Class Rank</p>
-                </div>
-            </div>
-            <!-- Study Materials Card -->
-            <div class="stat-card materials">
-                <div class="stat-icon">📚</div>
-                <div class="stat-info">
-                    <h3>{{ materials_count }}</h3>
-                    <p>Study Materials</p>
-                    <a href="{{ url_for('student_materials') }}" class="materials-btn">View All</a>
-                </div>
-            </div>
-        </div>
 
-        <!-- Science Fact of the Moment -->
-        <div class="science-fact-container">
-            <div class="science-fact-header">
-                <span class="fact-icon">🧬</span>
-                <h3>Science Fact of the Moment</h3>
-            </div>
-            <div class="science-fact-content" id="scienceFact">
-                <p class="fact-text">Loading amazing science fact...</p>
-            </div>
-            <div class="fact-footer">
-                <span class="rotation-indicator">Rotating....</span>
-            </div>
-        </div>
-
-        <!-- Progress Section -->
-        <div class="progress-section">
-            <h2 class="section-title">📈 Your Progress</h2>
-            <div class="progress-cards">
-                <div class="progress-card">
-                    <h4>Completion Rate</h4>
-                    <div class="progress-circle" data-percentage="{{ completion_rate }}">
-                        <div class="circle">
-                            <span class="percentage">{{ completion_rate }}%</span>
+            <!-- Quick Stats -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card text-white bg-primary">
+                        <div class="card-body text-center">
+                            <h4 class="card-title">{{ completed_assignments }}/{{ completed_assignments + pending_assignments }}</h4>
+                            <p class="card-text">Assignments Completed</p>
+                            <small class="opacity-75">{{ completion_rate }}% completion rate</small>
                         </div>
                     </div>
                 </div>
-                <div class="progress-card">
-                    <h4>Subject Mastery</h4>
-                    <div class="subject-bars">
-                        {% if subject_averages %}
-                            {% for subject, average in subject_averages.items() %}
-                            <div class="subject-bar">
-                                <span>{{ subject|title }}</span>
-                                <div class="bar">
-                                    <div class="fill" style="width: {{ average }}%"></div>
-                                </div>
-                                <span>{{ average }}%</span>
-                            </div>
-                            {% endfor %}
-                        {% else %}
-                            <div class="no-data">
-                                <p>📚 Complete assignments to see your subject mastery!</p>
-                            </div>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-        </div>
 
-        <!-- Assignments Section -->
-        <div class="assignments-section">
-            <div class="section-header">
-                <h2 class="section-title">📚 Your Assignments</h2>
-                <div class="filter-buttons">
-                    <button class="filter-btn active" data-filter="all">All</button>
-                    <button class="filter-btn" data-filter="pending">To Do</button>
-                    <button class="filter-btn" data-filter="completed">Completed</button>
-                </div>
-            </div>
-
-            {% if prompts %}
-            <div class="assignments-grid">
-                {% for prompt in prompts %}
-                <div class="assignment-card {% if prompt.has_submitted %}completed{% else %}pending{% endif %}" 
-                     data-status="{% if prompt.has_submitted %}completed{% else %}pending{% endif %}">
-                    
-                    <!-- Assignment Header -->
-                    <div class="assignment-header">
-                        <div class="assignment-type {{ prompt.assessment_type }}">
-                            {% if prompt.assessment_type == 'written' %}
-                                ✍️ Essay
-                            {% elif prompt.assessment_type == 'mcq' %}
-                                🔠 Quiz
-                            {% else %}
-                                📊 Mixed
-                            {% endif %}
-                        </div>
-                        <div class="assignment-points">{{ prompt.total_points }} pts</div>
-                    </div>
-
-                    <!-- Assignment Content -->
-                    <div class="assignment-content">
-                        <h3 class="assignment-title">{{ prompt.title }}</h3>
-                        <p class="assignment-desc">{{ prompt.description[:80] }}{% if prompt.description|length > 80 %}...{% endif %}</p>
-                        
-                        <div class="assignment-meta">
-                            <span class="subject-tag">{{ prompt.subject|title }}</span>
-                            {% if prompt.due_date %}
-                            <span class="due-date {% if prompt.due_date < now.isoformat() %}overdue{% endif %}">
-                                📅 {{ prompt.due_date[:10] }}
-                            </span>
-                            {% endif %}
+                <div class="col-md-3">
+                    <div class="card text-white bg-success">
+                        <div class="card-body text-center">
+                            <h4 class="card-title">{{ average_grade }}%</h4>
+                            <p class="card-text">Average Grade</p>
+                            <small class="opacity-75">Across all subjects</small>
                         </div>
                     </div>
+                </div>
 
-                    <!-- Assignment Status -->
-                    <div class="assignment-status">
-                        {% if prompt.has_submitted %}
-                            <div class="status-badge submitted">
-                                <span class="status-icon">✅</span>
-                                <span class="status-text">Submitted</span>
-                                {% if prompt.submission and prompt.submission.grade is not none %}
-                                    <span class="grade">{{ prompt.submission.grade }}/100</span>
+                <div class="col-md-3">
+                    <div class="card text-white bg-info">
+                        <div class="card-body text-center">
+                            <h4 class="card-title">{{ materials_count }}</h4>
+                            <p class="card-text">Study Materials</p>
+                            <small class="opacity-75">Available for your grade</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    <div class="card text-white bg-warning">
+                        <div class="card-body text-center">
+                            <h4 class="card-title">{{ science_stats.total_quizzes }}</h4>
+                            <p class="card-text">Science Quizzes</p>
+                            <small class="opacity-75">
+                                {% if science_stats.average_score > 0 %}
+                                    Avg: {{ science_stats.average_score }}%
                                 {% else %}
-                                    <span class="grade-pending">Grading...</span>
+                                    Start practicing!
                                 {% endif %}
-                            </div>
-                            {% if prompt.submission and prompt.submission.id %}
-                            <a href="{{ url_for('view_feedback', submission_id=prompt.submission.id) }}" 
-                               class="action-btn feedback-btn">
-                                📖 View Feedback
-                            </a>
-                            {% endif %}
-                        {% else %}
-                            <div class="status-badge pending">
-                                <span class="status-icon">⏳</span>
-                                <span class="status-text">Pending</span>
-                            </div>
-                            <a href="{{ url_for('take_assessment', prompt_id=prompt.id) }}" 
-                               class="action-btn start-btn">
-                                🚀 Start Assignment
-                            </a>
-                        {% endif %}
+                            </small>
+                        </div>
                     </div>
                 </div>
-                {% endfor %}
             </div>
-            {% else %}
-            <div class="empty-state">
-                <div class="empty-icon">🎉</div>
-                <h3>No Assignments!</h3>
-                <p>You're all caught up. Enjoy your free time! 🎮</p>
-            </div>
-            {% endif %}
-        </div>
 
-        <!-- Quick Actions -->
-        <div class="quick-actions">
-            <h2 class="section-title">⚡ Quick Actions</h2>
-            <div class="action-buttons">
-                <a href="{{ url_for('leaderboard') }}" class="action-card">
-                    <span class="action-icon">🏆</span>
-                    <span class="action-text">View Leaderboard</span>
-                </a>
-                <a href="{{ url_for('student_history') }}" class="action-card">
-                    <span class="action-icon">📖</span>
-                    <span class="action-text">My History</span>
-                </a>
-                <a href="{{ url_for('student_materials') }}" class="action-card">
-                    <span class="action-icon">📚</span>
-                    <span class="action-text">Study Materials</span>
-                </a>
+            <!-- Action Cards Row -->
+            <div class="row mb-4">
+                <!-- Science Revision Card -->
+                <div class="col-md-6">
+                    <div class="card h-100">
+                        <div class="card-header bg-success text-white">
+                            <h5 class="mb-0">🔬 Science Revision</h5>
+                        </div>
+
+                        <div class="card-body">
+                            <p>Practice with 144+ IGCSE Combined Science MCQs across Biology, Chemistry, and Physics.</p>
+
+                            {% if science_stats.recent_attempts %}
+                            <div class="mb-3">
+                                <h6>Recent Quiz Scores:</h6>
+                                {% for attempt in science_stats.recent_attempts %}
+                                <span class="badge 
+                                    {% if attempt.score >= 80 %}bg-success
+                                    {% elif attempt.score >= 60 %}bg-warning
+                                    {% else %}bg-danger
+                                    {% endif %} me-1">
+                                    {{ attempt.score }}%
+                                </span>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+
+                            <div class="btn-group w-100">
+                                <a href="{{ url_for('start_science_quiz') }}" class="btn btn-success">
+                                    🚀 Start New Quiz
+                                </a>
+                                <a href="{{ url_for('science_revision') }}" class="btn btn-outline-success">
+                                    📊 View Progress
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Study Materials Card -->
+                <div class="col-md-6">
+                    <div class="card h-100">
+                        <div class="card-header bg-info text-white">
+                            <h5 class="mb-0">📚 Study Materials</h5>
+                        </div>
+
+                        <div class="card-body">
+                            <p>Access resources, notes, guides, and teacher uploads for your grade.</p>
+
+                            {% if subject_averages %}
+                            <div class="mb-3">
+                                <h6>Subject Averages:</h6>
+                                {% for subject, average in subject_averages.items() %}
+                                <span class="badge bg-primary me-1">{{ subject }}: {{ average }}%</span>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+
+                            <div class="btn-group w-100">
+                                <a href="{{ url_for('student_materials') }}" class="btn btn-info">
+                                    📖 Browse Materials
+                                </a>
+                                <a href="{{ url_for('student_history') }}" class="btn btn-outline-info">
+                                    📋 My Submissions
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
+
+            <!-- Recent Assignments -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="mb-0">📝 Recent Assignments</h5>
+                </div>
+
+                <div class="card-body">
+                    {% if prompts %}
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Assignment</th>
+                                    <th>Subject</th>
+                                    <th>Due Date</th>
+                                    <th>Status</th>
+                                    <th>Grade</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+                                {% for prompt in prompts[:5] %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ prompt.title }}</strong><br>
+                                        <small class="text-muted">
+                                            {{ prompt.description[:50] }}{% if prompt.description|length > 50 %}...{% endif %}
+                                        </small>
+                                    </td>
+
+                                    <td>
+                                        <span class="badge bg-secondary">
+                                            {{ prompt.subject|title if prompt.subject != 'general' else 'General' }}
+                                        </span>
+                                    </td>
+
+                                    <td>
+                                        {% if prompt.due_date %}
+                                            <small>{{ prompt.due_date[:10] }}</small>
+                                            {% if prompt.due_date < now.isoformat() %}
+                                            <span class="badge bg-danger ms-1">Overdue</span>
+                                            {% endif %}
+                                        {% else %}
+                                            <small class="text-muted">No due date</small>
+                                        {% endif %}
+                                    </td>
+
+                                    <td>
+                                        {% if prompt.has_submitted %}
+                                            <span class="badge bg-success">Submitted</span>
+                                        {% else %}
+                                            <span class="badge bg-warning">Pending</span>
+                                        {% endif %}
+                                    </td>
+
+                                    <td>
+                                        {% if prompt.has_submitted and prompt.submission.grade is not none %}
+                                            <span class="badge bg-info">{{ prompt.submission.grade }}%</span>
+                                        {% elif prompt.has_submitted %}
+                                            <span class="badge bg-secondary">Grading</span>
+                                        {% else %}
+                                            <span class="badge bg-light text-dark">--</span>
+                                        {% endif %}
+                                    </td>
+
+                                    <td>
+                                        {% if prompt.has_submitted %}
+                                            <a href="{{ url_for('view_feedback', submission_id=prompt.submission.id) }}" 
+                                               class="btn btn-sm btn-outline-primary">
+                                                View Feedback
+                                            </a>
+                                        {% else %}
+                                            <a href="#" class="btn btn-sm btn-success"
+                                               onclick="alert('Assignment submission feature coming soon!')">
+                                                Submit Work
+                                            </a>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {% if prompts|length > 5 %}
+                    <div class="text-center mt-3">
+                        <a href="#" class="btn btn-outline-secondary"
+                           onclick="alert('Full assignments view coming soon!')">
+                            View All {{ prompts|length }} Assignments
+                        </a>
+                    </div>
+                    {% endif %}
+
+                    {% else %}
+                    <div class="text-center py-4">
+                        <h5 class="text-muted">No assignments yet</h5>
+                        <p class="text-muted">Your teachers haven't assigned anything yet.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="card mt-4">
+                <div class="card-body text-center">
+                    <h5 class="mb-3">🚀 Quick Actions</h5>
+                    <div class="btn-group">
+                        <a href="{{ url_for('leaderboard') }}" class="btn btn-outline-primary">🏆 Leaderboard</a>
+                        <a href="{{ url_for('science_revision') }}" class="btn btn-outline-success">🔬 Science Practice</a>
+                        <a href="{{ url_for('student_materials') }}" class="btn btn-outline-info">📚 Study Materials</a>
+                        <a href="{{ url_for('student_history') }}" class="btn btn-outline-warning">📋 My History</a>
+                    </div>
+                </div>
+            </div>
+
         </div>
     </div>
 </div>
 
 <style>
-/* Cosmic Background */
-.student-dashboard {
-    min-height: 100vh;
-    background: linear-gradient(135deg, #0a0e27 0%, #16213e 50%, #1a1a2e 100%);
-    color: white;
-}
-
-.cosmic-header {
-    position: relative;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    padding: 3rem 0;
-    text-align: center;
-    overflow: hidden;
-}
-
-.header-content {
-    position: relative;
-    z-index: 2;
-}
-
-.welcome-title {
-    font-size: 2.5rem;
-    font-weight: 700;
-    margin-bottom: 0.5rem;
-    background: linear-gradient(45deg, #FFD700, #32CD32);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-}
-
-.welcome-subtitle {
-    font-size: 1.2rem;
-    opacity: 0.9;
-    margin-bottom: 1.5rem;
-}
-
-.student-badge {
-    display: flex;
-    gap: 1rem;
-    justify-content: center;
-    flex-wrap: wrap;
-}
-
-.grade-badge {
-    background: rgba(255, 255, 255, 0.2);
-    padding: 0.5rem 1rem;
-    border-radius: 25px;
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.3);
-}
-
-/* Stats Grid */
-.stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1.5rem;
-    margin: -2rem 0 3rem 0;
-    position: relative;
-    z-index: 3;
-}
-
-.stat-card {
-    background: rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 20px;
-    padding: 1.5rem;
-    text-align: center;
+.card {
+    border: none;
+    border-radius: 15px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
     transition: transform 0.3s ease;
-    position: relative;
-}
-
-.stat-card:hover {
-    transform: translateY(-5px);
-}
-
-.stat-icon {
-    font-size: 2rem;
-    margin-bottom: 0.5rem;
-}
-
-.stat-info h3 {
-    font-size: 2rem;
-    margin-bottom: 0.5rem;
-    font-weight: 700;
-}
-
-.stat-info p {
-    opacity: 0.8;
-    margin: 0 0 0.75rem 0;
-}
-
-.materials-btn {
-    display: inline-block;
-    background: rgba(255, 255, 255, 0.2);
-    color: white;
-    padding: 0.4rem 1rem;
-    border-radius: 15px;
-    text-decoration: none;
-    font-size: 0.8rem;
-    font-weight: 600;
-    transition: all 0.3s ease;
-    border: 1px solid rgba(255, 255, 255, 0.3);
-}
-
-.materials-btn:hover {
-    background: rgba(255, 255, 255, 0.3);
-    transform: translateY(-2px);
-}
-
-/* Science Fact Container */
-.science-fact-container {
-    background: linear-gradient(135deg, rgba(102, 126, 234, 0.2), rgba(118, 75, 162, 0.2));
-    backdrop-filter: blur(10px);
-    border: 2px solid rgba(255, 215, 0, 0.3);
-    border-radius: 20px;
-    padding: 2rem;
-    margin-bottom: 3rem;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-}
-
-.science-fact-header {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    margin-bottom: 1.5rem;
-    border-bottom: 2px solid rgba(255, 215, 0, 0.3);
-    padding-bottom: 0.75rem;
-}
-
-.fact-icon {
-    font-size: 2rem;
-    animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.1); }
-}
-
-.science-fact-header h3 {
-    font-size: 1.5rem;
-    margin: 0;
-    background: linear-gradient(45deg, #FFD700, #FFA500);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-}
-
-.science-fact-content {
-    min-height: 80px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.fact-text {
-    font-size: 1.1rem;
-    line-height: 1.6;
-    text-align: center;
-    margin: 0;
-    opacity: 0;
-    animation: fadeIn 1s ease-in forwards;
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-.fact-footer {
-    text-align: center;
-    margin-top: 1rem;
-    padding-top: 1rem;
-    border-top: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-.rotation-indicator {
-    font-size: 0.85rem;
-    opacity: 0.6;
-    font-style: italic;
-}
-
-/* Progress Section */
-.progress-section {
-    margin-bottom: 3rem;
-}
-
-.section-title {
-    font-size: 1.5rem;
-    margin-bottom: 1.5rem;
-    color: #FFD700;
-}
-
-.progress-cards {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 1.5rem;
-}
-
-.progress-card {
-    background: rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 20px;
-    padding: 1.5rem;
-}
-
-.progress-circle {
-    display: flex;
-    justify-content: center;
-    margin: 1rem 0;
-}
-
-.circle {
-    width: 120px;
-    height: 120px;
-    border-radius: 50%;
-    background: conic-gradient(#4CAF50 var(--percentage), #333 0);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: relative;
-}
-
-.circle::before {
-    content: '';
-    position: absolute;
-    width: 100px;
-    height: 100px;
-    background: #16213e;
-    border-radius: 50%;
-}
-
-.percentage {
-    position: relative;
-    z-index: 2;
-    font-weight: 700;
-    font-size: 1.2rem;
-}
-
-.subject-bars {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-}
-
-.subject-bar {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.subject-bar span:first-child {
-    min-width: 80px;
-    font-size: 0.9rem;
-}
-
-.bar {
-    flex: 1;
-    height: 8px;
-    background: rgba(255, 255, 255, 0.2);
-    border-radius: 4px;
-    overflow: hidden;
-}
-
-.fill {
-    height: 100%;
-    background: linear-gradient(90deg, #4CAF50, #8BC34A);
-    border-radius: 4px;
-    transition: width 1s ease;
-}
-
-.no-data {
-    text-align: center;
-    padding: 2rem;
-    opacity: 0.7;
-}
-
-/* Assignments */
-.assignments-section {
-    margin-bottom: 3rem;
-}
-
-.section-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1.5rem;
-    flex-wrap: wrap;
-    gap: 1rem;
-}
-
-.filter-buttons {
-    display: flex;
-    gap: 0.5rem;
-}
-
-.filter-btn {
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    color: white;
-    padding: 0.5rem 1rem;
-    border-radius: 20px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-.filter-btn.active {
-    background: #FFD700;
-    color: #0a0e27;
-}
-
-.assignments-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-    gap: 1.5rem;
-}
-
-.assignment-card {
-    background: rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 20px;
-    padding: 1.5rem;
-    transition: all 0.3s ease;
-}
-
-.assignment-card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-}
-
-.assignment-card.completed {
-    border-left: 4px solid #4CAF50;
-}
-
-.assignment-card.pending {
-    border-left: 4px solid #FF9800;
-}
-
-.assignment-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
     margin-bottom: 1rem;
 }
-
-.assignment-type {
-    padding: 0.25rem 0.75rem;
-    border-radius: 15px;
-    font-size: 0.8rem;
-    font-weight: 600;
-}
-
-.assignment-type.written { background: rgba(33, 150, 243, 0.2); }
-.assignment-type.mcq { background: rgba(76, 175, 80, 0.2); }
-.assignment-type.mixed { background: rgba(255, 152, 0, 0.2); }
-
-.assignment-points {
-    background: rgba(255, 215, 0, 0.2);
-    padding: 0.25rem 0.75rem;
-    border-radius: 15px;
-    font-size: 0.8rem;
-    font-weight: 600;
-}
-
-.assignment-title {
-    font-size: 1.2rem;
-    margin-bottom: 0.5rem;
-    font-weight: 600;
-}
-
-.assignment-desc {
-    opacity: 0.8;
-    margin-bottom: 1rem;
-    line-height: 1.4;
-}
-
-.assignment-meta {
-    display: flex;
-    gap: 0.75rem;
-    flex-wrap: wrap;
-    margin-bottom: 1rem;
-}
-
-.subject-tag {
-    background: rgba(102, 126, 234, 0.3);
-    padding: 0.25rem 0.75rem;
-    border-radius: 15px;
-    font-size: 0.8rem;
-}
-
-.due-date {
-    background: rgba(255, 255, 255, 0.1);
-    padding: 0.25rem 0.75rem;
-    border-radius: 15px;
-    font-size: 0.8rem;
-}
-
-.due-date.overdue {
-    background: rgba(244, 67, 54, 0.3);
-    color: #ff6b6b;
-}
-
-.assignment-status {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-}
-
-.status-badge {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem 0.75rem;
-    border-radius: 15px;
-    font-size: 0.9rem;
-}
-
-.status-badge.submitted {
-    background: rgba(76, 175, 80, 0.2);
-}
-
-.status-badge.pending {
-    background: rgba(255, 152, 0, 0.2);
-}
-
-.grade {
-    font-weight: 700;
-    color: #4CAF50;
-}
-
-.grade-pending {
-    font-style: italic;
-    opacity: 0.7;
-}
-
-.action-btn {
-    padding: 0.5rem 1rem;
-    border-radius: 15px;
-    text-decoration: none;
-    font-size: 0.9rem;
-    font-weight: 600;
-    transition: all 0.3s ease;
-}
-
-.start-btn {
-    background: #FFD700;
-    color: #0a0e27;
-}
-
-.feedback-btn {
-    background: rgba(33, 150, 243, 0.3);
-    color: white;
-    border: 1px solid rgba(33, 150, 243, 0.5);
-}
-
-.action-btn:hover {
-    transform: translateY(-2px);
-}
-
-/* Quick Actions */
-.quick-actions {
-    margin-bottom: 3rem;
-}
-
-.action-buttons {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1rem;
-}
-
-.action-card {
-    background: rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 15px;
-    padding: 1.5rem;
-    text-decoration: none;
-    color: white;
-    text-align: center;
-    transition: all 0.3s ease;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.action-card:hover {
-    transform: translateY(-3px);
-    background: rgba(255, 255, 255, 0.15);
-}
-
-.action-icon {
-    font-size: 2rem;
-}
-
-.action-text {
-    font-weight: 600;
-}
-
-/* Empty State */
-.empty-state {
-    text-align: center;
-    padding: 3rem;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 20px;
-    backdrop-filter: blur(10px);
-}
-
-.empty-icon {
-    font-size: 4rem;
-    margin-bottom: 1rem;
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-    .stats-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
-    
-    .assignments-grid {
-        grid-template-columns: 1fr;
-    }
-    
-    .section-header {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-    
-    .welcome-title {
-        font-size: 2rem;
-    }
-    
-    .progress-cards {
-        grid-template-columns: 1fr;
-    }
-}
-
-@media (max-width: 480px) {
-    .stats-grid {
-        grid-template-columns: 1fr;
-    }
-    
-    .action-buttons {
-        grid-template-columns: 1fr;
-    }
-}
+.card:hover { transform: translateY(-5px); }
+.btn-group .btn { border-radius: 10px; }
+.badge { font-size: 0.8rem; }
 </style>
 
-<script>
-// 33 Science Facts
-const scienceFacts = [
-    "Your brain uses about 20% of your body's total energy, even though it only makes up 2% of your body weight! 🧠",
-    "Neurons in your brain can fire signals at speeds up to 268 miles per hour! ⚡",
-    "The human brain contains approximately 86 billion neurons, each connected to thousands of others! 🌟",
-    "When you learn something new, the structure of your brain changes. This is called neuroplasticity! 🔄",
-    "Your brain generates enough electricity to power a small light bulb! 💡",
-    "Dopamine, the 'reward chemical,' plays a crucial role in motivation, learning, and addiction! 🎯",
-    "The average human brain weighs about 3 pounds (1.4 kg), roughly the size of a cantaloupe! 🍈",
-    "Your brain is 73% water - even 2% dehydration can affect attention and memory! 💧",
-    "The brain's left hemisphere controls the right side of your body, and vice versa! 🔀",
-    "Chronic stress can actually shrink the size of your prefrontal cortex! 😰",
-    "The amygdala, your brain's 'fear center,' is about the size of an almond! 🌰",
-    "Your brain continues developing until you're about 25 years old! 🌱",
-    "Dreams occur during REM sleep when your brain is almost as active as when you're awake! 😴",
-    "The human brain can process images in as little as 13 milliseconds! 📸",
-    "Multitasking is a myth - your brain actually switches rapidly between tasks! 🔄",
-    "Music activates more areas of the brain than any other stimulus! 🎵",
-    "The hippocampus, crucial for memory, can generate new neurons throughout life! 🆕",
-    "Laughing activates multiple regions across your whole brain! 😂",
-    "Your brain uses about 20 watts of power - the same as a dim light bulb! 💡",
-    "The cerebellum, only 10% of brain volume, contains over 50% of its neurons! 🎯",
-    "Exercise increases blood flow to the brain and can improve cognitive function! 🏃",
-    "The brain's prefrontal cortex is responsible for personality and decision-making! 🤔",
-    "Neurons communicate through synapses using both electrical and chemical signals! ⚡",
-    "Your brain can't feel pain - it has no pain receptors! 🧠",
-    "The blood-brain barrier protects your brain from harmful substances! 🛡️",
-    "Memories are stored distributed across multiple brain regions, not in one place! 📚",
-    "The brain's reward system can create addictive behaviors for anything pleasurable! 🎰",
-    "Sleep is essential for memory consolidation - learning literally happens while you sleep! 😴",
-    "The corpus callosum connects left and right hemispheres with 200-300 million axons! 🌉",
-    "Your brain generates new neurons in the hippocampus even in old age! 👴",
-    "The visual cortex processes information from your eyes using about 30% of brain power! 👁️",
-    "Artificial neural networks in AI are inspired by biological neural networks in brains! 🤖",
-    "The gut-brain connection is so strong that your gut is sometimes called your 'second brain'! 🍽️"
-];
-
-let currentFactIndex = 0;
-
-function rotateFact() {
-    const factElement = document.getElementById('scienceFact');
-    const factText = factElement.querySelector('.fact-text');
-    
-    // Fade out
-    factText.style.opacity = '0';
-    factText.style.transform = 'translateY(10px)';
-    
-    setTimeout(() => {
-        // Update text
-        currentFactIndex = (currentFactIndex + 1) % scienceFacts.length;
-        factText.textContent = scienceFacts[currentFactIndex];
-        
-        // Fade in
-        factText.style.opacity = '1';
-        factText.style.transform = 'translateY(0)';
-    }, 500);
-}
-
-// Filter assignments
-document.addEventListener('DOMContentLoaded', function() {
-    // Initialize first science fact
-    const factElement = document.getElementById('scienceFact');
-    if (factElement) {
-        const factText = factElement.querySelector('.fact-text');
-        currentFactIndex = Math.floor(Math.random() * scienceFacts.length);
-        factText.textContent = scienceFacts[currentFactIndex];
-        factText.style.opacity = '1';
-        
-        // Rotate every 11 minutes (660,000 milliseconds)
-        setInterval(rotateFact, 660000);
-    }
-    
-    const filterBtns = document.querySelectorAll('.filter-btn');
-    const assignmentCards = document.querySelectorAll('.assignment-card');
-    
-    filterBtns.forEach(btn => {
-        btn.addEventListener('click', function() {
-            // Remove active class from all buttons
-            filterBtns.forEach(b => b.classList.remove('active'));
-            // Add active class to clicked button
-            this.classList.add('active');
-            
-            const filter = this.dataset.filter;
-            
-            assignmentCards.forEach(card => {
-                if (filter === 'all') {
-                    card.style.display = 'block';
-                } else {
-                    const status = card.dataset.status;
-                    card.style.display = status === filter ? 'block' : 'none';
-                }
-            });
-        });
-    });
-    
-    // Set progress circle percentage
-    const progressCircle = document.querySelector('.progress-circle');
-    if (progressCircle) {
-        const percentage = progressCircle.dataset.percentage;
-        progressCircle.style.setProperty('--percentage', percentage + '%');
-    }
-});
-</script>
 {% endblock %}
