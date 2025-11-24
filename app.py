@@ -84,7 +84,7 @@ logger = logging.getLogger(__name__)
 # =============================================
 
 def get_supabase():
-    """Initialize and return Supabase client with enhanced error handling"""
+    """Initialize and return Supabase client for version 1.0.3"""
     try:
         url = os.environ.get('SUPABASE_URL')
         key = os.environ.get('SUPABASE_KEY')
@@ -98,36 +98,24 @@ def get_supabase():
             
         print(f"DEBUG: Creating client with URL: {url[:20]}... and key: {key[:10]}...")
         
-        # ✅ FIXED: Use the correct client initialization for newer Supabase versions
-        try:
-            # Method 1: Try the newer syntax first
-            client = create_client(url, key)
-        except TypeError as e:
-            if 'proxy' in str(e):
-                # Method 2: Fallback for version compatibility issues
-                print("⚠️ Using alternative Supabase client initialization...")
-                from supabase.lib.client_options import ClientOptions
-                client_options = ClientOptions()
-                client = create_client(url, key, client_options)
-            else:
-                raise e
-        
+        # ✅ FIXED: Simple initialization for supabase==1.0.3
+        client = create_client(url, key)
         print("DEBUG: Client created successfully")
         
         # Test connection with a simple query
         try:
             test_response = client.table('users').select('username').limit(1).execute()
-            logger.info("✅ Supabase connection successful")
+            print("✅ Supabase connection successful")
         except Exception as test_error:
-            logger.error(f"Supabase connection test failed: {test_error}")
+            print(f"❌ Supabase connection test failed: {test_error}")
             return None
             
         return client
         
     except Exception as e:
-        logger.error(f"Error initializing Supabase client: {e}")
+        print(f"❌ Error initializing Supabase client: {e}")
         import traceback
-        logger.error(f"Full traceback: {traceback.format_exc()}")
+        print(f"Full traceback: {traceback.format_exc()}")
         return None
 
 def get_user_by_username(username):
