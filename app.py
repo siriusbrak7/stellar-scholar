@@ -844,6 +844,11 @@ def register():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
+        # Manually validate CSRF first
+        if not csrf.validate():
+            flash('CSRF token missing or invalid.', 'danger')
+            return render_template('login.html'), 400
+            
         supabase = get_supabase()
         if not supabase:
             flash('Database connection error. Please try again.', 'danger')
@@ -852,22 +857,23 @@ def login():
         username = request.form.get('username', '').strip()
         password = request.form.get('password', '').strip()
         
+        if not username or not password:
+            flash('Please enter both username and password.', 'danger')
+            return render_template('login.html')
+        
         try:
-            # Get user from Supabase
             response = supabase.table('users').select('*').eq('username', username).execute()
             user = response.data[0] if response.data else None
             
             if user and check_password_hash(user['password_hash'], password):
-                # Check if user is approved
                 if user.get('approval_status') != 'approved':
-                    flash('Your account is pending admin approval. Please wait for activation.', 'warning')
+                    flash('Your account is pending admin approval.', 'warning')
                     return render_template('login.html')
                 
                 session['user_id'] = username
                 session['role'] = user['role']
                 flash(f'Welcome back, {username}!', 'success')
                 
-                # 🎯 FIX: Super Admin goes to super admin dashboard
                 if username == 'sirius':
                     return redirect(url_for('super_admin_dashboard'))
                 elif user['role'] == 'teacher':
@@ -879,8 +885,9 @@ def login():
                 
         except Exception as e:
             logger.error(f"Login error: {e}")
-            flash('Login error. Please try again.', 'danger')
+            flash('Login failed. Please try again.', 'danger')
     
+    # GET request — just render
     return render_template('login.html')
 
 @app.route('/logout')

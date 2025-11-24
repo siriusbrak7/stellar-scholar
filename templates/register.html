@@ -8,14 +8,16 @@
 
                 <!-- Header -->
                 <div class="register-header text-center mb-4">
-                    <h1 class="register-title">🚀 Join Stellar Scholar</h1>
+                    <h1 class="register-title">Join Stellar Scholar</h1>
                     <p class="register-subtitle">Begin your educational journey</p>
                 </div>
 
                 <!-- Registration Card -->
                 <div class="register-card">
                     <form method="POST">
-
+                        <!-- CSRF TOKEN — THIS WAS MISSING — NOW FIXED -->
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                        
                         <!-- Username -->
                         <div class="mb-3">
                             <label for="username" class="form-label">Username</label>
@@ -36,12 +38,11 @@
                             <div class="role-selection">
                                 <div class="form-check">
                                     <input class="form-check-input" type="radio" name="role" id="teacher" value="teacher" required>
-                                    <label class="form-check-label" for="teacher">👨‍🏫 Teacher</label>
+                                    <label class="form-check-label" for="teacher">Teacher</label>
                                 </div>
-
                                 <div class="form-check">
                                     <input class="form-check-input" type="radio" name="role" id="student" value="student">
-                                    <label class="form-check-label" for="student">👨‍🎓 Student</label>
+                                    <label class="form-check-label" for="student">Student</label>
                                 </div>
                             </div>
                         </div>
@@ -118,7 +119,7 @@
                         </div>
 
                         <button type="submit" class="btn btn-primary w-100 py-2">
-                            🚀 Create Account
+                            Create Account
                         </button>
                     </form>
 
@@ -156,14 +157,12 @@ document.addEventListener('DOMContentLoaded', function() {
         if (studentRadio.checked) {
             gradeSection.style.display = 'block';
             gradeSelect.required = true;
-
             subjectSection.style.display = 'none';
             subjectsSelect.required = false;
         } 
         else if (teacherRadio.checked) {
             subjectSection.style.display = 'block';
             subjectsSelect.required = true;
-
             gradeSection.style.display = 'none';
             gradeSelect.required = false;
             gradeSelect.value = "";
@@ -172,7 +171,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     teacherRadio.addEventListener('change', toggleSections);
     studentRadio.addEventListener('change', toggleSections);
-
     toggleSections();
 });
 </script>
@@ -186,22 +184,9 @@ document.addEventListener('DOMContentLoaded', function() {
     align-items: center;
 }
 
-.register-header {
-    color: white;
-}
-
-.register-title {
-    font-size: 2.5rem;
-    font-weight: 700;
-    margin-bottom: 0.5rem;
-    font-family: 'Dancing Script', cursive;
-}
-
-.register-subtitle {
-    font-size: 1.1rem;
-    opacity: 0.9;
-    margin-bottom: 0;
-}
+.register-header { color: white; }
+.register-title { font-size: 2.5rem; font-weight: 700; margin-bottom: 0.5rem; font-family: 'Dancing Script', cursive; }
+.register-subtitle { font-size: 1.1rem; opacity: 0.9; margin-bottom: 0; }
 
 .register-card {
     background: white;
@@ -211,72 +196,33 @@ document.addEventListener('DOMContentLoaded', function() {
     border: 1px solid #e0e0e0;
 }
 
-.form-label {
-    font-weight: 600;
-    color: #333;
-    margin-bottom: 0.5rem;
-}
-
+.form-label { font-weight: 600; color: #333; margin-bottom: 0.5rem; }
 .form-control {
     border: 2px solid #e0e0e0;
     border-radius: 8px;
     padding: 0.75rem;
     transition: all 0.3s ease;
 }
-
 .form-control:focus {
     border-color: #667eea;
     box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
-/* Style for multi-select dropdown */
 select[multiple] {
     min-height: 120px;
     border: 2px solid #e0e0e0;
     border-radius: 8px;
     padding: 0.5rem;
-    transition: all 0.3s ease;
 }
-
 select[multiple]:focus {
     border-color: #667eea;
     box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
-select[multiple] option {
-    padding: 8px 12px;
-    border-bottom: 1px solid #eee;
-    cursor: pointer;
-}
-
-select[multiple] option:hover {
-    background-color: #f8f9fa;
-}
-
-select[multiple] option:checked {
-    background-color: #667eea;
-    color: white;
-}
-
-.role-selection {
-    display: flex;
-    gap: 1rem;
-    flex-wrap: wrap;
-}
-
-.form-check {
-    flex: 1;
-    min-width: 120px;
-}
-
-.form-check-input {
-    margin-right: 0.5rem;
-}
-
-.form-check-label {
-    font-weight: 500;
-    color: #555;
-}
+.role-selection { display: flex; gap: 1rem; flex-wrap: wrap; }
+.form-check { flex: 1; min-width: 120px; }
+.form-check-input { margin-right: 0.5rem; }
+.form-check-label { font-weight: 500; color: #555; }
 
 .btn-primary {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -286,67 +232,20 @@ select[multiple] option:checked {
     font-size: 1.1rem;
     transition: all 0.3s ease;
 }
-
 .btn-primary:hover {
     transform: translateY(-2px);
     box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
 }
 
-.alert-info {
-    background: rgba(102, 126, 234, 0.1);
-    border: 1px solid rgba(102, 126, 234, 0.2);
-    border-radius: 8px;
-}
-
-.form-text {
-    font-size: 0.875rem;
-    color: #6c757d;
-}
-
-.form-text a {
-    color: #667eea;
-    text-decoration: none;
-}
-
-.form-text a:hover {
-    text-decoration: underline;
-}
-
-.text-muted a {
-    color: #667eea;
-    text-decoration: none;
-}
-
-.text-muted a:hover {
-    text-decoration: underline;
-}
+.form-text a, .text-muted a { color: #667eea; text-decoration: none; }
+.form-text a:hover, .text-muted a:hover { text-decoration: underline; }
 
 @media (max-width: 768px) {
-    .universal-register {
-        padding: 1rem;
-    }
-    
-    .register-title {
-        font-size: 2rem;
-    }
-    
-    .register-card {
-        padding: 1.5rem;
-    }
-    
-    .role-selection {
-        flex-direction: column;
-        gap: 0.5rem;
-    }
-    
-    .form-check {
-        min-width: auto;
-    }
-    
-    /* Adjust multi-select for mobile */
-    select[multiple] {
-        min-height: 100px;
-    }
+    .universal-register { padding: 1rem; }
+    .register-title { font-size: 2rem; }
+    .register-card { padding: 1.5rem; }
+    .role-selection { flex-direction: column; gap: 0.5rem; }
+    select[multiple] { min-height: 100px; }
 }
 </style>
 {% endblock %}
