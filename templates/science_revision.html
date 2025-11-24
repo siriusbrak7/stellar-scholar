@@ -7,46 +7,49 @@
             <!-- Header -->
             <div class="text-center mb-5">
                 <h1 class="text-white">🔬 IGCSE Science Revision</h1>
-                <p class="text-light">Practice with 144+ Combined Science MCQ Questions</p>
+                <p class="text-light fs-5">Practice with 144+ Combined Science MCQ Questions</p>
             </div>
 
             <!-- Stats Cards -->
             <div class="row mb-4">
-                <div class="col-md-4">
-                    <div class="card text-white bg-primary">
-                        <div class="card-body text-center">
-                            <h2>144+</h2>
-                            <p>Questions Available</p>
+                <div class="col-md-4 mb-3">
+                    <div class="card text-white bg-primary h-100">
+                        <div class="card-body text-center py-4">
+                            <h2 class="display-6">144+</h2>
+                            <p class="mb-0">Questions Available</p>
                         </div>
                     </div>
                 </div>
-                <div class="col-md-4">
-                    <div class="card text-white bg-success">
-                        <div class="card-body text-center">
-                            <h2>3</h2>
-                            <p>Science Subjects</p>
+                <div class="col-md-4 mb-3">
+                    <div class="card text-white bg-success h-100">
+                        <div class="card-body text-center py-4">
+                            <h2 class="display-6">3</h2>
+                            <p class="mb-0">Science Subjects</p>
                         </div>
                     </div>
                 </div>
-                <div class="col-md-4">
-                    <div class="card text-white bg-info">
-                        <div class="card-body text-center">
-                            <h2>Auto-graded</h2>
-                            <p>Instant Feedback</p>
+                <div class="col-md-4 mb-3">
+                    <div class="card text-white bg-info h-100">
+                        <div class="card-body text-center py-4">
+                            <h2 class="display-6">Auto-graded</h2>
+                            <p class="mb-0">Instant Feedback</p>
                         </div>
                     </div>
                 </div>
             </div>
 
             <!-- Action Cards -->
-            <div class="row">
+            <div class="row mb-5">
                 <div class="col-md-6 mb-4">
-                    <div class="card h-100">
-                        <div class="card-body text-center">
-                            <h3>🎯 Quick Quiz</h3>
-                            <p>20 random questions from all topics</p>
-                            <p class="text-muted">Perfect for daily revision</p>
-                            <a href="{{ url_for('start_science_quiz') }}" class="btn btn-primary btn-lg">
+                    <div class="card h-100 action-card">
+                        <div class="card-body text-center p-4">
+                            <div class="mb-3">
+                                <span class="display-4">🎯</span>
+                            </div>
+                            <h3 class="card-title">Quick Quiz</h3>
+                            <p class="card-text">20 random questions from all topics</p>
+                            <p class="text-muted mb-3">Perfect for daily revision</p>
+                            <a href="{{ url_for('start_science_quiz') }}" class="btn btn-primary btn-lg px-4">
                                 Start Quick Quiz
                             </a>
                         </div>
@@ -54,12 +57,15 @@
                 </div>
                 
                 <div class="col-md-6 mb-4">
-                    <div class="card h-100">
-                        <div class="card-body text-center">
-                            <h3>📊 My Progress</h3>
-                            <p>View your quiz history and scores</p>
-                            <p class="text-muted">Track your improvement</p>
-                            <a href="{{ url_for('science_quiz_history') }}" class="btn btn-success btn-lg">
+                    <div class="card h-100 action-card">
+                        <div class="card-body text-center p-4">
+                            <div class="mb-3">
+                                <span class="display-4">📊</span>
+                            </div>
+                            <h3 class="card-title">My Progress</h3>
+                            <p class="card-text">View your quiz history and scores</p>
+                            <p class="text-muted mb-3">Track your improvement</p>
+                            <a href="{{ url_for('science_quiz_history') }}" class="btn btn-success btn-lg px-4">
                                 View History
                             </a>
                         </div>
@@ -69,36 +75,68 @@
 
             <!-- Subject Breakdown -->
             <div class="card mt-4">
-                <div class="card-header">
+                <div class="card-header bg-dark text-white">
                     <h4 class="mb-0">📚 Subjects Covered</h4>
                 </div>
                 <div class="card-body">
                     <div class="row">
-                        <div class="col-md-4">
-                            <h5>🧬 Biology</h5>
-                            <ul>
-                                <li>Cell biology</li>
-                                <li>Respiration & photosynthesis</li>
-                                <li>Human physiology</li>
-                                <li>Ecology</li>
+                        <div class="col-md-4 mb-4">
+                            <div class="text-center">
+                                <h5 class="text-success">🧬 Biology</h5>
+                            </div>
+                            <ul class="list-group list-group-flush">
+                                <li class="list-group-item">Cell biology & organization</li>
+                                <li class="list-group-item">Respiration & photosynthesis</li>
+                                <li class="list-group-item">Human physiology & health</li>
+                                <li class="list-group-item">Ecology & environment</li>
+                                <li class="list-group-item">Genetics & inheritance</li>
                             </ul>
                         </div>
-                        <div class="col-md-4">
-                            <h5>🧪 Chemistry</h5>
-                            <ul>
-                                <li>Atomic structure</li>
-                                <li>Chemical reactions</li>
-                                <li>Organic chemistry</li>
-                                <li>Acids & bases</li>
+                        <div class="col-md-4 mb-4">
+                            <div class="text-center">
+                                <h5 class="text-primary">🧪 Chemistry</h5>
+                            </div>
+                            <ul class="list-group list-group-flush">
+                                <li class="list-group-item">Atomic structure & bonding</li>
+                                <li class="list-group-item">Chemical reactions & equations</li>
+                                <li class="list-group-item">Organic chemistry</li>
+                                <li class="list-group-item">Acids, bases & salts</li>
+                                <li class="list-group-item">Periodic table & elements</li>
                             </ul>
                         </div>
-                        <div class="col-md-4">
-                            <h5>⚡ Physics</h5>
+                        <div class="col-md-4 mb-4">
+                            <div class="text-center">
+                                <h5 class="text-warning">⚡ Physics</h5>
+                            </div>
+                            <ul class="list-group list-group-flush">
+                                <li class="list-group-item">Forces & motion</li>
+                                <li class="list-group-item">Energy, work & power</li>
+                                <li class="list-group-item">Waves & sound</li>
+                                <li class="list-group-item">Electricity & magnetism</li>
+                                <li class="list-group-item">Nuclear physics</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Tips -->
+            <div class="card mt-4 bg-light">
+                <div class="card-body">
+                    <h5 class="card-title">💡 Quick Tips</h5>
+                    <div class="row">
+                        <div class="col-md-6">
                             <ul>
-                                <li>Forces & motion</li>
-                                <li>Energy & waves</li>
-                                <li>Electricity</li>
-                                <li>Nuclear physics</li>
+                                <li>Take quizzes regularly to reinforce learning</li>
+                                <li>Review explanations for wrong answers</li>
+                                <li>Focus on your weaker subjects</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <ul>
+                                <li>Time yourself to improve speed</li>
+                                <li>Use the progress tracker to monitor improvement</li>
+                                <li>Practice with mixed subject quizzes</li>
                             </ul>
                         </div>
                     </div>
@@ -115,8 +153,38 @@
     box-shadow: 0 4px 20px rgba(0,0,0,0.1);
     transition: transform 0.3s ease;
 }
+
 .card:hover {
     transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+}
+
+.action-card {
+    border-top: 4px solid transparent;
+}
+
+.action-card:hover {
+    border-top-color: #007bff;
+}
+
+.action-card:nth-child(2):hover {
+    border-top-color: #28a745;
+}
+
+.list-group-item {
+    border: none;
+    padding: 0.75rem 0.5rem;
+    background: transparent;
+}
+
+.bg-primary, .bg-success, .bg-info {
+    border-radius: 15px !important;
+}
+
+.btn-lg {
+    border-radius: 10px;
+    font-weight: 600;
+    padding: 0.75rem 2rem;
 }
 </style>
 {% endblock %}
