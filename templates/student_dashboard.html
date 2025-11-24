@@ -85,13 +85,23 @@
                             <div class="mb-3">
                                 <h6>Recent Quiz Scores:</h6>
                                 {% for attempt in science_stats.recent_attempts %}
-                                <span class="badge 
-                                    {% if attempt.score >= 80 %}bg-success
-                                    {% elif attempt.score >= 60 %}bg-warning
-                                    {% else %}bg-danger
-                                    {% endif %} me-1">
-                                    {{ attempt.score }}%
-                                </span>
+                                    {% if attempt.percentage is defined and attempt.percentage is not none %}
+                                        {# Use stored percentage if available #}
+                                        {% set display_percentage = attempt.percentage %}
+                                    {% elif attempt.total_questions > 0 %}
+                                        {# Calculate percentage from score/total_questions #}
+                                        {% set display_percentage = ((attempt.score / attempt.total_questions) * 100)|round %}
+                                    {% else %}
+                                        {% set display_percentage = 0 %}
+                                    {% endif %}
+                                    
+                                    <span class="badge 
+                                        {% if display_percentage >= 80 %}bg-success
+                                        {% elif display_percentage >= 60 %}bg-warning
+                                        {% else %}bg-danger
+                                        {% endif %} me-1">
+                                        {{ display_percentage }}%
+                                    </span>
                                 {% endfor %}
                             </div>
                             {% endif %}
