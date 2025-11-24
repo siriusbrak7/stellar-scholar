@@ -23,10 +23,9 @@
                 </div>
             </div>
 
-            <!-- Quiz Form -->
+            <!-- Quiz Form - REMOVED CSRF TOKEN -->
             <form method="POST" action="{{ url_for('submit_science_quiz') }}">
-                <!-- FIXED: Replace form.hidden_tag() with direct CSRF token -->
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <!-- NO CSRF TOKEN HERE -->
                 
                 {% for question in questions %}
                 <div class="card mb-4 question-card">
@@ -93,8 +92,6 @@
         </div>
     </div>
 </div>
-
-<!-- Your existing CSS styles here -->
 
 <style>
 .question-card {
