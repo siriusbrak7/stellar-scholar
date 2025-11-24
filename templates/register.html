@@ -1,3 +1,4 @@
+<!-- templates/register.html -->
 {% extends "base.html" %}
 
 {% block content %}
@@ -12,12 +13,21 @@
                     <p class="register-subtitle">Begin your educational journey</p>
                 </div>
 
+                <!-- Flash Messages -->
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+
                 <!-- Registration Card -->
                 <div class="register-card">
                     <form method="POST">
-                        <!-- CSRF TOKEN — THIS WAS MISSING — NOW FIXED -->
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                        
                         <!-- Username -->
                         <div class="mb-3">
                             <label for="username" class="form-label">Username</label>

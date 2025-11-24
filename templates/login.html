@@ -10,8 +10,7 @@
                 </div>
                 <div class="card-body">
                     <form method="POST">
-                        <!-- THIS LINE WAS MISSING — ADD IT -->
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                        <!-- REMOVED CSRF TOKEN -->
                         
                         <div class="mb-3">
                             <label>Username</label>

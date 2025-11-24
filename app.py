@@ -1,5 +1,4 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify, send_from_directory
-from flask_wtf.csrf import CSRFProtect
 from functools import wraps
 import json
 import os
@@ -37,16 +36,11 @@ except Exception as e:
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY') or 'dev-key-change-in-production'
     app.config['SESSION_PERMANENT'] = True
     app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=7)
-    app.config['WTF_CSRF_ENABLED'] = True
-    app.config['WTF_CSRF_SECRET_KEY'] = os.environ.get('CSRF_SECRET_KEY') or 'your-csrf-secret-key-here'
+   
 
 # =============================================
 # ✅ CSRF PROTECTION INITIALIZATION
 # =============================================
-
-csrf = CSRFProtect()
-csrf.init_app(app)
-print("✅ CSRF Protection initialized")
 
 # =============================================
 # ✅ FILE UPLOAD CONFIGURATION
@@ -845,9 +839,6 @@ def register():
 def login():
     if request.method == 'POST':
         # Manually validate CSRF first
-        if not csrf.validate():
-            flash('CSRF token missing or invalid.', 'danger')
-            return render_template('login.html'), 400
             
         supabase = get_supabase()
         if not supabase:
@@ -3858,15 +3849,7 @@ def debug_teacher_context():
     
     return jsonify(debug_info)
 
-@app.route('/debug/csrf')
-def debug_csrf():
-    """Debug CSRF setup"""
-    from flask_wtf.csrf import generate_csrf
-    return {
-        'csrf_token': generate_csrf(),
-        'secret_key_set': bool(app.config.get('SECRET_KEY')),
-        'csrf_enabled': app.config.get('WTF_CSRF_ENABLED', False)
-    }
+
 
 @app.route('/get-hash/<password>')
 def get_hash(password):
