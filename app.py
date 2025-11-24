@@ -1654,7 +1654,6 @@ def student_dashboard():
                     subject_averages[subject] = []
                 subject_averages[subject].append(prompt['submission']['grade'])
         
-        # Calculate average for each subject
         for subject, grades in subject_averages.items():
             subject_averages[subject] = round(sum(grades) / len(grades), 1)
         
@@ -1683,7 +1682,7 @@ def student_dashboard():
         
         materials_count = len(materials_response.data) if materials_response.data else 0
 
-        # 🆕 NEW: Get Science Revision Stats
+        # 🆕 NEW: Get Science Revision Stats (FIXED VERSION)
         science_stats = {
             'total_quizzes': 0,
             'average_score': 0,
@@ -1703,12 +1702,30 @@ def student_dashboard():
             if attempts_response.data:
                 science_stats['total_quizzes'] = len(attempts_response.data)
                 science_stats['recent_attempts'] = attempts_response.data[:3]  # Last 3 attempts
-                
-                # Calculate average score
-                scores = [attempt['score'] for attempt in attempts_response.data if attempt['score'] is not None]
-                if scores:
-                    science_stats['average_score'] = round(sum(scores) / len(scores))
-                    science_stats['best_score'] = max(scores)
+
+                # ✅ NEW LOGIC: Use percentage instead of score
+                percentages = [
+                    attempt['percentage'] 
+                    for attempt in attempts_response.data 
+                    if attempt.get('percentage') is not None
+                ]
+
+                if percentages:
+                    science_stats['average_score'] = round(sum(percentages) / len(percentages))
+                    science_stats['best_score'] = max(percentages)
+
+                # Ensure each attempt has a display_score field
+                for attempt in science_stats['recent_attempts']:
+                    if attempt.get('percentage') is not None:
+                        attempt['display_score'] = attempt['percentage']
+                    else:
+                        # fallback: calculate from raw score if possible
+                        if attempt.get('total_questions', 0) > 0:
+                            attempt['display_score'] = round(
+                                (attempt.get('score', 0) / attempt['total_questions']) * 100
+                            )
+                        else:
+                            attempt['display_score'] = 0
         
         except Exception as e:
             logger.error(f"Science stats error: {e}")
@@ -1726,13 +1743,14 @@ def student_dashboard():
             subject_averages=subject_averages,
             now=datetime.now(),
             materials_count=materials_count,
-            science_stats=science_stats  # 🆕 NEW: Pass science stats to template
+            science_stats=science_stats
         )
         
     except Exception as e:
         logger.error(f"Student dashboard error: {e}")
         flash('Error loading dashboard.', 'danger')
         return redirect(url_for('logout'))
+
 
 @app.route('/student/history')
 @login_required
