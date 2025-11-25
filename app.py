@@ -1654,21 +1654,57 @@ def student_dashboard():
                     subject_averages[subject] = []
                 subject_averages[subject].append(prompt['submission']['grade'])
         
+        # Calculate average for each subject
         for subject, grades in subject_averages.items():
             subject_averages[subject] = round(sum(grades) / len(grades), 1)
         
-        # Get leaderboard rank
+        # ✅ FIXED: Proper leaderboard rank calculation
         if session['user_id'] == 'sirius':
             leaderboard_rank = 1
         else:
-            all_students_response = supabase.table('users')\
+            # Get all students in the same school and grade
+            students_response = supabase.table('users')\
                 .select('username')\
                 .eq('school_id', user['school_id'])\
-                .eq('role', 'student')\
                 .eq('grade', user['grade'])\
+                .eq('role', 'student')\
                 .execute()
             
-            leaderboard_rank = len(all_students_response.data) if all_students_response.data else 1
+            # Calculate performance scores for each student
+            student_scores = {}
+            
+            for student in students_response.data:
+                # Get student's graded submissions
+                student_submissions = supabase.table('submissions')\
+                    .select('grade, prompt_id')\
+                    .eq('student_id', student['username'])\
+                    .not_.is_('grade', 'null')\
+                    .execute()
+                
+                if student_submissions.data:
+                    # Calculate average grade
+                    total_grade = sum([s['grade'] for s in student_submissions.data])
+                    avg_grade = total_grade / len(student_submissions.data)
+                    
+                    # Calculate completion rate (bonus for completing more assignments)
+                    total_prompts = len([p for p in prompts if p.get('grade_level') == user['grade']])
+                    completed = len(student_submissions.data)
+                    completion_bonus = (completed / total_prompts) * 10 if total_prompts > 0 else 0
+                    
+                    # Combined score (average grade + completion bonus)
+                    student_scores[student['username']] = avg_grade + completion_bonus
+                else:
+                    student_scores[student['username']] = 0
+            
+            # Sort students by performance score (descending)
+            sorted_students = sorted(student_scores.items(), key=lambda x: x[1], reverse=True)
+            
+            # Find current user's rank
+            leaderboard_rank = 1
+            for i, (username, score) in enumerate(sorted_students):
+                if username == session['user_id']:
+                    leaderboard_rank = i + 1
+                    break
         
         # Get study materials count
         if session['user_id'] == 'sirius':
@@ -1682,7 +1718,7 @@ def student_dashboard():
         
         materials_count = len(materials_response.data) if materials_response.data else 0
 
-        # 🆕 NEW: Get Science Revision Stats (FIXED VERSION)
+        # 🆕 NEW: Get Science Revision Stats
         science_stats = {
             'total_quizzes': 0,
             'average_score': 0,
@@ -1702,30 +1738,12 @@ def student_dashboard():
             if attempts_response.data:
                 science_stats['total_quizzes'] = len(attempts_response.data)
                 science_stats['recent_attempts'] = attempts_response.data[:3]  # Last 3 attempts
-
-                # ✅ NEW LOGIC: Use percentage instead of score
-                percentages = [
-                    attempt['percentage'] 
-                    for attempt in attempts_response.data 
-                    if attempt.get('percentage') is not None
-                ]
-
+                
+                # Calculate average score using percentages
+                percentages = [attempt['percentage'] for attempt in attempts_response.data if attempt.get('percentage') is not None]
                 if percentages:
                     science_stats['average_score'] = round(sum(percentages) / len(percentages))
                     science_stats['best_score'] = max(percentages)
-
-                # Ensure each attempt has a display_score field
-                for attempt in science_stats['recent_attempts']:
-                    if attempt.get('percentage') is not None:
-                        attempt['display_score'] = attempt['percentage']
-                    else:
-                        # fallback: calculate from raw score if possible
-                        if attempt.get('total_questions', 0) > 0:
-                            attempt['display_score'] = round(
-                                (attempt.get('score', 0) / attempt['total_questions']) * 100
-                            )
-                        else:
-                            attempt['display_score'] = 0
         
         except Exception as e:
             logger.error(f"Science stats error: {e}")
@@ -3557,30 +3575,18 @@ def ai_summarize(material_id):
 # ✅ FILE DOWNLOAD ROUTES
 # =============================================
 
-@app.route('/download/<filename>')
+@app.route('/download/<path:file_path>')
 @login_required
-def download_file(filename):
-    """Download study material files"""
+def download_file(file_path):
+    """Redirect to Supabase Storage URL for downloads"""
     try:
-        # Security check: ensure the file exists and user has access
-        safe_filename = secure_filename(filename)
-        file_path = os.path.join(UPLOAD_FOLDER, safe_filename)
-        
-        if not os.path.exists(file_path):
-            flash('File not found.', 'danger')
-            return redirect(url_for('student_materials'))
-        
-        # Send file for download with original filename
-        return send_from_directory(
-            UPLOAD_FOLDER, 
-            safe_filename, 
-            as_attachment=True,
-            download_name=filename  # Use original filename for download
-        )
+        # Construct full Supabase storage URL
+        download_url = supabase.storage.from_("study-materials").get_public_url(file_path)
+        return redirect(download_url)
         
     except Exception as e:
         logger.error(f"File download error: {e}")
-        flash('Error downloading file.', 'danger')
+        flash('File not found.', 'danger')
         return redirect(url_for('student_materials'))
 
 @app.route('/uploads/<filename>')
