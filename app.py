@@ -3286,7 +3286,7 @@ def teacher_materials():
 @app.route('/teacher/upload_material', methods=['GET', 'POST'])
 @teacher_required
 def upload_material():
-    """Upload study materials with fixed database schema"""
+    """Upload study materials to Supabase Storage"""
     if request.method == 'POST':
         supabase = get_supabase()
         
@@ -3307,7 +3307,6 @@ def upload_material():
         video_url = None
         web_url = None
         content_text = None
-        original_filename = None  # Store original filename separately
         
         if material_type == 'file':
             file = request.files.get('file')
@@ -3316,16 +3315,25 @@ def upload_material():
                     flash('File too large. Maximum size is 16MB.', 'danger')
                     return render_template('upload_material.html')
                 
-                # Generate secure filename
-                original_filename = secure_filename(file.filename)
-                file_path = os.path.join(UPLOAD_FOLDER, original_filename)
-                file.save(file_path)
-
-                # Store URL that points to your download route
-                file_url = f"/download/{original_filename}"
-                
-                # Store basic content text (for AI explanation)
-                content_text = f"File: {original_filename} (uploaded successfully)"
+                try:
+                    # ✅ UPLOAD TO SUPABASE STORAGE
+                    file_path = f"{school_id}/{session['user_id']}/{secure_filename(file.filename)}"
+                    
+                    # Upload file to Supabase Storage
+                    storage_response = supabase.storage.from_("study-materials").upload(
+                        file_path,
+                        file.read()
+                    )
+                    
+                    # Get public URL
+                    file_url = supabase.storage.from_("study-materials").get_public_url(file_path)
+                    
+                    content_text = f"File: {file.filename} (uploaded to cloud storage)"
+                    
+                except Exception as e:
+                    logger.error(f"Supabase storage upload error: {e}")
+                    flash('Error uploading file to cloud storage.', 'danger')
+                    return render_template('upload_material.html')
             else:
                 flash('Invalid file type.', 'danger')
                 return render_template('upload_material.html')
@@ -3339,7 +3347,7 @@ def upload_material():
         elif material_type == 'text':
             content_text = request.form.get('content_text', '').strip()
         
-        # Create material record - FIXED: Don't include filename if column doesn't exist
+        # Create material record
         material_id = f"material_{uuid.uuid4().hex[:12]}"
         material_data = {
             'id': material_id,
@@ -3355,14 +3363,13 @@ def upload_material():
             'video_url': video_url,
             'web_url': web_url,
             'content_text': content_text,
-            # 🎯 REMOVED: 'filename': original_filename,  # Column doesn't exist
             'created_at': datetime.now().isoformat()
         }
         
         result = supabase.table('study_materials').insert(material_data).execute()
         
         if result.data:
-            flash('Study material uploaded successfully!', 'success')
+            flash('Study material uploaded successfully to cloud storage!', 'success')
             return redirect(url_for('teacher_materials'))
         else:
             flash('Error uploading material.', 'danger')
