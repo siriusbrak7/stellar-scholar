@@ -10,7 +10,14 @@
                     <h2 class="text-white">🎓 Welcome, {{ user.username }}!</h2>
                     <p class="text-light mb-0">
                         Grade {{ user.grade }} • 
-                        {{ user.school_id|replace('school_', '')|replace('_', ' ')|title }}
+                        {# ✅ FIXED: Show actual school name instead of school_id #}
+                        {% if user.schools and user.schools.name %}
+                            {{ user.schools.name }}
+                        {% elif user.school_name %}
+                            {{ user.school_name }}
+                        {% else %}
+                            Newel Academy
+                        {% endif %}
                     </p>
                 </div>
 

@@ -1594,10 +1594,12 @@ def student_dashboard():
                 'role': 'teacher', 
                 'school_id': None, 
                 'grade': '9',
-                'id': 'school_demo_academy'
+                'school_name': 'Platform Admin'
             }
         else:
-            user = get_user_by_username(session['user_id'])
+            # ✅ FIXED: Get user with school name
+            user_response = supabase.table('users').select('*, schools(name)').eq('username', session['user_id']).execute()
+            user = user_response.data[0] if user_response.data else None
         
         if not user:
             flash("User not found. Please log in again.", "danger")
