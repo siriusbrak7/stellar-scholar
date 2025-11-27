@@ -1608,17 +1608,26 @@ def student_dashboard():
             flash("User not found. Please log in again.", "danger")
             return redirect(url_for('logout'))
         
+        # 🎯 DEBUG: Log student info
+        print(f"🔍 DEBUG: Student {user['username']} - School: {user['school_id']}, Grade: {user['grade']}")
+        
         # Get all prompts for the student's school and grade
         if session['user_id'] == 'sirius':
             prompts_response = supabase.table('prompts').select('*').execute()
         else:
+            # ✅ FIXED: More inclusive query - show prompts for student's grade OR general prompts
             prompts_response = supabase.table('prompts')\
                 .select('*')\
                 .eq('school_id', user['school_id'])\
-                .eq('grade_level', user['grade'])\
+                .or_(f"grade_level.eq.{user['grade']},grade_level.is.null,grade_level.eq.general")\
                 .execute()
         
         prompts = prompts_response.data if prompts_response.data else []
+        
+        # 🎯 DEBUG: Log prompts found
+        print(f"🔍 DEBUG: Found {len(prompts)} prompts for student")
+        for prompt in prompts:
+            print(f"🔍 DEBUG Prompt: '{prompt['title']}' - Grade: {prompt.get('grade_level')} - School: {prompt.get('school_id')}")
         
         # Get student's submissions
         if session['user_id'] == 'sirius':
