@@ -3496,50 +3496,6 @@ def upload_material():
     
     return render_template('upload_material.html')
 
-@app.route('/student/materials')
-@student_required
-def student_materials():
-    """Student view of study materials - FIXED VERSION with error handling"""
-    supabase = get_supabase()
-    if not supabase:
-        flash('Database connection error.', 'danger')
-        return redirect(url_for('student_dashboard'))
-    
-    try:
-        # Handle Sirius differently
-        if session['user_id'] == 'sirius':
-            # Sirius can view any materials - use selected school context
-            user_data = {
-                'school_id': session.get('current_school_id'),
-                'grade': '9'  # Default grade for demo
-            }
-            if not user_data['school_id']:
-                flash('Please select a school first using the school switcher.', 'warning')
-                return redirect(url_for('super_admin_dashboard'))
-        else:
-            # Regular student
-            user_response = supabase.table('users').select('school_id, grade').eq('username', session['user_id']).execute()
-            if not user_response.data:
-                flash('User data not found.', 'danger')
-                return redirect(url_for('student_dashboard'))
-            user_data = user_response.data[0]
-        
-        # Get materials for student's grade and school
-        materials_response = supabase.table('study_materials')\
-            .select('*')\
-            .eq('school_id', user_data['school_id'])\
-            .eq('grade_level', user_data['grade'])\
-            .order('created_at', desc=True)\
-            .execute()
-        
-        materials = materials_response.data if materials_response.data else []
-        
-        return render_template('student_materials.html', materials=materials)
-        
-    except Exception as e:
-        logger.error(f"Student materials error: {e}")
-        flash('Error loading study materials.', 'danger')
-        return redirect(url_for('student_dashboard'))
 
 @app.route('/material/delete/<material_id>', methods=['POST'])
 @teacher_required
