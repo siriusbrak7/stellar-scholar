@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+check this updated student dashboard template if it allows for students to be able to access created prompts by teachers to respond and submit: {% extends "base.html" %}
 
 {% block content %}
 <div class="container-fluid">
@@ -160,7 +160,7 @@
             <!-- Recent Assignments -->
             <div class="card mt-4">
                 <div class="card-header">
-                    <h5 class="mb-0">📝 Recent Assignments</h5>
+                    <h5 class="mb-0">📝 All Assignments</h5>
                 </div>
 
                 <div class="card-body">
@@ -179,7 +179,7 @@
                             </thead>
 
                             <tbody>
-                                {% for prompt in prompts[:5] %}
+                                {% for prompt in prompts %}
                                 <tr>
                                     <td>
                                         <strong>{{ prompt.title }}</strong><br>
@@ -230,8 +230,8 @@
                                                 View Feedback
                                             </a>
                                         {% else %}
-                                            <a href="#" class="btn btn-sm btn-success"
-                                               onclick="alert('Assignment submission feature coming soon!')">
+                                            <a href="{{ url_for('take_assessment', prompt_id=prompt.id) }}" 
+                                               class="btn btn-sm btn-success">
                                                 Submit Work
                                             </a>
                                         {% endif %}
@@ -241,15 +241,6 @@
                             </tbody>
                         </table>
                     </div>
-
-                    {% if prompts|length > 5 %}
-                    <div class="text-center mt-3">
-                        <a href="#" class="btn btn-outline-secondary"
-                           onclick="alert('Full assignments view coming soon!')">
-                            View All {{ prompts|length }} Assignments
-                        </a>
-                    </div>
-                    {% endif %}
 
                     {% else %}
                     <div class="text-center py-4">

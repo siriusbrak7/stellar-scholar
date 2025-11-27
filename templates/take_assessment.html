@@ -40,7 +40,7 @@
                     </div>
 
                     <!-- FORM STARTS -->
-                    <form method="POST" id="assessmentForm">
+                    <form method="POST" id="assessmentForm" enctype="multipart/form-data">
 
                         <!-- Written Response Section -->
                         {% if prompt.assessment_type in ['written', 'mixed'] %}
@@ -49,7 +49,27 @@
                             <div class="mb-3">
                                 <label class="form-label">Your Response *</label>
                                 <textarea class="form-control" name="written_response" rows="6" 
-                                          placeholder="Type your response here..." required></textarea>
+                                          placeholder="Type your response here..." 
+                                          id="writtenResponse"></textarea>
+                                <small class="text-muted">Required for written/mixed assessments</small>
+                            </div>
+
+                            <!-- ✅ NEW: File Upload Section -->
+                            <div class="mb-3">
+                                <label class="form-label">📎 Upload File (Optional)</label>
+                                <input type="file" class="form-control" name="submission_file" 
+                                       accept=".pdf,.doc,.docx,.txt,.ppt,.pptx,.jpg,.jpeg,.png">
+                                <small class="text-muted">
+                                    Supported: PDF, DOC, DOCX, TXT, PPT, PPTX, JPG, JPEG, PNG (Max 16MB)
+                                </small>
+                            </div>
+
+                            <!-- File Upload Info -->
+                            <div class="alert alert-light border">
+                                <small>
+                                    💡 <strong>Tip:</strong> You can either type your response above, upload a file, or both! 
+                                    File upload is great for essays, projects, or image-based work.
+                                </small>
                             </div>
                         </div>
                         {% endif %}
@@ -145,7 +165,7 @@
 
                         <!-- Submit Button -->
                         <div class="text-center mt-4">
-                            <button type="submit" class="btn btn-success btn-lg">
+                            <button type="submit" class="btn btn-success btn-lg" id="submitBtn">
                                 🚀 Submit Assessment
                             </button>
                             <small class="d-block text-muted mt-2">
@@ -207,20 +227,44 @@
     animation: pulse-warning 2s infinite;
 }
 
+.alert-light {
+    background: rgba(248, 249, 250, 0.8);
+    border: 1px solid #dee2e6;
+}
+
 @keyframes pulse-warning {
     0%, 100% { border-color: #ffc107; }
     50% { border-color: #ff9800; }
 }
+
+/* File upload styling */
+.form-control[type="file"] {
+    padding: 0.5rem;
+}
+
+.form-control[type="file"]::file-selector-button {
+    background: #007bff;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 0.375rem;
+    margin-right: 1rem;
+    cursor: pointer;
+}
+
+.form-control[type="file"]::file-selector-button:hover {
+    background: #0056b3;
+}
 </style>
 
-<!-- SIMPLE DRAFT WARNING SYSTEM -->
+<!-- ENHANCED DRAFT WARNING SYSTEM -->
 <script>
 let hasUnsavedChanges = false;
 
 document.addEventListener('DOMContentLoaded', function() {
     // Track all form inputs
     const textareas = document.querySelectorAll('textarea');
-    const inputs = document.querySelectorAll('input[type="text"], input[type="radio"]');
+    const inputs = document.querySelectorAll('input[type="text"], input[type="radio"], input[type="file"]');
     const allInputs = [...textareas, ...inputs];
 
     allInputs.forEach(input => {
@@ -249,15 +293,52 @@ document.addEventListener('DOMContentLoaded', function() {
         hasUnsavedChanges = false;
         document.getElementById('draft-warning').style.display = 'none';
     });
-});
 
-// Optional: Add confirmation for submission
-document.getElementById('assessmentForm').addEventListener('submit', function(e) {
-    if (!confirm('🚀 Ready to submit your assessment? This cannot be undone.')) {
-        e.preventDefault();
-        return false;
+    // Enhanced validation for written/mixed assessments
+    document.getElementById('assessmentForm').addEventListener('submit', function(e) {
+        const writtenResponse = document.getElementById('writtenResponse');
+        const fileInput = document.querySelector('input[type="file"]');
+        
+        // Check if this is a written/mixed assessment that requires validation
+        const isWrittenAssessment = {% if prompt.assessment_type in ['written', 'mixed'] %}true{% else %}false{% endif %};
+        
+        if (isWrittenAssessment && writtenResponse) {
+            const hasText = writtenResponse.value.trim().length > 0;
+            const hasFile = fileInput && fileInput.files.length > 0;
+            
+            if (!hasText && !hasFile) {
+                e.preventDefault();
+                alert('❌ Please provide a written response or upload a file before submitting.');
+                return false;
+            }
+        }
+        
+        // Final confirmation
+        if (!confirm('🚀 Ready to submit your assessment? This cannot be undone.')) {
+            e.preventDefault();
+            return false;
+        }
+        
+        // Show loading state
+        const submitBtn = document.getElementById('submitBtn');
+        submitBtn.innerHTML = '⏳ Submitting...';
+        submitBtn.disabled = true;
+        
+        return true;
+    });
+
+    // Real-time validation for written response
+    const writtenResponse = document.getElementById('writtenResponse');
+    if (writtenResponse) {
+        writtenResponse.addEventListener('input', function() {
+            const charCount = this.value.length;
+            if (charCount > 0) {
+                this.style.borderColor = '#28a745';
+            } else {
+                this.style.borderColor = '#dc3545';
+            }
+        });
     }
-    return true;
 });
 </script>
 {% endblock %}
