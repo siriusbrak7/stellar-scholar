@@ -39,7 +39,76 @@
             </div>
         </div>
 
-        
+        <!-- 🆕 NEW: Platform Features Showcase -->
+        <div class="features-showcase">
+            <h2 class="section-title">🚀 Platform Features</h2>
+            
+            <div class="features-grid">
+                <!-- Feature 1: Multi-School -->
+                <div class="feature-item">
+                    <div class="feature-icon-large">🏫</div>
+                    <h4>Multi-School Platform</h4>
+                    <p>Complete school management system with separate environments for each institution</p>
+                </div>
+
+                <!-- Feature 2: Assessments -->
+                <div class="feature-item">
+                    <div class="feature-icon-large">📝</div>
+                    <h4>Smart Assessments</h4>
+                    <p>Create written, MCQ, and mixed assignments with automatic grading</p>
+                </div>
+
+                <!-- Feature 3: Science Quizzes -->
+                <div class="feature-item">
+                    <div class="feature-icon-large">🔬</div>
+                    <h4>Science Revision</h4>
+                    <p>144+ IGCSE questions across Biology, Chemistry & Physics with instant feedback</p>
+                </div>
+
+                <!-- Feature 4: AI Integration -->
+                <div class="feature-item">
+                    <div class="feature-icon-large">🤖</div>
+                    <h4>AI-Powered Learning</h4>
+                    <p>AI integration for smart explanations and study summaries</p>
+                </div>
+
+                <!-- Feature 5: Analytics -->
+                <div class="feature-item">
+                    <div class="feature-icon-large">📊</div>
+                    <h4>Advanced Analytics</h4>
+                    <p>Track student progress, leaderboards, and performance metrics</p>
+                </div>
+
+                <!-- Feature 6: Cloud Storage -->
+                <div class="feature-item">
+                    <div class="feature-icon-large">☁️</div>
+                    <h4>Cloud Storage</h4>
+                    <p>Secure file management with Supabase Storage for all study materials</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 🆕 NEW: How It Works -->
+        <div class="how-it-works">
+            <h2 class="section-title">🎯 How It Works</h2>
+            <div class="steps-container">
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <h4>Register Your School</h4>
+                    <p>Schools register and get approved by platform administrators</p>
+                </div>
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <h4>Teachers Create Content</h4>
+                    <p>Upload study materials, create assignments, and track progress</p>
+                </div>
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <h4>Students Learn & Grow</h4>
+                    <p>Access materials, complete assignments, and monitor performance</p>
+                </div>
+            </div>
+        </div>
 
         <div class="cta-section">
             <p class="cta-text">Ready to explore the Cosmos?</p>
@@ -66,7 +135,7 @@
 
 .cosmic-content {
     text-align: center;
-    max-width: 900px;
+    max-width: 1200px;
     width: 100%;
     position: relative;
     z-index: 2;
@@ -248,6 +317,115 @@
     font-size: 1rem;
 }
 
+/* 🆕 NEW: Features Showcase */
+.features-showcase {
+    margin: 5rem 0;
+    padding: 3rem 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.section-title {
+    color: #FFD700;
+    font-size: 2.5rem;
+    margin-bottom: 3rem;
+    text-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
+}
+
+.features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+    margin-top: 2rem;
+}
+
+.feature-item {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 15px;
+    padding: 2rem;
+    text-align: center;
+    transition: all 0.3s ease;
+}
+
+.feature-item:hover {
+    transform: translateY(-5px);
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 215, 0, 0.3);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.feature-icon-large {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.2));
+}
+
+.feature-item h4 {
+    color: white;
+    margin-bottom: 1rem;
+    font-size: 1.3rem;
+}
+
+.feature-item p {
+    color: #b0b8c9;
+    line-height: 1.6;
+    font-size: 0.95rem;
+}
+
+/* 🆕 NEW: How It Works */
+.how-it-works {
+    margin: 5rem 0;
+}
+
+.steps-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 2rem;
+    margin-top: 2rem;
+}
+
+.step {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 15px;
+    padding: 2rem;
+    text-align: center;
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.step:hover {
+    transform: translateY(-5px);
+    border-color: rgba(50, 205, 50, 0.3);
+}
+
+.step-number {
+    width: 50px;
+    height: 50px;
+    background: linear-gradient(45deg, #FFD700, #32CD32);
+    color: black;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 1.2rem;
+    margin: 0 auto 1rem;
+    box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
+}
+
+.step h4 {
+    color: white;
+    margin-bottom: 1rem;
+    font-size: 1.2rem;
+}
+
+.step p {
+    color: #b0b8c9;
+    line-height: 1.6;
+}
+
 /* Buttons */
 .btn {
     padding: 1rem 2rem;
@@ -277,8 +455,6 @@
     transform: translateY(-3px);
     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
 }
-
-/* Stats removed: .cosmic-stats, .stat-item, .stat-number, .stat-label (deleted) */
 
 /* CTA Section */
 .cta-section {
@@ -342,14 +518,12 @@
         padding: 2rem 1.5rem;
     }
     
-    .cosmic-stats {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 1.5rem;
-        padding: 1.5rem;
+    .features-grid {
+        grid-template-columns: 1fr;
     }
     
-    .stat-number {
-        font-size: 2rem;
+    .steps-container {
+        grid-template-columns: 1fr;
     }
     
     .cta-buttons {
@@ -364,6 +538,10 @@
     .planet {
         display: none;
     }
+    
+    .section-title {
+        font-size: 2rem;
+    }
 }
 
 @media (max-width: 480px) {
@@ -371,11 +549,9 @@
         font-size: 2.5rem;
     }
     
-    .cosmic-stats {
-        grid-template-columns: 1fr;
+    .feature-item, .step {
+        padding: 1.5rem;
     }
 }
 </style>
-
-<!-- Removed animated counter script since Quick Stats section was deleted -->
 {% endblock %}
