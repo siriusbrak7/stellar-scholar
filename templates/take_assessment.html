@@ -84,7 +84,7 @@
                             <div class="question-card card mb-3">
                                 <div class="card-body">
                                     <h6 class="question-title">
-                                        Question {{ loop.index }} ({{ question.points }} point{% if question.points > 1 %}s{% endif %})
+                                        Question {{ loop.index }} ({{ question.points }} point{% if question.points != 1 %}s{% endif %})
                                     </h6>
                                     <p class="question-text">{{ question.question_text }}</p>
 
@@ -93,16 +93,16 @@
                                         <div class="form-check mb-2">
                                             <input class="form-check-input" type="radio" 
                                                    name="question_{{ question.id }}" 
-                                                   id="q{{ question.id }}_a" value="A" required>
-                                            <label class="form-check-label" for="q{{ question.id }}_a">
+                                                   id="q{{ loop.index }}_a" value="A" required>
+                                            <label class="form-check-label" for="q{{ loop.index }}_a">
                                                 <strong>A)</strong> {{ question.option_a }}
                                             </label>
                                         </div>
                                         <div class="form-check mb-2">
                                             <input class="form-check-input" type="radio" 
                                                    name="question_{{ question.id }}" 
-                                                   id="q{{ question.id }}_b" value="B">
-                                            <label class="form-check-label" for="q{{ question.id }}_b">
+                                                   id="q{{ loop.index }}_b" value="B">
+                                            <label class="form-check-label" for="q{{ loop.index }}_b">
                                                 <strong>B)</strong> {{ question.option_b }}
                                             </label>
                                         </div>
@@ -110,8 +110,8 @@
                                         <div class="form-check mb-2">
                                             <input class="form-check-input" type="radio" 
                                                    name="question_{{ question.id }}" 
-                                                   id="q{{ question.id }}_c" value="C">
-                                            <label class="form-check-label" for="q{{ question.id }}_c">
+                                                   id="q{{ loop.index }}_c" value="C">
+                                            <label class="form-check-label" for="q{{ loop.index }}_c">
                                                 <strong>C)</strong> {{ question.option_c }}
                                             </label>
                                         </div>
@@ -120,8 +120,8 @@
                                         <div class="form-check mb-2">
                                             <input class="form-check-input" type="radio" 
                                                    name="question_{{ question.id }}" 
-                                                   id="q{{ question.id }}_d" value="D">
-                                            <label class="form-check-label" for="q{{ question.id }}_d">
+                                                   id="q{{ loop.index }}_d" value="D">
+                                            <label class="form-check-label" for="q{{ loop.index }}_d">
                                                 <strong>D)</strong> {{ question.option_d }}
                                             </label>
                                         </div>
@@ -133,16 +133,16 @@
                                         <div class="form-check mb-2">
                                             <input class="form-check-input" type="radio" 
                                                    name="question_{{ question.id }}" 
-                                                   id="q{{ question.id }}_true" value="True" required>
-                                            <label class="form-check-label" for="q{{ question.id }}_true">
+                                                   id="q{{ loop.index }}_true" value="True" required>
+                                            <label class="form-check-label" for="q{{ loop.index }}_true">
                                                 ✅ True
                                             </label>
                                         </div>
                                         <div class="form-check mb-2">
                                             <input class="form-check-input" type="radio" 
                                                    name="question_{{ question.id }}" 
-                                                   id="q{{ question.id }}_false" value="False">
-                                            <label class="form-check-label" for="q{{ question.id }}_false">
+                                                   id="q{{ loop.index }}_false" value="False">
+                                            <label class="form-check-label" for="q{{ loop.index }}_false">
                                                 ❌ False
                                             </label>
                                         </div>
@@ -261,6 +261,10 @@
 <script>
 let hasUnsavedChanges = false;
 
+// Output boolean as string to avoid JS linting issues in editor
+const isWrittenAssessmentStr = "{% if prompt.assessment_type in ['written', 'mixed'] %}true{% else %}false{% endif %}";
+const isWrittenAssessment = isWrittenAssessmentStr === 'true';
+
 document.addEventListener('DOMContentLoaded', function() {
     // Track all form inputs
     const textareas = document.querySelectorAll('textarea');
@@ -298,9 +302,6 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('assessmentForm').addEventListener('submit', function(e) {
         const writtenResponse = document.getElementById('writtenResponse');
         const fileInput = document.querySelector('input[type="file"]');
-        
-        // Check if this is a written/mixed assessment that requires validation
-        const isWrittenAssessment = {% if prompt.assessment_type in ['written', 'mixed'] %}true{% else %}false{% endif %};
         
         if (isWrittenAssessment && writtenResponse) {
             const hasText = writtenResponse.value.trim().length > 0;
