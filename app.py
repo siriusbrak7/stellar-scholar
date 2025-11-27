@@ -1068,7 +1068,7 @@ def teacher_dashboard():
         print(f"DEBUG: Viewing teacher {current_viewing_teacher}, school_id: {school_id}")
 
         # Get prompts for the CORRECT school
-        prompts_response = supabase.table("prompts").select("*").eq("school_id", school_id).execute()
+        prompts_response = supabase.table("prompts").select("*").eq("school_id", school_id).eq("created_by", current_viewing_teacher).execute()
         prompts = prompts_response.data if prompts_response.data else []
 
         # Apply filters
@@ -1412,10 +1412,13 @@ def grade_submissions(prompt_id):
             flash('Prompt not found.', 'danger')
             return redirect(url_for('teacher_dashboard'))
         
-        if request.method == 'POST':
-            submission_id = request.form.get('submission_id')
-            grade = request.form.get('grade')
-            feedback = request.form.get('feedback', '').strip()
+        # ✅ FIXED: Check if teacher owns this prompt
+        current_teacher = session.get('current_teacher_id') or session['user_id']
+        if prompt['created_by'] != current_teacher:
+            flash('You can only grade submissions for prompts you created.', 'danger')
+            return redirect(url_for('teacher_dashboard'))
+        
+        # ... rest of your existing code remains the same
             
             if submission_id:
                 try:
@@ -3293,12 +3296,13 @@ def school_register():
 @app.route('/teacher/materials')
 @teacher_required
 def teacher_materials():
-    """Teacher's study materials management"""
+    """Teacher's study materials management - ONLY THEIR OWN"""
     supabase = get_supabase()
     user_response = supabase.table('users').select('school_id').eq('username', session['user_id']).execute()
     school_id = user_response.data[0]['school_id'] if user_response.data else None
     
-    materials_response = supabase.table('study_materials').select('*').eq('school_id', school_id).order('created_at', desc=True).execute()
+    # ✅ FIXED: Only show materials uploaded by this teacher
+    materials_response = supabase.table('study_materials').select('*').eq('school_id', school_id).eq('created_by', session['user_id']).order('created_at', desc=True).execute()
     materials = materials_response.data if materials_response.data else []
     
     return render_template('teacher_materials.html', materials=materials)
