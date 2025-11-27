@@ -3581,12 +3581,23 @@ def ai_summarize(material_id):
 # ✅ FILE DOWNLOAD ROUTES
 # =============================================
 
-@app.route('/download/<path:file_path>')
+@app.route('/download/<filename>')
 @login_required
-def download_file(file_path):
+def download_file(filename):
     """Redirect to Supabase Storage URL for downloads"""
     try:
-        # Construct full Supabase storage URL
+        # For Supabase Storage, we need to reconstruct the file path
+        # Assuming files are stored as: {school_id}/{user_id}/{filename}
+        supabase = get_supabase()
+        
+        # Get the current user to construct the path
+        user_response = supabase.table('users').select('school_id').eq('username', session['user_id']).execute()
+        school_id = user_response.data[0]['school_id'] if user_response.data else 'unknown'
+        
+        # Construct the full file path in Supabase storage
+        file_path = f"{school_id}/{session['user_id']}/{filename}"
+        
+        # Get public URL from Supabase Storage
         download_url = supabase.storage.from_("study-materials").get_public_url(file_path)
         return redirect(download_url)
         
