@@ -1711,14 +1711,14 @@ def student_dashboard():
                     leaderboard_rank = i + 1
                     break
         
-        # Get study materials count
+        # ✅ FIXED: Get study materials count - CORRECT VARIABLE NAME
         if session['user_id'] == 'sirius':
             materials_response = supabase.table('study_materials').select('id').execute()
         else:
             materials_response = supabase.table('study_materials')\
                 .select('id')\
-                .eq('school_id', user_data['school_id'])\
-                .eq('grade_level', user_data['grade'])\
+                .eq('school_id', user['school_id'])\
+                .eq('grade_level', user['grade'])\
                 .execute()
         
         materials_count = len(materials_response.data) if materials_response.data else 0
