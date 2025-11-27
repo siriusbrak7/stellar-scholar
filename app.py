@@ -1607,7 +1607,9 @@ def student_dashboard():
             flash("User not found. Please log in again.", "danger")
             return redirect(url_for('logout'))
         
-        # Get prompts for the student's school (all grades + general)
+        print(f"🎯 DEBUG 1: Student {user['username']} - School: {user['school_id']}, Grade: {user['grade']}")
+        
+        # Get ALL prompts for the student's school
         if session['user_id'] == 'sirius':
             prompts_response = supabase.table('prompts').select('*').execute()
             prompts = prompts_response.data if prompts_response.data else []
@@ -1617,19 +1619,15 @@ def student_dashboard():
                 .eq('school_id', user['school_id'])\
                 .execute()
             
-            prompts = prompts_response.data if prompts_response.data else []
+            all_prompts = prompts_response.data if prompts_response.data else []
+            print(f"🎯 DEBUG 2: Found {len(all_prompts)} total prompts for school {user['school_id']}")
             
-            # Filter prompts: student's grade OR general OR no grade specified
-            filtered_prompts = []
-            for prompt in prompts:
-                prompt_grade = prompt.get('grade_level')
-                if (str(prompt_grade) == str(user['grade']) or 
-                    prompt_grade == 'general' or 
-                    prompt_grade is None or 
-                    prompt_grade == ''):
-                    filtered_prompts.append(prompt)
+            # Show ALL prompts found (no filtering)
+            prompts = all_prompts
             
-            prompts = filtered_prompts
+            # Debug: Print each prompt found
+            for i, prompt in enumerate(prompts):
+                print(f"🎯 DEBUG Prompt {i+1}: '{prompt['title']}' | Grade: '{prompt.get('grade_level')}' | School: '{prompt.get('school_id')}'")
         
         # Get student's submissions
         if session['user_id'] == 'sirius':
@@ -1641,6 +1639,7 @@ def student_dashboard():
                 .execute()
         
         submissions = submissions_response.data if submissions_response.data else []
+        print(f"🎯 DEBUG 3: Student has {len(submissions)} submissions")
         
         # Create submission lookup dictionary
         submission_dict = {sub['prompt_id']: sub for sub in submissions}
@@ -1653,6 +1652,8 @@ def student_dashboard():
         # Calculate statistics
         completed_assignments = len([p for p in prompts if p['has_submitted']])
         pending_assignments = len(prompts) - completed_assignments
+        
+        print(f"🎯 DEBUG 4: {completed_assignments} completed, {pending_assignments} pending assignments")
         
         # Calculate average grade
         graded_submissions = [sub for sub in submissions if sub.get('grade') is not None]
