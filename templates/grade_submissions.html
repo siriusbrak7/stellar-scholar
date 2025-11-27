@@ -4,7 +4,7 @@
 <div class="container-fluid">
     <div class="row">
         <div class="col-12">
-            <div class="card">
+            <div class="card bg-dark text-light">
                 <div class="card-header bg-primary text-white">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
@@ -17,19 +17,19 @@
                     </div>
                 </div>
 
-                <div class="card-body">
+                <div class="card-body bg-dark text-light">
                     {% if submissions %}
                         <div class="alert alert-info">
                             <strong>📊 Submissions to Grade:</strong> {{ submissions|length }} student(s)
                         </div>
 
                         {% for submission in submissions %}
-                        <div class="submission-card card mb-4">
-                            <div class="card-header bg-light">
+                        <div class="submission-card card mb-4 bg-secondary text-light">
+                            <div class="card-header bg-dark">
                                 <div class="d-flex justify-content-between align-items-center">
                                     <div>
-                                        <h6 class="mb-0">Student: {{ submission.student_username }}</h6>
-                                        <small class="text-muted">
+                                        <h6 class="mb-0 text-white">Student: {{ submission.student_username }}</h6>
+                                        <small class="text-light">
                                             Grade {{ submission.student_grade }} • 
                                             Submitted: {{ submission.submitted_at[:16] }}
                                         </small>
@@ -44,13 +44,13 @@
                                 </div>
                             </div>
 
-                            <div class="card-body">
+                            <div class="card-body bg-dark text-light">
                                 <!-- Text Response -->
                                 {% if submission.response and submission.response.strip() %}
                                 <div class="mb-4">
-                                    <h6>✍️ Written Response:</h6>
-                                    <div class="response-box p-3 border rounded bg-light">
-                                        <p style="white-space: pre-wrap;">{{ submission.response }}</p>
+                                    <h6 class="text-white">✍️ Written Response:</h6>
+                                    <div class="response-box p-3 border rounded bg-dark border-primary">
+                                        <p style="white-space: pre-wrap; color: #e9ecef; font-size: 1rem; line-height: 1.6;">{{ submission.response }}</p>
                                     </div>
                                 </div>
                                 {% endif %}
@@ -58,14 +58,14 @@
                                 <!-- File Attachment -->
                                 {% if submission.file_attachment %}
                                 <div class="mb-4">
-                                    <h6>📎 File Attachment:</h6>
-                                    <div class="file-box p-3 border rounded bg-light">
+                                    <h6 class="text-white">📎 File Attachment:</h6>
+                                    <div class="file-box p-3 border rounded bg-dark border-success">
                                         <div class="d-flex justify-content-between align-items-center">
                                             <div>
-                                                <strong>{{ submission.file_attachment }}</strong>
+                                                <strong class="text-white">{{ submission.file_attachment }}</strong>
                                                 {% if submission.file_url %}
                                                 <br>
-                                                <small class="text-muted">Uploaded to cloud storage</small>
+                                                <small class="text-light">Uploaded to cloud storage</small>
                                             </div>
                                             <div>
                                                 <a href="{{ submission.file_url }}" 
@@ -75,7 +75,7 @@
                                                 </a>
                                                 {% else %}
                                                 <br>
-                                                <small class="text-muted">File reference only</small>
+                                                <small class="text-light">File reference only</small>
                                             </div>
                                             {% endif %}
                                         </div>
@@ -91,27 +91,27 @@
                                 {% endif %}
 
                                 <!-- Grading Form -->
-                                <form method="POST" class="grading-form">
+                                <form method="POST" class="grading-form bg-dark p-3 border rounded border-info">
                                     <input type="hidden" name="submission_id" value="{{ submission.id }}">
                                     
                                     <div class="row">
                                         <div class="col-md-4">
-                                            <label class="form-label"><strong>Grade (0-100):</strong></label>
+                                            <label class="form-label text-white"><strong>Grade (0-100):</strong></label>
                                             <input type="number" 
                                                    name="grade" 
-                                                   class="form-control" 
+                                                   class="form-control bg-dark text-white border-secondary" 
                                                    value="{{ submission.grade or '' }}" 
                                                    min="0" 
                                                    max="100" 
                                                    step="0.1"
                                                    placeholder="Enter grade">
-                                            <small class="text-muted">Leave empty to remove grade</small>
+                                            <small class="text-light">Leave empty to remove grade</small>
                                         </div>
                                         
                                         <div class="col-md-8">
-                                            <label class="form-label"><strong>Teacher Feedback:</strong></label>
+                                            <label class="form-label text-white"><strong>Teacher Feedback:</strong></label>
                                             <textarea name="feedback" 
-                                                      class="form-control" 
+                                                      class="form-control bg-dark text-white border-secondary" 
                                                       rows="3"
                                                       placeholder="Provide constructive feedback to the student...">{{ submission.feedback or '' }}</textarea>
                                         </div>
@@ -134,8 +134,8 @@
 
                     {% else %}
                         <div class="text-center py-5">
-                            <h5 class="text-muted">No submissions yet</h5>
-                            <p class="text-muted">Students haven't submitted work for this assessment yet.</p>
+                            <h5 class="text-light">No submissions yet</h5>
+                            <p class="text-light">Students haven't submitted work for this assessment yet.</p>
                             <a href="{{ url_for('teacher_dashboard') }}" class="btn btn-primary">
                                 ← Back to Dashboard
                             </a>
@@ -151,29 +151,27 @@
 .submission-card {
     border: none;
     border-radius: 10px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 15px rgba(255,255,255,0.1);
 }
 
 .submission-card .card-header {
-    border-bottom: 2px solid #e9ecef;
+    border-bottom: 2px solid #495057;
     border-radius: 10px 10px 0 0 !important;
 }
 
 .response-box {
-    background: #f8f9fa;
-    border-left: 4px solid #007bff;
+    background: #1a1d20 !important;
+    border-left: 4px solid #007bff !important;
 }
 
 .file-box {
-    background: #f8f9fa;
-    border-left: 4px solid #28a745;
+    background: #1a1d20 !important;
+    border-left: 4px solid #28a745 !important;
 }
 
 .grading-form {
-    background: #f8f9fa;
-    padding: 1.5rem;
-    border-radius: 8px;
-    border: 1px solid #dee2e6;
+    background: #1a1d20 !important;
+    border: 1px solid #495057 !important;
 }
 
 .badge {
@@ -181,13 +179,33 @@
 }
 
 .alert-info {
-    background: rgba(102, 126, 234, 0.1);
-    border: 1px solid rgba(102, 126, 234, 0.2);
+    background: rgba(102, 126, 234, 0.2);
+    border: 1px solid rgba(102, 126, 234, 0.4);
+    color: #e9ecef;
 }
 
 .alert-warning {
-    background: rgba(255, 193, 7, 0.1);
-    border: 1px solid rgba(255, 193, 7, 0.3);
+    background: rgba(255, 193, 7, 0.2);
+    border: 1px solid rgba(255, 193, 7, 0.4);
+    color: #e9ecef;
+}
+
+/* Form styling for dark theme */
+.form-control {
+    background-color: #1a1d20 !important;
+    border-color: #495057 !important;
+    color: #e9ecef !important;
+}
+
+.form-control:focus {
+    background-color: #1a1d20 !important;
+    border-color: #007bff !important;
+    color: #e9ecef !important;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.form-label {
+    color: #e9ecef !important;
 }
 </style>
 
