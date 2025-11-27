@@ -1600,7 +1600,6 @@ def student_dashboard():
                 'school_name': 'Platform Admin'
             }
         else:
-            # ✅ FIXED: Get user with school name
             user_response = supabase.table('users').select('*, schools(name)').eq('username', session['user_id']).execute()
             user = user_response.data[0] if user_response.data else None
         
@@ -1608,26 +1607,29 @@ def student_dashboard():
             flash("User not found. Please log in again.", "danger")
             return redirect(url_for('logout'))
         
-        # 🎯 DEBUG: Log student info
-        print(f"🔍 DEBUG: Student {user['username']} - School: {user['school_id']}, Grade: {user['grade']}")
-        
-        # Get all prompts for the student's school and grade
+        # Get prompts for the student's school (all grades + general)
         if session['user_id'] == 'sirius':
             prompts_response = supabase.table('prompts').select('*').execute()
+            prompts = prompts_response.data if prompts_response.data else []
         else:
-            # ✅ FIXED: More inclusive query - show prompts for student's grade OR general prompts
             prompts_response = supabase.table('prompts')\
                 .select('*')\
                 .eq('school_id', user['school_id'])\
-                .or_(f"grade_level.eq.{user['grade']},grade_level.is.null,grade_level.eq.general")\
                 .execute()
-        
-        prompts = prompts_response.data if prompts_response.data else []
-        
-        # 🎯 DEBUG: Log prompts found
-        print(f"🔍 DEBUG: Found {len(prompts)} prompts for student")
-        for prompt in prompts:
-            print(f"🔍 DEBUG Prompt: '{prompt['title']}' - Grade: {prompt.get('grade_level')} - School: {prompt.get('school_id')}")
+            
+            prompts = prompts_response.data if prompts_response.data else []
+            
+            # Filter prompts: student's grade OR general OR no grade specified
+            filtered_prompts = []
+            for prompt in prompts:
+                prompt_grade = prompt.get('grade_level')
+                if (str(prompt_grade) == str(user['grade']) or 
+                    prompt_grade == 'general' or 
+                    prompt_grade is None or 
+                    prompt_grade == ''):
+                    filtered_prompts.append(prompt)
+            
+            prompts = filtered_prompts
         
         # Get student's submissions
         if session['user_id'] == 'sirius':
@@ -1640,7 +1642,7 @@ def student_dashboard():
         
         submissions = submissions_response.data if submissions_response.data else []
         
-        # Create a dictionary of prompt_id to submission for quick lookup
+        # Create submission lookup dictionary
         submission_dict = {sub['prompt_id']: sub for sub in submissions}
         
         # Enhance prompts with submission info
@@ -1672,11 +1674,10 @@ def student_dashboard():
         for subject, grades in subject_averages.items():
             subject_averages[subject] = round(sum(grades) / len(grades), 1)
         
-        # ✅ FIXED: Proper leaderboard rank calculation
+        # Leaderboard rank calculation
         if session['user_id'] == 'sirius':
             leaderboard_rank = 1
         else:
-            # Get all students in the same school and grade
             students_response = supabase.table('users')\
                 .select('username')\
                 .eq('school_id', user['school_id'])\
@@ -1684,11 +1685,8 @@ def student_dashboard():
                 .eq('role', 'student')\
                 .execute()
             
-            # Calculate performance scores for each student
             student_scores = {}
-            
             for student in students_response.data:
-                # Get student's graded submissions
                 student_submissions = supabase.table('submissions')\
                     .select('grade, prompt_id')\
                     .eq('student_id', student['username'])\
@@ -1696,31 +1694,23 @@ def student_dashboard():
                     .execute()
                 
                 if student_submissions.data:
-                    # Calculate average grade
                     total_grade = sum([s['grade'] for s in student_submissions.data])
                     avg_grade = total_grade / len(student_submissions.data)
-                    
-                    # Calculate completion rate (bonus for completing more assignments)
                     total_prompts = len([p for p in prompts if p.get('grade_level') == user['grade']])
                     completed = len(student_submissions.data)
                     completion_bonus = (completed / total_prompts) * 10 if total_prompts > 0 else 0
-                    
-                    # Combined score (average grade + completion bonus)
                     student_scores[student['username']] = avg_grade + completion_bonus
                 else:
                     student_scores[student['username']] = 0
             
-            # Sort students by performance score (descending)
             sorted_students = sorted(student_scores.items(), key=lambda x: x[1], reverse=True)
-            
-            # Find current user's rank
             leaderboard_rank = 1
             for i, (username, score) in enumerate(sorted_students):
                 if username == session['user_id']:
                     leaderboard_rank = i + 1
                     break
         
-        # ✅ FIXED: Get study materials count - CORRECT VARIABLE NAME
+        # Get study materials count
         if session['user_id'] == 'sirius':
             materials_response = supabase.table('study_materials').select('id').execute()
         else:
@@ -1732,7 +1722,7 @@ def student_dashboard():
         
         materials_count = len(materials_response.data) if materials_response.data else 0
 
-        # 🆕 NEW: Get Science Revision Stats
+        # Science quiz stats
         science_stats = {
             'total_quizzes': 0,
             'average_score': 0,
@@ -1741,7 +1731,6 @@ def student_dashboard():
         }
         
         try:
-            # Get quiz attempts for science revision
             attempts_response = supabase.table('student_quiz_attempts')\
                 .select('*')\
                 .eq('student_id', session['user_id'])\
@@ -1751,9 +1740,7 @@ def student_dashboard():
             
             if attempts_response.data:
                 science_stats['total_quizzes'] = len(attempts_response.data)
-                science_stats['recent_attempts'] = attempts_response.data[:3]  # Last 3 attempts
-                
-                # Calculate average score using percentages
+                science_stats['recent_attempts'] = attempts_response.data[:3]
                 percentages = [attempt['percentage'] for attempt in attempts_response.data if attempt.get('percentage') is not None]
                 if percentages:
                     science_stats['average_score'] = round(sum(percentages) / len(percentages))
@@ -1761,7 +1748,6 @@ def student_dashboard():
         
         except Exception as e:
             logger.error(f"Science stats error: {e}")
-            # Continue without science stats if there's an error
 
         return render_template(
             'student_dashboard.html',
