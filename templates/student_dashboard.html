@@ -1,3 +1,5 @@
+{% extends "base.html" %}
+
 {% block content %}
 <div class="container-fluid">
     <div class="row">
@@ -8,7 +10,6 @@
                     <h2 class="text-white">🎓 Welcome, {{ user.username }}!</h2>
                     <p class="text-light mb-0">
                         Grade {{ user.grade }} • 
-                        {# ✅ FIXED: Show actual school name instead of school_id #}
                         {% if user.schools and user.schools.name %}
                             {{ user.schools.name }}
                         {% elif user.school_name %}
@@ -91,10 +92,8 @@
                                 <h6>Recent Quiz Scores:</h6>
                                 {% for attempt in science_stats.recent_attempts %}
                                     {% if attempt.percentage is defined and attempt.percentage is not none %}
-                                        {# Use stored percentage if available #}
                                         {% set display_percentage = attempt.percentage %}
                                     {% elif attempt.total_questions > 0 %}
-                                        {# Calculate percentage from score/total_questions #}
                                         {% set display_percentage = ((attempt.score / attempt.total_questions) * 100)|round %}
                                     {% else %}
                                         {% set display_percentage = 0 %}
