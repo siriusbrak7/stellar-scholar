@@ -1065,10 +1065,18 @@ def teacher_dashboard():
         school_id = teacher.get("school_id")
         is_school_admin = teacher.get("is_admin", False)
 
-        print(f"DEBUG: Viewing teacher {current_viewing_teacher}, school_id: {school_id}")
+        print(f"🎯 TEACHER DEBUG: {current_viewing_teacher} - School: {school_id}, Admin: {is_school_admin}")
 
-        # Get prompts for the CORRECT school
-        prompts_response = supabase.table("prompts").select("*").eq("school_id", school_id).eq("created_by", current_viewing_teacher).execute()
+        # ✅ FIXED: Smart prompts query - admins see all, teachers see only their own
+        if is_school_admin or session['user_id'] == 'sirius':
+            # School admins and Sirius see ALL prompts for the school
+            prompts_response = supabase.table("prompts").select("*").eq("school_id", school_id).execute()
+            print(f"🎯 TEACHER DEBUG: Admin mode - showing ALL school prompts")
+        else:
+            # Regular teachers see only their OWN prompts
+            prompts_response = supabase.table("prompts").select("*").eq("school_id", school_id).eq("created_by", current_viewing_teacher).execute()
+            print(f"🎯 TEACHER DEBUG: Teacher mode - showing only own prompts")
+
         prompts = prompts_response.data if prompts_response.data else []
 
         # Apply filters
@@ -1087,19 +1095,19 @@ def teacher_dashboard():
         unique_grades = sorted(list({p["grade_level"] for p in prompts if p.get("grade_level")}))
         unique_categories = sorted(list({p["assessment_type"] for p in prompts if p.get("assessment_type")}))
 
-        # Count assessment types from ALL prompts
+        # Count assessment types from ALL prompts (based on admin/teacher view)
         written_count = len([p for p in prompts if p.get("assessment_type") == "written"])
         mcq_count = len([p for p in prompts if p.get("assessment_type") == "mcq"])
         mixed_count = len([p for p in prompts if p.get("assessment_type") == "mixed"])
 
-        # Get submissions for each prompt - FIXED: No join needed
+        # Get submissions for each prompt
         prompt_stats = {}
-        all_school_submissions = []  # Track all submissions for this school
+        all_school_submissions = []
         
         for prompt in prompts:
             submissions_res = supabase.table("submissions").select("*").eq("prompt_id", prompt['id']).execute()
             submissions = submissions_res.data if submissions_res.data else []
-            all_school_submissions.extend(submissions)  # Collect for school totals
+            all_school_submissions.extend(submissions)
             
             graded = len([s for s in submissions if s.get('grade') is not None])
             total = len(submissions)
@@ -1115,7 +1123,7 @@ def teacher_dashboard():
         
         active_students = len([s for s in all_students if s.get('approval_status') == 'approved'])
         
-        # 🎯 FIXED: Calculate completion rate properly
+        # Calculate completion rate properly
         total_possible_submissions = len(prompts) * len(all_students)
         actual_submissions = len(all_school_submissions)
         
@@ -1127,12 +1135,12 @@ def teacher_dashboard():
             "total_students": len(all_students),
             "active_students": active_students,
             "total_submissions": len(all_school_submissions),
-            "average_completion_rate": completion_rate  # 🎯 Now calculated properly
+            "average_completion_rate": completion_rate
         }
 
         # Student progress (basic)
         student_progress = []
-        for student in all_students[:5]:  # Show first 5 students
+        for student in all_students[:5]:
             student_submissions = len([s for s in all_school_submissions if s['student_id'] == student['username']])
             
             # Calculate student's completion rate
@@ -1145,7 +1153,7 @@ def teacher_dashboard():
                 'username': student['username'],
                 'grade_level': student.get('grade', 'N/A'),
                 'submissions_count': student_submissions,
-                'average_grade': 75,  # Placeholder
+                'average_grade': 75,
                 'completion_rate': student_completion
             })
 
