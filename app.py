@@ -1620,7 +1620,7 @@ def student_dashboard():
         # Get ALL prompts for the student's school
         if session['user_id'] == 'sirius':
             prompts_response = supabase.table('prompts').select('*').execute()
-            prompts = prompts_response.data if prompts_response.data else []
+            all_prompts = prompts_response.data if prompts_response.data else []
         else:
             prompts_response = supabase.table('prompts')\
                 .select('*')\
@@ -1629,13 +1629,22 @@ def student_dashboard():
             
             all_prompts = prompts_response.data if prompts_response.data else []
             print(f"🎯 DEBUG 2: Found {len(all_prompts)} total prompts for school {user['school_id']}")
+        
+        # ✅ FIXED: Filter prompts by student's grade level
+        prompts = []
+        for prompt in all_prompts:
+            prompt_grade = str(prompt.get('grade_level', ''))
+            student_grade = str(user.get('grade', ''))
             
-            # Show ALL prompts found (no filtering)
-            prompts = all_prompts
-            
-            # Debug: Print each prompt found
-            for i, prompt in enumerate(prompts):
-                print(f"🎯 DEBUG Prompt {i+1}: '{prompt['title']}' | Grade: '{prompt.get('grade_level')}' | School: '{prompt.get('school_id')}'")
+            # Show prompt if grade matches OR if prompt has no grade specified
+            if not prompt_grade or prompt_grade == student_grade:
+                prompts.append(prompt)
+        
+        print(f"🎯 DEBUG 2.5: After grade filtering - {len(prompts)} prompts for grade {user.get('grade')}")
+        
+        # Debug: Print each prompt found
+        for i, prompt in enumerate(prompts):
+            print(f"🎯 DEBUG Prompt {i+1}: '{prompt['title']}' | Grade: '{prompt.get('grade_level')}' | School: '{prompt.get('school_id')}'")
         
         # Get student's submissions
         if session['user_id'] == 'sirius':
@@ -1901,7 +1910,7 @@ def submit_response(prompt_id):
 @app.route('/student/assessment/<prompt_id>', methods=['GET', 'POST'])
 @login_required
 def take_assessment(prompt_id):
-    """Student interface for taking assessments - UPDATED with percentage grading"""
+    """Student interface for taking assessments - ENHANCED with file upload"""
     supabase = get_supabase()
     if not supabase:
         flash('Database connection error.', 'danger')
@@ -1939,9 +1948,33 @@ def take_assessment(prompt_id):
         if request.method == 'POST':
             written_response = request.form.get('written_response', '').strip()
             
+            # ✅ ENHANCED: Handle file upload
+            uploaded_file = None
+            file_url = None
+            if 'submission_file' in request.files:
+                file = request.files['submission_file']
+                if file and file.filename != '' and allowed_file(file.filename):
+                    if validate_file_size(file):
+                        try:
+                            # Upload to Supabase Storage
+                            file_path = f"submissions/{prompt_id}/{session['user_id']}/{secure_filename(file.filename)}"
+                            storage_response = supabase.storage.from_("study-materials").upload(
+                                file_path,
+                                file.read()
+                            )
+                            file_url = supabase.storage.from_("study-materials").get_public_url(file_path)
+                            uploaded_file = file.filename
+                        except Exception as e:
+                            logger.error(f"File upload error: {e}")
+                            flash('Error uploading file. Please try again.', 'warning')
+                    else:
+                        flash('File too large. Maximum size is 16MB.', 'warning')
+                elif file and file.filename != '':
+                    flash('Invalid file type. Allowed: PDF, DOC, DOCX, TXT, PPT, PPTX, JPG, JPEG, PNG', 'warning')
+            
             # Validate written response for written/mixed assessments
-            if prompt.get('assessment_type') in ['written', 'mixed'] and not written_response:
-                flash('Written response is required.', 'danger')
+            if prompt.get('assessment_type') in ['written', 'mixed'] and not written_response and not uploaded_file:
+                flash('Please provide a written response or upload a file.', 'danger')
                 return render_template('take_assessment.html', prompt=prompt, questions=questions, user=user)
 
             # Create submission
@@ -1951,7 +1984,9 @@ def take_assessment(prompt_id):
                 'prompt_id': prompt_id,
                 'student_id': session['user_id'],
                 'response': written_response,
-                'submitted_at': datetime.now().isoformat()
+                'submitted_at': datetime.now().isoformat(),
+                'file_attachment': uploaded_file,  # Store filename
+                'file_url': file_url  # Store Supabase URL
             }
 
             # Insert submission
@@ -1961,7 +1996,7 @@ def take_assessment(prompt_id):
                 flash('Failed to submit assessment.', 'danger')
                 return render_template('take_assessment.html', prompt=prompt, questions=questions, user=user)
 
-            # Handle MCQ responses - UPDATED WITH PERCENTAGE GRADING
+            # Handle MCQ responses
             if prompt.get('assessment_type') in ['mcq', 'mixed'] and questions:
                 question_responses = []
                 correct_answers = 0
@@ -1982,6 +2017,7 @@ def take_assessment(prompt_id):
                             is_correct = (student_answer == question['correct_answer'])
                             if is_correct:
                                 correct_answers += 1
+                                points_earned = question.get('points', 1)
                         
                         response_data = {
                             'id': f"resp_{question['id']}_{session['user_id']}",
@@ -1999,7 +2035,7 @@ def take_assessment(prompt_id):
                 if question_responses:
                     supabase.table('question_responses').insert(question_responses).execute()
                     
-                    # Calculate percentage score for MCQ-only assessments - UPDATED
+                    # Calculate percentage score for MCQ-only assessments
                     if prompt.get('assessment_type') == 'mcq' and total_questions > 0:
                         percentage_score = (correct_answers / total_questions) * 100
                         supabase.table('submissions').update({
@@ -2007,7 +2043,7 @@ def take_assessment(prompt_id):
                             'graded_at': datetime.now().isoformat()
                         }).eq('id', submission_id).execute()
 
-            flash('Assessment submitted successfully!', 'success')
+            flash('Assessment submitted successfully!' + (f' File "{uploaded_file}" uploaded.' if uploaded_file else ''), 'success')
             return redirect(url_for('student_dashboard'))
 
         return render_template('take_assessment.html', prompt=prompt, questions=questions, user=user)
@@ -2070,6 +2106,62 @@ def view_feedback(submission_id):
     except Exception as e:
         logger.error(f"View feedback error: {e}")
         flash('Error loading feedback.', 'danger')
+        return redirect(url_for('student_dashboard'))
+    
+@app.route('/student/materials')
+@student_required
+def student_materials():
+    """Student view of study materials - FIXED VERSION with enhanced features"""
+    supabase = get_supabase()
+    if not supabase:
+        flash('Database connection error.', 'danger')
+        return redirect(url_for('student_dashboard'))
+    
+    try:
+        # Handle Sirius differently
+        if session['user_id'] == 'sirius':
+            # Sirius can view any materials - use selected school context
+            user_data = {
+                'school_id': session.get('current_school_id'),
+                'grade': '9'  # Default grade for demo
+            }
+            if not user_data['school_id']:
+                flash('Please select a school first using the school switcher.', 'warning')
+                return redirect(url_for('super_admin_dashboard'))
+        else:
+            # Regular student
+            user_response = supabase.table('users').select('school_id, grade').eq('username', session['user_id']).execute()
+            if not user_response.data:
+                flash('User data not found.', 'danger')
+                return redirect(url_for('student_dashboard'))
+            user_data = user_response.data[0]
+        
+        # Get materials for student's grade and school
+        materials_response = supabase.table('study_materials')\
+            .select('*')\
+            .eq('school_id', user_data['school_id'])\
+            .eq('grade_level', user_data['grade'])\
+            .order('created_at', desc=True)\
+            .execute()
+        
+        materials = materials_response.data if materials_response.data else []
+        
+        # Organize materials by subject for better display
+        materials_by_subject = {}
+        for material in materials:
+            subject = material.get('subject', 'General')
+            if subject not in materials_by_subject:
+                materials_by_subject[subject] = []
+            materials_by_subject[subject].append(material)
+        
+        return render_template('student_materials.html', 
+                             materials=materials,
+                             materials_by_subject=materials_by_subject,
+                             user=user_data)
+        
+    except Exception as e:
+        logger.error(f"Student materials error: {e}")
+        flash('Error loading study materials.', 'danger')
         return redirect(url_for('student_dashboard'))
 
 # =============================================
