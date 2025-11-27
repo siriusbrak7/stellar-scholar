@@ -1717,8 +1717,8 @@ def student_dashboard():
         else:
             materials_response = supabase.table('study_materials')\
                 .select('id')\
-                .eq('school_id', user['school_id'])\
-                .eq('grade_level', user['grade'])\
+                .eq('school_id', user_data['school_id'])\
+                .eq('grade_level', user_data['grade'])\
                 .execute()
         
         materials_count = len(materials_response.data) if materials_response.data else 0
