@@ -1426,7 +1426,10 @@ def grade_submissions(prompt_id):
             flash('You can only grade submissions for prompts you created.', 'danger')
             return redirect(url_for('teacher_dashboard'))
         
-        # ... rest of your existing code remains the same
+        if request.method == 'POST':
+            submission_id = request.form.get('submission_id')
+            grade = request.form.get('grade')
+            feedback = request.form.get('feedback', '').strip()
             
             if submission_id:
                 try:
@@ -1462,11 +1465,14 @@ def grade_submissions(prompt_id):
             user_response = supabase.table('users').select('grade').eq('username', sub['student_id']).execute()
             student_grade = user_response.data[0]['grade'] if user_response.data else 'N/A'
             
+            # ✅ ENHANCED: Include file attachment info
             prompt_submissions.append({
                 'id': sub['id'],
                 'student_username': sub['student_id'],
                 'student_grade': student_grade,
                 'response': sub['response'],
+                'file_attachment': sub.get('file_attachment'),  # ✅ Added
+                'file_url': sub.get('file_url'),  # ✅ Added
                 'grade': sub.get('grade'),
                 'feedback': sub.get('feedback', ''),
                 'submitted_at': sub['submitted_at']
