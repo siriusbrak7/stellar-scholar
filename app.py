@@ -4312,6 +4312,52 @@ def debug_database_check():
     except Exception as e:
         return f"❌ Database error: {str(e)}"
 
+    @app.route('/emergency-restore-users')
+def emergency_restore_users():
+    """Emergency restore essential admin users"""
+    supabase = get_supabase()
+    
+    if not supabase:
+        return "❌ Supabase connection failed"
+    
+    try:
+        # Restore sirius (super admin)
+        sirius_data = {
+            'username': 'sirius',
+            'password_hash': generate_password_hash('sirius123'),  # Change this password after
+            'role': 'teacher', 
+            'approval_status': 'approved',
+            'is_admin': True,
+            'school_id': None,  # Sirius has no school
+            'created_at': datetime.now().isoformat()
+        }
+        
+        # Restore a school admin
+        admin_data = {
+            'username': 'admin',
+            'password_hash': generate_password_hash('admin123'),  # Change this password after
+            'role': 'teacher',
+            'approval_status': 'approved', 
+            'is_admin': True,
+            'school_id': 'school_demo_academy',
+            'created_at': datetime.now().isoformat()
+        }
+        
+        # Insert users
+        result1 = supabase.table('users').insert(sirius_data).execute()
+        result2 = supabase.table('users').insert(admin_data).execute()
+        
+        return f"""
+        <h3>✅ Emergency Users Restored</h3>
+        <p><strong>sirius</strong> - Super Admin (password: sirius123)</p>
+        <p><strong>admin</strong> - School Admin (password: admin123)</p>
+        <p><em>Change these passwords immediately after login!</em></p>
+        <a href="/login" class="btn btn-primary">Go to Login</a>
+        """
+        
+    except Exception as e:
+        return f"❌ Restore failed: {str(e)}"
+
 # =============================================
 # ✅ APPLICATION STARTUP
 # =============================================
