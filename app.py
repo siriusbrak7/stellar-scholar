@@ -4358,6 +4358,34 @@ def emergency_restore_users():
     except Exception as e:
         return f"❌ Restore failed: {str(e)}"
 
+@app.route('/debug-connection')
+def debug_connection():
+    """Check which Supabase project we're connected to"""
+    import os
+    supabase = get_supabase()
+    
+    url = os.environ.get('SUPABASE_URL', '')
+    project_id = url.split('//')[1].split('.')[0] if '//' in url else 'Unknown'
+    
+    try:
+        # Test direct query
+        test = supabase.table('users').select('count', count='exact').execute()
+        
+        return f"""
+        <h3>Connection Debug</h3>
+        <p><strong>Project ID:</strong> {project_id}</p>
+        <p><strong>URL:</strong> {url[:50]}...</p>
+        <p><strong>User Count:</strong> {test.count if hasattr(test, 'count') else 'N/A'}</p>
+        <p><strong>Can query users:</strong> {bool(test)}</p>
+        """
+    except Exception as e:
+        return f"""
+        <h3>Connection Debug</h3>
+        <p><strong>Project ID:</strong> {project_id}</p>
+        <p><strong>URL:</strong> {url[:50]}...</p>
+        <p><strong>Error:</strong> {str(e)}</p>
+        """
+
 # =============================================
 # ✅ APPLICATION STARTUP
 # =============================================
