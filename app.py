@@ -4285,6 +4285,33 @@ def debug_token(username):
     except Exception as e:
         return f"Error: {e}"
 
+@app.route('/debug/database-check')
+def debug_database_check():
+    """Check if database is accessible and what tables exist"""
+    supabase = get_supabase()
+    
+    if not supabase:
+        return "❌ Supabase connection failed"
+    
+    try:
+        # Check if users table exists and has data
+        users_response = supabase.table('users').select('username, role, approval_status').limit(5).execute()
+        schools_response = supabase.table('schools').select('*').limit(5).execute()
+        
+        return f"""
+        <h3>Database Status Check</h3>
+        <p><strong>Users table:</strong> {len(users_response.data) if users_response.data else 0} records</p>
+        <p><strong>Schools table:</strong> {len(schools_response.data) if schools_response.data else 0} records</p>
+        
+        <h4>Sample Users:</h4>
+        <pre>{users_response.data if users_response.data else 'No users found'}</pre>
+        
+        <h4>Sample Schools:</h4>
+        <pre>{schools_response.data if schools_response.data else 'No schools found'}</pre>
+        """
+    except Exception as e:
+        return f"❌ Database error: {str(e)}"
+
 # =============================================
 # ✅ APPLICATION STARTUP
 # =============================================
