@@ -4380,6 +4380,26 @@ def debug_connection():
     <p><strong>Full URL:</strong> {url}</p>
     """
 
+@app.route('/debug-users-direct')
+def debug_users_direct():
+    """Direct user query test"""
+    supabase = get_supabase()
+    
+    try:
+        # Try different query methods
+        result1 = supabase.table('users').select('*').execute()
+        result2 = supabase.from_('users').select('*').execute()
+        
+        return f"""
+        <h3>Direct User Query Test</h3>
+        <p>Method 1 (table): {len(result1.data) if result1.data else 'No data'}</p>
+        <p>Method 2 (from_): {len(result2.data) if result2.data else 'No data'}</p>
+        <p>Raw response 1: {result1}</p>
+        <p>Raw response 2: {result2}</p>
+        """
+    except Exception as e:
+        return f"Query error: {str(e)}"
+
 # =============================================
 # ✅ APPLICATION STARTUP
 # =============================================
