@@ -4312,7 +4312,7 @@ def debug_database_check():
     except Exception as e:
         return f"❌ Database error: {str(e)}"
 
-    @app.route('/emergency-restore-users')
+@app.route('/emergency-restore-users')
 def emergency_restore_users():
     """Emergency restore essential admin users"""
     supabase = get_supabase()
