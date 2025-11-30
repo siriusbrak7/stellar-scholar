@@ -4360,31 +4360,25 @@ def emergency_restore_users():
 
 @app.route('/debug-connection')
 def debug_connection():
-    """Check which Supabase project we're connected to"""
+    """Simple connection test"""
     import os
-    supabase = get_supabase()
     
-    url = os.environ.get('SUPABASE_URL', '')
-    project_id = url.split('//')[1].split('.')[0] if '//' in url else 'Unknown'
+    url = os.environ.get('SUPABASE_URL', 'Not set')
+    key_exists = bool(os.environ.get('SUPABASE_KEY'))
     
-    try:
-        # Test direct query
-        test = supabase.table('users').select('count', count='exact').execute()
-        
-        return f"""
-        <h3>Connection Debug</h3>
-        <p><strong>Project ID:</strong> {project_id}</p>
-        <p><strong>URL:</strong> {url[:50]}...</p>
-        <p><strong>User Count:</strong> {test.count if hasattr(test, 'count') else 'N/A'}</p>
-        <p><strong>Can query users:</strong> {bool(test)}</p>
-        """
-    except Exception as e:
-        return f"""
-        <h3>Connection Debug</h3>
-        <p><strong>Project ID:</strong> {project_id}</p>
-        <p><strong>URL:</strong> {url[:50]}...</p>
-        <p><strong>Error:</strong> {str(e)}</p>
-        """
+    # Simple project ID extraction
+    if '//' in url:
+        project_id = url.split('//')[1].split('.')[0]
+    else:
+        project_id = 'Unknown'
+    
+    return f"""
+    <h3>Supabase Connection</h3>
+    <p><strong>Project ID:</strong> {project_id}</p>
+    <p><strong>URL exists:</strong> {bool(url)}</p>
+    <p><strong>Key exists:</strong> {key_exists}</p>
+    <p><strong>Full URL:</strong> {url}</p>
+    """
 
 # =============================================
 # ✅ APPLICATION STARTUP
