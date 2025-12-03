@@ -4466,13 +4466,24 @@ def topic_checkpoint(topic_id):
     if not topic:
         flash('Topic not found.', 'danger')
         return redirect(url_for('biology_course'))
-    
-    # Get biology questions for this topic
-    questions_response = supabase.table('biology_questions').select('*').eq('topic_id', topic_id).execute()
+
+    # --- NEW: Get user's education level ---
+    user_response = supabase.table('users').select('education_level').eq('username', session['user_id']).execute()
+    user_level = user_response.data[0]['education_level'] if user_response.data and user_response.data[0].get('education_level') else 'IGCSE'
+
+    # --- UPDATED: Get biology questions matching topic AND user level ---
+    questions_response = (
+        supabase.table('biology_questions')
+        .select('*')
+        .eq('topic_id', topic_id)
+        .eq('level', user_level)
+        .execute()
+    )
+
     questions = questions_response.data if questions_response.data else []
     
     if not questions:
-        flash('No questions available for this topic yet.', 'warning')
+        flash(f'No {user_level} questions available for this topic yet.', 'warning')
         return redirect(url_for('topic_detail', topic_id=topic_id))
     
     # Shuffle questions (limit to 10 for checkpoint)
@@ -4481,6 +4492,7 @@ def topic_checkpoint(topic_id):
     questions = questions[:10]
     
     return render_template('topic_checkpoint.html', topic=topic, questions=questions)
+
 
 @app.route('/topic/<topic_id>/submit-checkpoint', methods=['POST'])
 @student_required
