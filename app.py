@@ -4398,6 +4398,125 @@ def debug_users_direct():
     except Exception as e:
         return f"Query error: {str(e)}"
 
+@app.route('/biology-course')
+@student_required
+def biology_course():
+    """Main biology course dashboard"""
+    supabase = get_supabase()
+    
+    # Get all topics with student progress
+    topics_response = supabase.table('topics').select('*').order('order_number').execute()
+    topics = topics_response.data if topics_response.data else []
+    
+    # Get student's progress
+    progress_response = supabase.table('topic_progress').select('*').eq('student_id', session['user_id']).execute()
+    progress_dict = {p['topic_id']: p for p in progress_response.data} if progress_response.data else {}
+    
+    # Enhance topics with progress
+    for topic in topics:
+        topic['progress'] = progress_dict.get(topic['id'], {'status': 'not_started'})
+    
+    return render_template('biology_course.html', topics=topics)
+
+@app.route('/topic/<topic_id>')
+@student_required
+def topic_detail(topic_id):
+    """Individual topic page with learning activities"""
+    supabase = get_supabase()
+    
+    # Get topic details
+    topic_response = supabase.table('topics').select('*').eq('id', topic_id).execute()
+    topic = topic_response.data[0] if topic_response.data else None
+    
+    if not topic:
+        flash('Topic not found.', 'danger')
+        return redirect(url_for('biology_course'))
+    
+    # Get student progress
+    progress_response = supabase.table('topic_progress').select('*').eq('student_id', session['user_id']).eq('topic_id', topic_id).execute()
+    progress = progress_response.data[0] if progress_response.data else None
+    
+    # Get biology materials for this topic (filtered by tags)
+    materials_response = supabase.table('study_materials').select('*').eq('subject', 'biology').execute()
+    materials = materials_response.data if materials_response.data else []
+    
+    return render_template('topic_detail.html', topic=topic, progress=progress, materials=materials)
+
+@app.route('/topic/<topic_id>/checkpoint')
+@student_required
+def topic_checkpoint(topic_id):
+    """Checkpoint quiz for a topic"""
+    supabase = get_supabase()
+    
+    # Get topic details
+    topic_response = supabase.table('topics').select('*').eq('id', topic_id).execute()
+    topic = topic_response.data[0] if topic_response.data else None
+    
+    if not topic:
+        flash('Topic not found.', 'danger')
+        return redirect(url_for('biology_course'))
+    
+    # Get biology questions for this topic
+    questions_response = supabase.table('biology_questions').select('*').eq('topic_id', topic_id).execute()
+    questions = questions_response.data if questions_response.data else []
+    
+    if not questions:
+        flash('No questions available for this topic yet.', 'warning')
+        return redirect(url_for('topic_detail', topic_id=topic_id))
+    
+    # Shuffle questions (limit to 10 for checkpoint)
+    import random
+    random.shuffle(questions)
+    questions = questions[:10]
+    
+    return render_template('topic_checkpoint.html', topic=topic, questions=questions)
+
+@app.route('/topic/<topic_id>/submit-checkpoint', methods=['POST'])
+@student_required
+def submit_checkpoint(topic_id):
+    """Submit checkpoint quiz results"""
+    supabase = get_supabase()
+    
+    # Calculate score
+    form_data = dict(request.form)
+    form_data.pop('csrf_token', None)
+    
+    # Get correct answers
+    questions_response = supabase.table('biology_questions').select('id, correct_answer').eq('topic_id', topic_id).execute()
+    correct_answers = {q['id']: q['correct_answer'] for q in questions_response.data}
+    
+    # Score calculation
+    score = 0
+    total = len(form_data)
+    
+    for q_id, student_answer in form_data.items():
+        if q_id in correct_answers and student_answer.upper() == correct_answers[q_id].upper():
+            score += 1
+    
+    percentage = round((score / total) * 100) if total > 0 else 0
+    passed = percentage >= 70  # 70% passing threshold
+    
+    # Update topic progress
+    progress_data = {
+        'student_id': session['user_id'],
+        'topic_id': topic_id,
+        'status': 'completed' if passed else 'in_progress',
+        'checkpoint_score': percentage,
+        'checkpoint_passed': passed,
+        'completed_at': datetime.now().isoformat() if passed else None
+    }
+    
+    # Upsert progress
+    supabase.table('topic_progress').upsert(progress_data, on_conflict='student_id,topic_id').execute()
+    
+    # Redirect with result
+    if passed:
+        flash(f'✅ Congratulations! You passed with {percentage}%. Next topic unlocked!', 'success')
+    else:
+        flash(f'❌ You scored {percentage}%. Need 70% to pass. Review and try again.', 'warning')
+    
+    return redirect(url_for('topic_detail', topic_id=topic_id))
+
 # =============================================
 # ✅ APPLICATION STARTUP
 # =============================================
