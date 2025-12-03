@@ -66,11 +66,6 @@
                                 <option value="english">English</option>
                                 <option value="history">History</option>
                                 <option value="geography">Geography</option>
-                                <option value="art">Art</option>
-                                <option value="music">Music</option>
-                                <option value="pe">Physical Education</option>
-                                <option value="computers">Computer Science</option>
-                                <option value="language">Foreign Language</option>
                             </select>
                             <small class="form-text text-muted">
                                 Hold Ctrl/Cmd to select multiple subjects
@@ -106,6 +101,18 @@
                             </select>
                         </div>
 
+                        <!-- For Students Only -->
+                            {% if role == 'student' %}
+                        <div class="mb-3">
+                                <label class="form-label">Education Level</label>
+                                <select name="education_level" class="form-control" required>
+                                <option value="IGCSE">IGCSE (Years 7-10)</option>
+                                <option value="AS">AS Level (Year 11)</option>
+                                <option value="A_LEVEL">A Level (Year 12)</option>
+                            </select>
+                        </div>
+                            {% endif %}
+                            
                         <!-- Security Questions -->
                         <div class="mb-3">
                             <label for="security_question" class="form-label">Security Question</label>
