@@ -762,6 +762,13 @@ def register():
         security_question = request.form.get('security_question', '').strip()
         security_answer = request.form.get('security_answer', '').strip()
         school_id = request.form.get('school_id')
+
+        # NEW: Get education level for students
+        education_level = None
+        if role == 'student':
+            education_level = request.form.get('education_level')
+            if not education_level:
+                education_level = 'IGCSE'  # Default
         
         # Get subjects for teachers
         subjects = []
@@ -797,6 +804,10 @@ def register():
             # Add grade if student
             if role == 'student' and grade:
                 user_data['grade'] = grade
+
+            # NEW: Add education level
+            if role == 'student' and education_level:
+                user_data['education_level'] = education_level
 
             # Add subjects if teacher
             if role == 'teacher' and subjects:

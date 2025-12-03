@@ -54,7 +54,13 @@
                             {% endfor %}
                         </div>
                         {% else %}
-                        <p class="text-muted">No materials available yet.</p>
+                        <p><strong>Instructions:</strong></p>
+                        <ol>
+                            <li>Go to <a href="{{ url_for('student_materials') }}">Study Materials</a></li>
+                            <li>Filter by Subject: <strong>Biology</strong></li>
+                            <li>Filter by Tags: <strong>{{ topic.title }}</strong></li>
+                            <li>Review all materials tagged for this topic</li>
+                        </ol>
                         {% endif %}
                     </div>
 
