@@ -43,6 +43,13 @@ except Exception as e:
 # ✅ CSRF PROTECTION INITIALIZATION
 # =============================================
 csrf = CSRFProtect(app)
+# Exempt authentication routes from CSRF
+csrf.exempt('login')
+csrf.exempt('register')
+csrf.exempt('forgot_password')
+csrf.exempt('verify_security')
+csrf.exempt('reset_with_answer')
+csrf.exempt('reset_password')
 
 # =============================================
 # ✅ FILE UPLOAD CONFIGURATION
