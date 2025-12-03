@@ -15,7 +15,7 @@ from config import Config
 from werkzeug.security import generate_password_hash, check_password_hash
 from supabase import create_client, Client
 import logging
-from flask_wtf.csrf import CSRFProtect
+
 
 # =============================================
 # ✅ FLASK APP INITIALIZATION
@@ -39,17 +39,6 @@ except Exception as e:
     app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=7)
    
 
-# =============================================
-# ✅ CSRF PROTECTION INITIALIZATION
-# =============================================
-csrf = CSRFProtect(app)
-# Exempt authentication routes from CSRF
-csrf.exempt('login')
-csrf.exempt('register')
-csrf.exempt('forgot_password')
-csrf.exempt('verify_security')
-csrf.exempt('reset_with_answer')
-csrf.exempt('reset_password')
 
 # =============================================
 # ✅ FILE UPLOAD CONFIGURATION
