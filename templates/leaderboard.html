@@ -54,12 +54,12 @@
     </div>
 
     <script>
-    document.getElementById('schoolFilter').addEventListener('change', function() {
-        const schoolId = this.value;
-        const currentUrl = new URL(window.location.href);
-        currentUrl.searchParams.set('school', schoolId);
-        window.location.href = currentUrl.toString();
-    });
+        document.getElementById('schoolFilter').addEventListener('change', function() {
+            const schoolId = this.value;
+            const currentUrl = new URL(window.location.href);
+            currentUrl.searchParams.set('school', schoolId);
+            window.location.href = currentUrl.toString();
+        });
     </script>
     {% endif %}
 
@@ -87,47 +87,64 @@
                         <td class="rank-cell">
                             <div class="rank-badge">
                                 {% if student.rank == 1 %}🥇
-                                {% elif student.rank == 2 %}🥈  
+                                {% elif student.rank == 2 %}🥈
                                 {% elif student.rank == 3 %}🥉
                                 {% else %}#{{ student.rank }}
                                 {% endif %}
                             </div>
                         </td>
+
                         <td>
                             <div class="student-info">
                                 <span class="student-avatar">{{ ['🚀', '👨‍🚀', '👩‍🚀', '🛸', '🌟'] | random }}</span>
                                 <strong>{{ student.username }}</strong>
                             </div>
                         </td>
+
                         <td>Grade {{ student.grade_level }}</td>
+
                         <td>
-                            <span class="score-badge {{ 'legendary' if student.avg_score >= 90 else 'epic' if student.avg_score >= 80 else 'rare' if student.avg_score >= 70 else 'common' }}">
+                            <span class="score-badge
+                                {{ 'legendary' if student.avg_score >= 90 else
+                                   'epic' if student.avg_score >= 80 else
+                                   'rare' if student.avg_score >= 70 else
+                                   'common' }}">
                                 {{ student.avg_score }}%
                             </span>
                         </td>
+
                         <td>
                             <div class="completion-container">
                                 <div class="cosmic-progress">
-                                    <div class="progress-fill {{ 'legendary' if student.completion_rate >= 90 else 'epic' if student.completion_rate >= 80 else 'rare' if student.completion_rate >= 70 else 'common' }}" 
+                                    <div class="progress-fill
+                                        {{ 'legendary' if student.completion_rate >= 90 else
+                                           'epic' if student.completion_rate >= 80 else
+                                           'rare' if student.completion_rate >= 70 else
+                                           'common' }}"
                                          style="width: {{ student.completion_rate }}%">
                                         <span class="progress-text">{{ student.completion_rate }}%</span>
                                     </div>
                                 </div>
                             </div>
                         </td>
+
                         {% if session.user_id == 'sirius' %}
                         <td>
                             <span class="school-badge">
                                 {% for school in available_schools %}
-                                    {% if school.id == student.school_id %}{{ school.name }}{% endif %}
+                                    {% if school.id == student.school_id %}
+                                        {{ school.name }}
+                                    {% endif %}
                                 {% endfor %}
                             </span>
                         </td>
                         {% endif %}
+
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
+
             {% else %}
             <div class="empty-state text-center py-5">
                 <div class="empty-icon">🌌</div>
@@ -140,6 +157,7 @@
 </div>
 
 <style>
+/* === Cosmic Layout === */
 .cosmic-leaderboard {
     background: linear-gradient(135deg, #0a0e27 0%, #16213e 100%);
     min-height: 100vh;
@@ -147,232 +165,95 @@
     color: white;
 }
 
-.cosmic-header {
-    margin-bottom: 2rem;
-}
-
+/* === Header === */
 .cosmic-title {
     font-size: 3rem;
     font-weight: 700;
     background: linear-gradient(45deg, #FFD700, #32CD32, #4ECDC4);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
-    background-clip: text;
-    margin-bottom: 0.5rem;
 }
-
 .cosmic-subtitle {
-    font-size: 1.2rem;
     color: #FFD700;
     opacity: 0.9;
 }
 
+/* === Filters === */
 .cosmic-filter-card {
-    background: rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(255,255,255,0.1);
     border-radius: 15px;
     padding: 1rem;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,0.2);
 }
 
 .filter-body {
     display: flex;
-    align-items: center;
     gap: 1rem;
     flex-wrap: wrap;
+    align-items: center;
 }
 
 .filter-label {
     color: #FFD700;
     font-weight: 600;
-    margin: 0;
-    white-space: nowrap;
 }
 
 .cosmic-select {
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.3);
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.3);
     border-radius: 8px;
     color: white;
     padding: 0.5rem 1rem;
     min-width: 200px;
 }
-
-/* Fix dropdown background */
 .cosmic-select option {
-    background: #1a1a2e; /* Dark cosmic background */
+    background: #1a1a2e;
     color: white;
-    padding: 0.5rem;
 }
 
-.cosmic-select:focus {
-    border-color: #FFD700;
-    box-shadow: 0 0 0 2px rgba(255, 215, 0, 0.2);
-    outline: none;
-}
-
+/* === Table === */
 .cosmic-table-card {
-    background: rgba(255, 255, 255, 0.08);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(255,255,255,0.08);
     border-radius: 15px;
     overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.2);
 }
-
-.cosmic-table {
-    background: transparent;
-    color: white;
-    margin: 0;
-}
-
 .cosmic-table thead {
-    background: rgba(255, 215, 0, 0.2);
-    border-bottom: 2px solid rgba(255, 215, 0, 0.3);
+    background: rgba(255,215,0,0.2);
 }
-
 .cosmic-table th {
     color: #FFD700;
-    font-weight: 600;
-    border: none;
     padding: 1rem;
 }
-
-.cosmic-table td {
-    border-color: rgba(255, 255, 255, 0.1);
-    padding: 1rem;
-    vertical-align: middle;
-}
-
-.cosmic-row {
-    transition: all 0.3s ease;
-    border-left: 3px solid transparent;
-}
-
 .cosmic-row:hover {
-    background: rgba(255, 255, 255, 0.05);
-    border-left-color: #FFD700;
+    background: rgba(255,255,255,0.05);
+    border-left: 3px solid #FFD700;
     transform: translateX(5px);
 }
 
-.podium-row {
-    background: linear-gradient(90deg, rgba(255, 215, 0, 0.1), transparent);
-}
-
-.rank-cell {
-    text-align: center;
-}
-
-.rank-badge {
-    display: inline-block;
-    padding: 0.5rem 1rem;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 20px;
-    font-weight: 700;
-    font-size: 1.1rem;
-    min-width: 50px;
-}
-
-.student-info {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-}
-
-.student-avatar {
-    font-size: 1.5rem;
-}
-
-.score-badge {
-    padding: 0.5rem 1rem;
-    border-radius: 20px;
-    font-weight: 600;
-    font-size: 0.9rem;
-}
-
+/* === Badges & Progress === */
 .score-badge.legendary { background: linear-gradient(45deg, #FFD700, #FF6B6B); color: black; }
-.score-badge.epic { background: linear-gradient(45deg, #9B59B6, #3498DB); color: white; }
-.score-badge.rare { background: linear-gradient(45deg, #3498DB, #2ECC71); color: white; }
-.score-badge.common { background: linear-gradient(45deg, #95A5A6, #7F8C8D); color: white; }
-
-.completion-container {
-    min-width: 150px;
-}
-
-.cosmic-progress {
-    height: 25px;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 12px;
-    overflow: hidden;
-    position: relative;
-}
-
-.progress-fill {
-    height: 100%;
-    border-radius: 12px;
-    position: relative;
-    transition: width 0.5s ease;
-}
+.score-badge.epic      { background: linear-gradient(45deg, #9B59B6, #3498DB); }
+.score-badge.rare      { background: linear-gradient(45deg, #3498DB, #2ECC71); }
+.score-badge.common    { background: linear-gradient(45deg, #95A5A6, #7F8C8D); }
 
 .progress-fill.legendary { background: linear-gradient(90deg, #FFD700, #32CD32); }
-.progress-fill.epic { background: linear-gradient(90deg, #9B59B6, #3498DB); }
-.progress-fill.rare { background: linear-gradient(90deg, #3498DB, #2ECC71); }
-.progress-fill.common { background: linear-gradient(90deg, #95A5A6, #7F8C8D); }
+.progress-fill.epic      { background: linear-gradient(90deg, #9B59B6, #3498DB); }
+.progress-fill.rare      { background: linear-gradient(90deg, #3498DB, #2ECC71); }
+.progress-fill.common    { background: linear-gradient(90deg, #95A5A6, #7F8C8D); }
 
-.progress-text {
-    position: absolute;
-    right: 10px;
-    top: 50%;
-    transform: translateY(-50%);
-    font-size: 0.8rem;
-    font-weight: 600;
-    color: white;
-    text-shadow: 0 1px 2px rgba(0,0,0,0.5);
-}
-
-.school-badge {
-    background: rgba(102, 126, 234, 0.3);
-    color: #667eea;
-    padding: 0.25rem 0.75rem;
-    border-radius: 15px;
-    font-size: 0.8rem;
-    font-weight: 600;
-}
-
-.empty-state {
-    padding: 3rem;
-}
-
+/* Empty State */
 .empty-icon {
     font-size: 4rem;
-    margin-bottom: 1rem;
     opacity: 0.7;
-}
-
-.empty-state h4 {
-    color: #FFD700;
-    margin-bottom: 1rem;
 }
 
 /* Responsive */
 @media (max-width: 768px) {
-    .cosmic-title {
-        font-size: 2rem;
-    }
-    
-    .filter-body {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-    
-    .cosmic-select {
-        width: 100%;
-    }
-    
-    .student-info {
-        flex-direction: column;
-        text-align: center;
-        gap: 0.5rem;
-    }
+    .cosmic-title { font-size: 2rem; }
+    .filter-body { flex-direction: column; align-items: flex-start; }
+    .cosmic-select { width: 100%; }
 }
 </style>
 
@@ -384,4 +265,5 @@ document.getElementById('gradeFilter').addEventListener('change', function () {
     window.location.href = currentUrl.toString();
 });
 </script>
+
 {% endblock %}
