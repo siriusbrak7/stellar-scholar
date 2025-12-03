@@ -7,5 +7,5 @@ class Config:
     
     # CSRF Protection
     WTF_CSRF_ENABLED = True
-    WTF_CSRF_SECRET_KEY = os.environ.get('CSRF_SECRET_KEY') or 'your-csrf-secret-key-here'
+    WTF_CSRF_SECRET_KEY = os.environ.get('CSRF_SECRET_KEY')
     # Removed unused email configuration

@@ -15,6 +15,7 @@ from config import Config
 from werkzeug.security import generate_password_hash, check_password_hash
 from supabase import create_client, Client
 import logging
+from flask_wtf.csrf import CSRFProtect
 
 # =============================================
 # ✅ FLASK APP INITIALIZATION
@@ -41,6 +42,7 @@ except Exception as e:
 # =============================================
 # ✅ CSRF PROTECTION INITIALIZATION
 # =============================================
+csrf = CSRFProtect(app)
 
 # =============================================
 # ✅ FILE UPLOAD CONFIGURATION
@@ -48,7 +50,7 @@ except Exception as e:
 
 UPLOAD_FOLDER = 'uploads'
 ALLOWED_EXTENSIONS = {'pdf', 'doc', 'docx', 'txt', 'ppt', 'pptx', 'jpg', 'jpeg', 'png'}
-MAX_FILE_SIZE = 16 * 1024 * 1024  # 16MB
+MAX_FILE_SIZE = 60 * 1024 * 1024  # 16MB
 
 # Create uploads directory if it doesn't exist
 if not os.path.exists(UPLOAD_FOLDER):
