@@ -4,6 +4,7 @@
 <div class="container-fluid">
     <div class="row">
         <div class="col-12">
+
             <!-- Welcome Header -->
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <div>
@@ -75,8 +76,9 @@
                 </div>
             </div>
 
-            <!-- Action Cards Row -->
+            <!-- Action Cards -->
             <div class="row mb-4">
+
                 <!-- Science Revision Card -->
                 <div class="col-md-6">
                     <div class="card h-100">
@@ -90,7 +92,9 @@
                             {% if science_stats.recent_attempts %}
                             <div class="mb-3">
                                 <h6>Recent Quiz Scores:</h6>
+
                                 {% for attempt in science_stats.recent_attempts %}
+
                                     {% if attempt.percentage is defined and attempt.percentage is not none %}
                                         {% set display_percentage = attempt.percentage %}
                                     {% elif attempt.total_questions > 0 %}
@@ -98,7 +102,7 @@
                                     {% else %}
                                         {% set display_percentage = 0 %}
                                     {% endif %}
-                                    
+
                                     <span class="badge 
                                         {% if display_percentage >= 80 %}bg-success
                                         {% elif display_percentage >= 60 %}bg-warning
@@ -106,6 +110,7 @@
                                         {% endif %} me-1">
                                         {{ display_percentage }}%
                                     </span>
+
                                 {% endfor %}
                             </div>
                             {% endif %}
@@ -135,6 +140,7 @@
                             {% if subject_averages %}
                             <div class="mb-3">
                                 <h6>Subject Averages:</h6>
+
                                 {% for subject, average in subject_averages.items() %}
                                 <span class="badge bg-primary me-1">{{ subject }}: {{ average }}%</span>
                                 {% endfor %}
@@ -152,15 +158,17 @@
                         </div>
                     </div>
                 </div>
+
             </div>
 
-            <!-- Recent Assignments -->
+            <!-- Assignments Table -->
             <div class="card mt-4">
                 <div class="card-header">
                     <h5 class="mb-0">📝 All Assignments</h5>
                 </div>
 
                 <div class="card-body">
+
                     {% if prompts %}
                     <div class="table-responsive">
                         <table class="table table-striped">
@@ -194,6 +202,7 @@
                                     <td>
                                         {% if prompt.due_date %}
                                             <small>{{ prompt.due_date[:10] }}</small>
+
                                             {% if prompt.due_date < now.isoformat() %}
                                             <span class="badge bg-danger ms-1">Overdue</span>
                                             {% endif %}
@@ -222,13 +231,11 @@
 
                                     <td>
                                         {% if prompt.has_submitted %}
-                                            <a href="{{ url_for('view_feedback', submission_id=prompt.submission.id) }}" 
-                                               class="btn btn-sm btn-outline-primary">
+                                            <a href="{{ url_for('view_feedback', submission_id=prompt.submission.id) }}" class="btn btn-sm btn-outline-primary">
                                                 View Feedback
                                             </a>
                                         {% else %}
-                                            <a href="{{ url_for('take_assessment', prompt_id=prompt.id) }}" 
-                                               class="btn btn-sm btn-success">
+                                            <a href="{{ url_for('take_assessment', prompt_id=prompt.id) }}" class="btn btn-sm btn-success">
                                                 Submit Work
                                             </a>
                                         {% endif %}
@@ -236,6 +243,7 @@
                                 </tr>
                                 {% endfor %}
                             </tbody>
+
                         </table>
                     </div>
 
@@ -245,6 +253,20 @@
                         <p class="text-muted">Your teachers haven't assigned anything yet.</p>
                     </div>
                     {% endif %}
+
+                </div>
+            </div>
+
+            <!-- NEW: Biology Course Card (added as requested) -->
+            <div class="card mb-4 mt-4">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">🧬 Biology Course</h5>
+                </div>
+                <div class="card-body">
+                    <p>Structured topic progression with checkpoint quizzes.</p>
+                    <a href="{{ url_for('biology_course') }}" class="btn btn-success">
+                        Start Biology Course
+                    </a>
                 </div>
             </div>
 
