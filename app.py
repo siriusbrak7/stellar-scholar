@@ -4410,7 +4410,7 @@ def debug_users_direct():
         return f"Query error: {str(e)}"
 
 @app.route('/biology-course')
-@student_required
+@login_required
 def biology_course():
     """Main biology course dashboard"""
     supabase = get_supabase()
@@ -4430,7 +4430,7 @@ def biology_course():
     return render_template('biology_course.html', topics=topics)
 
 @app.route('/topic/<topic_id>')
-@student_required
+@login_required
 def topic_detail(topic_id):
     """Individual topic page with learning activities"""
     supabase = get_supabase()
@@ -4454,7 +4454,7 @@ def topic_detail(topic_id):
     return render_template('topic_detail.html', topic=topic, progress=progress, materials=materials)
 
 @app.route('/topic/<topic_id>/checkpoint')
-@student_required
+@login_required
 def topic_checkpoint(topic_id):
     """Checkpoint quiz for a topic"""
     supabase = get_supabase()
