@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Learning Activities - {{ topic.title }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Edit Learning Activities: {{ topic.title }}</h2>
+    
+    <div class="card mt-3">
+        <div class="card-header">
+            <h5>JSON Format Example:</h5>
+            <pre class="bg-dark text-white p-2">
+{
+  "instructions": "1. First activity\n2. Second activity",
+  "links": [
+    {"type": "internal", "title": "Study Materials", "url": "/student/materials"},
+    {"type": "external", "title": "External Resource", "url": "https://example.com"}
+  ]
+}</pre>
+        </div>
+        <div class="card-body">
+            <form method="POST">
+                <div class="mb-3">
+                    <label class="form-label">Learning Activities JSON</label>
+                    <textarea name="activities_json" class="form-control" rows="10" style="font-family: monospace;">
+{{ topic.learning_activities|tojson(indent=2) if topic.learning_activities else '{}' }}
+                    </textarea>
+                </div>
+                <button type="submit" class="btn btn-primary">Save Changes</button>
+                <a href="{{ url_for('biology_course') }}" class="btn btn-secondary">Cancel</a>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

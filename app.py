@@ -4540,6 +4540,29 @@ def submit_checkpoint(topic_id):
     
     return redirect(url_for('topic_detail', topic_id=topic_id))
 
+@app.route('/biology-course/teacher/edit/<topic_id>', methods=['GET', 'POST'])
+@teacher_required
+def edit_topic_activities(topic_id):
+    supabase = get_supabase()
+    
+    # Get topic
+    topic_response = supabase.table('topics').select('*').eq('id', topic_id).execute()
+    topic = topic_response.data[0] if topic_response.data else None
+    
+    if request.method == 'POST':
+        activities_json = request.form.get('activities_json', '').strip()
+        try:
+            # Validate JSON
+            json.loads(activities_json)
+            # Update
+            supabase.table('topics').update({'learning_activities': activities_json}).eq('id', topic_id).execute()
+            flash('Activities updated!', 'success')
+            return redirect(url_for('biology_course'))
+        except json.JSONDecodeError:
+            flash('Invalid JSON format', 'danger')
+    
+    return render_template('edit_topic_activities.html', topic=topic)
+
 # =============================================
 # ✅ APPLICATION STARTUP
 # =============================================
