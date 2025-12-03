@@ -16,7 +16,7 @@
         </div>
         <div class="card-body">
             <p class="lead">{{ topic.description }}</p>
-            
+
             <!-- Progress Badge -->
             <div class="mb-3">
                 <span class="badge 
@@ -43,7 +43,7 @@
             <h5 class="mb-0">👨‍🏫 Teacher: Edit Learning Activities</h5>
         </div>
         <div class="card-body">
-            <form method="POST" action="{{ url_for('update_topic_activities', topic_id=topic.id) }}">
+            <form method="POST" action="{{ url_for('edit_topic_activities', topic_id=topic.id) }}">
                 <div class="mb-3">
                     <label class="form-label">Instructions for Students:</label>
                     <textarea name="instructions" class="form-control" rows="4">{{ topic.learning_activities.instructions if topic.learning_activities else '' }}</textarea>
@@ -194,3 +194,4 @@
     </div>
 </div>
 {% endblock %}
+
