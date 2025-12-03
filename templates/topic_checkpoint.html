@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+
+{% block title %}Checkpoint Quiz - {{ topic.title }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <!-- Back navigation -->
+    <a href="{{ url_for('topic_detail', topic_id=topic.id) }}" class="btn btn-outline-secondary mb-4">
+        <i class="fas fa-arrow-left"></i> Back to Topic
+    </a>
+
+    <!-- Quiz Header -->
+    <div class="card mb-4 border-warning">
+        <div class="card-header bg-warning text-dark">
+            <h3 class="mb-0"><i class="fas fa-clipboard-check"></i> Checkpoint Quiz: {{ topic.title }}</h3>
+        </div>
+        <div class="card-body">
+            <div class="alert alert-info">
+                <h5><i class="fas fa-info-circle"></i> Instructions</h5>
+                <ul class="mb-0">
+                    <li>Complete this quiz to unlock the next topic</li>
+                    <li>You need <strong>70% or higher</strong> to pass</li>
+                    <li>Answer all {{ questions|length }} questions</li>
+                    <li>Quiz will auto-submit when time is up</li>
+                </ul>
+            </div>
+
+            <!-- Timer Display -->
+            <div class="text-center mb-4">
+                <div class="badge bg-danger p-3">
+                    <i class="fas fa-clock"></i> Time Remaining: 
+                    <span id="timer">20:00</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quiz Form -->
+    <form id="checkpointForm" action="{{ url_for('submit_checkpoint', topic_id=topic.id) }}" method="POST">
+        {% for question in questions %}
+        <div class="card mb-3">
+            <div class="card-header">
+                <h5 class="mb-0">Question {{ loop.index }}</h5>
+            </div>
+            <div class="card-body">
+                <p class="card-text">{{ question.question_text }}</p>
+                
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="radio" name="{{ question.id }}" id="{{ question.id }}_a" value="A" required>
+                    <label class="form-check-label" for="{{ question.id }}_a">
+                        A. {{ question.option_a }}
+                    </label>
+                </div>
+                
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="radio" name="{{ question.id }}" id="{{ question.id }}_b" value="B">
+                    <label class="form-check-label" for="{{ question.id }}_b">
+                        B. {{ question.option_b }}
+                    </label>
+                </div>
+                
+                {% if question.option_c %}
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="radio" name="{{ question.id }}" id="{{ question.id }}_c" value="C">
+                    <label class="form-check-label" for="{{ question.id }}_c">
+                        C. {{ question.option_c }}
+                    </label>
+                </div>
+                {% endif %}
+                
+                {% if question.option_d %}
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="radio" name="{{ question.id }}" id="{{ question.id }}_d" value="D">
+                    <label class="form-check-label" for="{{ question.id }}_d">
+                        D. {{ question.option_d }}
+                    </label>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+
+        <!-- Submit Button -->
+        <div class="text-center mb-5">
+            <button type="submit" class="btn btn-success btn-lg px-5">
+                <i class="fas fa-paper-plane"></i> Submit Quiz
+            </button>
+            <p class="text-muted mt-2">You cannot change answers after submission.</p>
+        </div>
+    </form>
+</div>
+
+<!-- Timer Script -->
+<script>
+    let timeLeft = 20 * 60; // 20 minutes in seconds
+    const timerElement = document.getElementById('timer');
+    const form = document.getElementById('checkpointForm');
+
+    function updateTimer() {
+        const minutes = Math.floor(timeLeft / 60);
+        const seconds = timeLeft % 60;
+        timerElement.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        
+        if (timeLeft <= 0) {
+            timerElement.textContent = "00:00";
+            alert('Time is up! Submitting quiz...');
+            form.submit();
+        } else {
+            timeLeft--;
+        }
+    }
+
+    // Update timer every second
+    setInterval(updateTimer, 1000);
+
+    // Prevent tab switching (basic)
+    document.addEventListener('visibilitychange', function() {
+        if (document.hidden) {
+            alert('⚠️ Please stay on this page. Multiple tab switches may result in auto-submission.');
+        }
+    });
+</script>
+{% endblock %}

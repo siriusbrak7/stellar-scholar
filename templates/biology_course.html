@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block title %}IGCSE Biology Course{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="course-header text-center mb-5">
+        <h1 class="display-4 text-warning">🧬 IGCSE Biology</h1>
+        <p class="lead">Master biology through structured topic progression. Complete each topic to unlock the next.</p>
+    </div>
+
+    <div class="row">
+        {% for topic in topics %}
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 {% if topic.progress.status == 'completed' %}border-success{% elif topic.progress.status == 'in_progress' %}border-warning{% else %}border-secondary{% endif %}">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span class="badge bg-dark">Topic {{ topic.order_number }}</span>
+                    <span class="badge {% if topic.progress.status == 'completed' %}bg-success{% elif topic.progress.status == 'in_progress' %}bg-warning{% else %}bg-secondary{% endif %}">
+                        {{ topic.progress.status|replace('_', ' ')|title }}
+                    </span>
+                </div>
+                <div class="card-body">
+                    <h4 class="card-title">{{ topic.title }}</h4>
+                    <p class="card-text text-muted">{{ topic.description }}</p>
+                    
+                    {% if topic.progress.checkpoint_passed %}
+                    <div class="alert alert-success py-1 mb-3">
+                        <i class="fas fa-check-circle"></i> Checkpoint passed: {{ topic.progress.checkpoint_score }}%
+                    </div>
+                    {% endif %}
+                    
+                    <div class="progress mb-3" style="height: 8px;">
+                        <div class="progress-bar {% if topic.progress.status == 'completed' %}bg-success{% elif topic.progress.status == 'in_progress' %}bg-warning{% else %}bg-secondary{% endif %}" 
+                             style="width: {% if topic.progress.status == 'completed' %}100{% elif topic.progress.status == 'in_progress' %}50{% else %}0{% endif %}%">
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <a href="{{ url_for('topic_detail', topic_id=topic.id) }}" class="btn {% if topic.progress.status == 'completed' %}btn-success{% elif topic.order_number == 1 or topic.progress.status == 'in_progress' %}btn-primary{% else %}btn-outline-secondary disabled{% endif %} w-100">
+                        {% if topic.progress.status == 'completed' %}
+                            <i class="fas fa-redo"></i> Review Topic
+                        {% elif topic.progress.status == 'in_progress' %}
+                            <i class="fas fa-play"></i> Continue
+                        {% elif topic.order_number == 1 %}
+                            <i class="fas fa-play"></i> Start Learning
+                        {% else %}
+                            <i class="fas fa-lock"></i> Locked
+                        {% endif %}
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

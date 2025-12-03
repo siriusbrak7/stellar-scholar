@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+
+{% block title %}{{ topic.title }} - Biology Course{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <!-- Back navigation -->
+    <a href="{{ url_for('biology_course') }}" class="btn btn-outline-secondary mb-4">
+        <i class="fas fa-arrow-left"></i> Back to Course
+    </a>
+
+    <!-- Topic Header -->
+    <div class="card mb-4">
+        <div class="card-header bg-dark text-white">
+            <h3 class="mb-0">🧬 {{ topic.title }}</h3>
+        </div>
+        <div class="card-body">
+            <p class="lead">{{ topic.description }}</p>
+            
+            <!-- Progress Badge -->
+            <div class="mb-3">
+                <span class="badge {% if progress.status == 'completed' %}bg-success{% elif progress.status == 'in_progress' %}bg-warning{% else %}bg-secondary{% endif %} p-2">
+                    <i class="fas fa-{% if progress.status == 'completed' %}check-circle{% elif progress.status == 'in_progress' %}spinner{% else %}clock{% endif %}"></i>
+                    Status: {{ progress.status|replace('_', ' ')|title }}
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Learning Activities -->
+    <div class="row">
+        <!-- Left Column: Learning Resources -->
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0"><i class="fas fa-tasks"></i> Learning Activities</h4>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted mb-3">Complete these activities in order:</p>
+                    
+                    <!-- Activity 1: Study Materials -->
+                    <div class="activity-item p-3 mb-3 border rounded">
+                        <h5><i class="fas fa-book text-info"></i> 1. Study Materials</h5>
+                        <p>Review uploaded materials for this topic.</p>
+                        {% if materials %}
+                        <div class="list-group mt-2">
+                            {% for material in materials|selectattr('tags', 'equalto', topic.title|lower) %}
+                            <a href="{{ url_for('student_materials') }}" class="list-group-item list-group-item-action">
+                                <i class="fas fa-file-{% if material.material_type == 'video' %}video{% else %}alt{% endif %}"></i>
+                                {{ material.title }}
+                            </a>
+                            {% else %}
+                            <p class="text-muted">No materials tagged for this topic yet.</p>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <p class="text-muted">No materials available yet.</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Activity 2: Discussion (Written Assessment) -->
+                    <div class="activity-item p-3 mb-3 border rounded">
+                        <h5><i class="fas fa-comments text-warning"></i> 2. Reflective Essay</h5>
+                        <p>Write a reflection on what you've learned about {{ topic.title }}.</p>
+                        <a href="{{ url_for('student_dashboard') }}" class="btn btn-outline-warning">
+                            <i class="fas fa-edit"></i> Go to Written Assessments
+                        </a>
+                    </div>
+
+                    <!-- Activity 3: Checkpoint Quiz -->
+                    <div class="activity-item p-3 mb-3 border rounded">
+                        <h5><i class="fas fa-clipboard-check text-success"></i> 3. Checkpoint Quiz</h5>
+                        <p>Test your knowledge with a short quiz.</p>
+                        {% if progress.status == 'completed' %}
+                        <button class="btn btn-success disabled">
+                            <i class="fas fa-check"></i> Quiz Completed ({{ progress.checkpoint_score }}%)
+                        </button>
+                        {% else %}
+                        <a href="{{ url_for('topic_checkpoint', topic_id=topic.id) }}" class="btn btn-success">
+                            <i class="fas fa-play"></i> Start Checkpoint Quiz
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Progress & Next Steps -->
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="fas fa-chart-line"></i> Your Progress</h5>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-3">
+                        <div class="display-6 {% if progress.status == 'completed' %}text-success{% elif progress.status == 'in_progress' %}text-warning{% else %}text-secondary{% endif %}">
+                            {% if progress.status == 'completed' %}100%{% elif progress.status == 'in_progress' %}50%{% else %}0%{% endif %}
+                        </div>
+                        <p class="text-muted">Topic Completion</p>
+                    </div>
+                    
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item d-flex justify-content-between">
+                            <span>Study Materials</span>
+                            <span class="badge bg-info">Optional</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between">
+                            <span>Reflective Essay</span>
+                            <span class="badge bg-warning">Required</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between">
+                            <span>Checkpoint Quiz</span>
+                            <span class="badge bg-danger">Required (70% to pass)</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Next Topic Card -->
+            {% if progress.status == 'completed' %}
+            <div class="card border-success">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="fas fa-unlock"></i> Topic Completed!</h5>
+                </div>
+                <div class="card-body">
+                    <p>You've successfully completed this topic.</p>
+                    <a href="{{ url_for('biology_course') }}" class="btn btn-outline-success w-100">
+                        Continue to Next Topic
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
