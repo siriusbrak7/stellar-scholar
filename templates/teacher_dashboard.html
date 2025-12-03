@@ -4,12 +4,21 @@
 <div class="container-fluid">
     <div class="row">
         <div class="col-12">
+
+            <!-- Header + Actions -->
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h2 class="text-white">📊 Teacher Dashboard</h2>
-                <div>
+
+                <div class="btn-group">
                     <a href="{{ url_for('create_prompt') }}" class="btn btn-success me-2">
                         ➕ Create Assessment
                     </a>
+
+                    <!-- NEW: Biology Course Link -->
+                    <a href="{{ url_for('biology_course') }}" class="btn btn-info me-2">
+                        🧬 View Biology Course
+                    </a>
+
                     {% if is_school_admin %}
                     <a href="{{ url_for('admin_dashboard') }}" class="btn btn-warning">
                         👥 Approve Users
@@ -28,6 +37,7 @@
                         </div>
                     </div>
                 </div>
+
                 <div class="col-md-3">
                     <div class="card text-white bg-success">
                         <div class="card-body text-center">
@@ -36,6 +46,7 @@
                         </div>
                     </div>
                 </div>
+
                 <div class="col-md-3">
                     <div class="card text-white bg-info">
                         <div class="card-body text-center">
@@ -44,6 +55,7 @@
                         </div>
                     </div>
                 </div>
+
                 <div class="col-md-3">
                     <div class="card text-white bg-warning">
                         <div class="card-body text-center">
@@ -71,6 +83,8 @@
             <div class="card mb-4">
                 <div class="card-body">
                     <div class="row">
+
+                        <!-- Filter by Grade -->
                         <div class="col-md-4">
                             <label class="form-label">Filter by Grade:</label>
                             <div class="btn-group w-100">
@@ -86,6 +100,8 @@
                                 {% endfor %}
                             </div>
                         </div>
+
+                        <!-- Filter by Category -->
                         <div class="col-md-4">
                             <label class="form-label">Filter by Category:</label>
                             <div class="btn-group w-100">
@@ -101,6 +117,8 @@
                                 {% endfor %}
                             </div>
                         </div>
+
+                        <!-- Assessment Types -->
                         <div class="col-md-4">
                             <label class="form-label">Assessment Types:</label>
                             <div class="btn-group w-100">
@@ -115,82 +133,70 @@
                                 </button>
                             </div>
                         </div>
+
                     </div>
                 </div>
             </div>
 
-            <!-- Assessments Grid - FIXED: Iterate through list, not dictionary -->
+            <!-- Assessments Grid -->
             <div class="row">
                 {% for prompt in prompts %}
                 <div class="col-md-6 col-lg-4 mb-4">
                     <div class="card prompt-card">
+
                         <div class="card-header">
                             <h5 class="card-title mb-1">{{ prompt.title }}</h5>
-                            <div class="prompt-meta">
-                                <small class="text-white">
-                                    {% if prompt.assessment_type == 'written' %}✍️ Written
-                                    {% elif prompt.assessment_type == 'mcq' %}🔠 MCQ
-                                    {% else %}📊 Mixed{% endif %}
-                                    • Grade {{ prompt.grade_level }}
-                                    {% if prompt.subject != 'general' %}• {{ prompt.subject|title }}{% endif %}
-                                </small>
-                            </div>
+                            <small class="text-white">
+                                {% if prompt.assessment_type == 'written' %}✍️ Written
+                                {% elif prompt.assessment_type == 'mcq' %}🔠 MCQ
+                                {% else %}📊 Mixed{% endif %}
+                                • Grade {{ prompt.grade_level }}
+                                {% if prompt.subject != 'general' %}• {{ prompt.subject|title }}{% endif %}
+                            </small>
                         </div>
-                        
+
                         <div class="card-body">
-                            <p class="card-text">{{ prompt.description[:100] }}{% if prompt.description|length > 100 %}...{% endif %}</p>
-                            
-                            <!-- Assessment Stats - FIXED: Access stats by prompt.id -->
-                            <div class="assessment-stats mb-3">
-                                {% set stats = prompt_stats.get(prompt.id, {'graded': 0, 'total': 0}) %}
-                                <div class="progress mb-2" style="height: 8px;">
-                                    <div class="progress-bar bg-success" 
-                                         style="width: {{ (stats.graded / stats.total * 100) if stats.total > 0 else 0 }}%">
-                                    </div>
+                            <p>{{ prompt.description[:100] }}{% if prompt.description|length > 100 %}...{% endif %}</p>
+
+                            {% set stats = prompt_stats.get(prompt.id, {'graded': 0, 'total': 0}) %}
+                            <div class="progress mb-2" style="height: 8px;">
+                                <div class="progress-bar bg-success" 
+                                     style="width: {{ (stats.graded / stats.total * 100) if stats.total > 0 else 0 }}%">
                                 </div>
-                                <small class="text-muted">
-                                    📊 {{ stats.graded }}/{{ stats.total }} graded
-                                    ({{ prompt.total_points }} points)
-                                </small>
                             </div>
+                            <small class="text-muted">
+                                📊 {{ stats.graded }}/{{ stats.total }} graded
+                                ({{ prompt.total_points }} points)
+                            </small>
 
                             {% if prompt.assessment_type == 'mcq' %}
-                            <div class="mb-2">
-                                <span class="badge bg-success">✅ Auto-graded</span>
-                            </div>
+                                <div class="badge bg-success mt-2">✅ Auto-graded</div>
                             {% elif prompt.assessment_type == 'mixed' %}
-                            <div class="mb-2">
-                                <span class="badge bg-warning">📊 Partially Auto-graded</span>
-                            </div>
+                                <div class="badge bg-warning mt-2">📊 Partially Auto-graded</div>
                             {% endif %}
 
                             {% if prompt.due_date %}
-                            <div class="mb-2">
-                                <small class="text-muted">
-                                    📅 Due: {{ prompt.due_date[:16]|replace('T', ' at ') }}
-                                </small>
-                            </div>
+                            <small class="text-muted d-block mt-2">
+                                📅 Due: {{ prompt.due_date[:16]|replace('T', ' at ') }}
+                            </small>
                             {% endif %}
                         </div>
 
                         <div class="card-footer">
                             <div class="btn-group w-100">
                                 <a href="{{ url_for('grade_submissions', prompt_id=prompt.id) }}" 
-                                   class="btn btn-primary btn-sm">
-                                    📝 Grade
-                                </a>
+                                   class="btn btn-primary btn-sm">📝 Grade</a>
+
                                 <a href="{{ url_for('edit_prompt', prompt_id=prompt.id) }}" 
-                                   class="btn btn-outline-secondary btn-sm">
-                                    ✏️ Edit
-                                </a>
+                                   class="btn btn-outline-secondary btn-sm">✏️ Edit</a>
+
                                 <form method="POST" action="{{ url_for('delete_prompt', prompt_id=prompt.id) }}" 
-                                      class="d-inline" onsubmit="return confirm('Delete this assessment?');">
-                                    <button type="submit" class="btn btn-outline-danger btn-sm">
-                                        🗑️ Delete
-                                    </button>
+                                      onsubmit="return confirm('Delete this assessment?');">
+                                    <button class="btn btn-outline-danger btn-sm">🗑️ Delete</button>
                                 </form>
                             </div>
                         </div>
+
                     </div>
                 </div>
                 {% endfor %}
@@ -198,23 +204,22 @@
 
             {% if not prompts %}
             <div class="text-center py-5">
-                <div class="empty-state">
-                    <h3 class="text-white">📝 No Assessments Yet</h3>
-                    <p class="text-muted">Create your first assessment to get started!</p>
-                    <a href="{{ url_for('create_prompt') }}" class="btn btn-success btn-lg">
-                        ➕ Create First Assessment
-                    </a>
-                </div>
+                <h3 class="text-white">📝 No Assessments Yet</h3>
+                <p class="text-muted">Create your first assessment to get started!</p>
+                <a href="{{ url_for('create_prompt') }}" class="btn btn-success btn-lg">
+                    ➕ Create First Assessment
+                </a>
             </div>
             {% endif %}
 
-            <!-- Student Progress Table - FIXED: student_progress is a list, not dict -->
+            <!-- Student Progress -->
             {% if student_progress %}
             <div class="card mt-4">
                 <div class="card-header">
                     <h5 class="mb-0">📈 Student Progress</h5>
                 </div>
                 <div class="card-body">
+
                     <div class="table-responsive">
                         <table class="table table-striped">
                             <thead>
@@ -227,38 +232,46 @@
                                     <th>Actions</th>
                                 </tr>
                             </thead>
+
                             <tbody>
                                 {% for student in student_progress %}
                                 <tr>
                                     <td>{{ student.username }}</td>
                                     <td>Grade {{ student.grade_level }}</td>
                                     <td>{{ student.submissions_count }}</td>
+
                                     <td>
                                         <div class="progress" style="height: 10px;">
-                                            <div class="progress-bar bg-success" style="width: {{ student.completion_rate }}%">
+                                            <div class="progress-bar bg-success" 
+                                                 style="width: {{ student.completion_rate }}%">
                                             </div>
                                         </div>
                                         <small>{{ student.completion_rate }}%</small>
                                     </td>
+
                                     <td>
                                         <span class="badge bg-info">{{ student.average_grade }}/100</span>
                                     </td>
+
                                     <td>
-                                        <a href="#" class="btn btn-outline-primary btn-sm">
-                                            📊 View Details
-                                        </a>
+                                        <a href="#" class="btn btn-outline-primary btn-sm">📊 View Details</a>
                                     </td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
+
                         </table>
                     </div>
+
                 </div>
             </div>
             {% endif %}
+
         </div>
     </div>
 </div>
+{% endblock %}
+
 
 <style>
 .prompt-card {

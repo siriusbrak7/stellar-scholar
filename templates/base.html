@@ -233,6 +233,9 @@ document.addEventListener('DOMContentLoaded', function () {
                         <a class="nav-link" href="{{ url_for('teacher_dashboard') }}">📊 Dashboard</a>
                         <a class="nav-link" href="{{ url_for('teacher_materials') }}">📚 Materials</a>
 
+                        {# --- TEACHER ONLY BIOLOGY COURSE LINK --- #}
+                        <a class="nav-link" href="{{ url_for('biology_course') }}">🧬 Biology Course</a>
+
                         {% if is_school_admin %}
                             <a class="nav-link" href="{{ url_for('school_admin_dashboard') }}">🏫 School Admin</a>
                             <a class="nav-link" href="{{ url_for('admin_dashboard') }}">👥 Approve Users</a>
@@ -242,10 +245,6 @@ document.addEventListener('DOMContentLoaded', function () {
                         <a class="nav-link" href="{{ url_for('student_dashboard') }}">📚 Dashboard</a>
                         <a class="nav-link" href="{{ url_for('student_history') }}">📖 My History</a>
                         <a class="nav-link" href="{{ url_for('student_materials') }}">📚 Study Materials</a>
-                    {% endif %}
-
-                    {% if session.user_id and session.role in ['student', 'teacher'] %}
-                        <a class="nav-link" href="{{ url_for('biology_course') }}">🧬 Biology Course</a>
                     {% endif %}
 
                     <a class="nav-link" href="{{ url_for('science_revision') }}">🔬 Science Revision</a>
@@ -269,6 +268,13 @@ document.addEventListener('DOMContentLoaded', function () {
                     <a class="nav-link" href="{{ url_for('school_register') }}">🏫 Register School</a>
                     <a class="nav-link" href="{{ url_for('login') }}">🔐 Login</a>
                     <a class="nav-link" href="{{ url_for('register') }}">📝 Register</a>
+
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</nav>
+
 
                 {% endif %}
             </div>
