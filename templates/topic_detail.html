@@ -19,13 +19,57 @@
             
             <!-- Progress Badge -->
             <div class="mb-3">
-                <span class="badge {% if progress.status == 'completed' %}bg-success{% elif progress.status == 'in_progress' %}bg-warning{% else %}bg-secondary{% endif %} p-2">
-                    <i class="fas fa-{% if progress.status == 'completed' %}check-circle{% elif progress.status == 'in_progress' %}spinner{% else %}clock{% endif %}"></i>
+                <span class="badge 
+                    {% if progress.status == 'completed' %}bg-success
+                    {% elif progress.status == 'in_progress' %}bg-warning
+                    {% else %}bg-secondary{% endif %} p-2">
+                    <i class="fas fa-
+                        {% if progress.status == 'completed' %}check-circle
+                        {% elif progress.status == 'in_progress' %}spinner
+                        {% else %}clock{% endif %}">
+                    </i>
                     Status: {{ progress.status|replace('_', ' ')|title }}
                 </span>
             </div>
         </div>
     </div>
+
+    <!-- ------------------------------------------------------------ -->
+    <!--            TEACHER EDIT SECTION (INSERTED HERE)             -->
+    <!-- ------------------------------------------------------------ -->
+    {% if session.role == 'teacher' %}
+    <div class="card mb-4 border-warning">
+        <div class="card-header bg-warning text-dark">
+            <h5 class="mb-0">👨‍🏫 Teacher: Edit Learning Activities</h5>
+        </div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('update_topic_activities', topic_id=topic.id) }}">
+                <div class="mb-3">
+                    <label class="form-label">Instructions for Students:</label>
+                    <textarea name="instructions" class="form-control" rows="4">{{ topic.learning_activities.instructions if topic.learning_activities else '' }}</textarea>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Resource Links (JSON format):</label>
+                    <textarea name="resources_json" class="form-control" rows="6" style="font-family: monospace;">{{ 
+                        topic.learning_activities.links|tojson(indent=2) 
+                        if topic.learning_activities and topic.learning_activities.links 
+                        else '[]' 
+                    }}</textarea>
+                </div>
+
+                <button type="submit" class="btn btn-warning">Save for Students</button>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- ------------------------------------------------------------ -->
+    <!--                    STUDENT VIEW SECTION                     -->
+    <!-- ------------------------------------------------------------ -->
+    {% if session.role == 'student' %}
+    <!-- (Student-only sections continue normally below…) -->
+    {% endif %}
 
     <!-- Learning Activities -->
     <div class="row">
@@ -37,22 +81,26 @@
                 </div>
                 <div class="card-body">
                     <p class="text-muted mb-3">Complete these activities in order:</p>
-                    
+
                     <!-- Activity 1: Study Materials -->
                     <div class="activity-item p-3 mb-3 border rounded">
                         <h5><i class="fas fa-book text-info"></i> 1. Study Materials</h5>
                         <p>Review uploaded materials for this topic.</p>
+
                         {% if materials %}
                         <div class="list-group mt-2">
                             {% for material in materials|selectattr('tags', 'equalto', topic.title|lower) %}
                             <a href="{{ url_for('student_materials') }}" class="list-group-item list-group-item-action">
-                                <i class="fas fa-file-{% if material.material_type == 'video' %}video{% else %}alt{% endif %}"></i>
+                                <i class="fas fa-file-
+                                    {% if material.material_type == 'video' %}video{% else %}alt{% endif %}">
+                                </i>
                                 {{ material.title }}
                             </a>
                             {% else %}
                             <p class="text-muted">No materials tagged for this topic yet.</p>
                             {% endfor %}
                         </div>
+
                         {% else %}
                         <p><strong>Instructions:</strong></p>
                         <ol>
@@ -77,6 +125,7 @@
                     <div class="activity-item p-3 mb-3 border rounded">
                         <h5><i class="fas fa-clipboard-check text-success"></i> 3. Checkpoint Quiz</h5>
                         <p>Test your knowledge with a short quiz.</p>
+
                         {% if progress.status == 'completed' %}
                         <button class="btn btn-success disabled">
                             <i class="fas fa-check"></i> Quiz Completed ({{ progress.checkpoint_score }}%)
@@ -99,12 +148,17 @@
                 </div>
                 <div class="card-body">
                     <div class="text-center mb-3">
-                        <div class="display-6 {% if progress.status == 'completed' %}text-success{% elif progress.status == 'in_progress' %}text-warning{% else %}text-secondary{% endif %}">
-                            {% if progress.status == 'completed' %}100%{% elif progress.status == 'in_progress' %}50%{% else %}0%{% endif %}
+                        <div class="display-6 
+                            {% if progress.status == 'completed' %}text-success
+                            {% elif progress.status == 'in_progress' %}text-warning
+                            {% else %}text-secondary{% endif %}">
+                            {% if progress.status == 'completed' %}100%
+                            {% elif progress.status == 'in_progress' %}50%
+                            {% else %}0%{% endif %}
                         </div>
                         <p class="text-muted">Topic Completion</p>
                     </div>
-                    
+
                     <ul class="list-group list-group-flush">
                         <li class="list-group-item d-flex justify-content-between">
                             <span>Study Materials</span>
