@@ -4489,7 +4489,7 @@ def topic_checkpoint(topic_id):
     # Shuffle questions (limit to 10 for checkpoint)
     import random
     random.shuffle(questions)
-    questions = questions[:10]
+    questions = questions[:25] # Increased to 25 questions for checkpoint
     
     return render_template('topic_checkpoint.html', topic=topic, questions=questions)
 
@@ -4517,7 +4517,7 @@ def submit_checkpoint(topic_id):
             score += 1
     
     percentage = round((score / total) * 100) if total > 0 else 0
-    passed = percentage >= 70  # 70% passing threshold
+    passed = percentage >= 85  # 85% passing threshold
     
     # Update topic progress
     progress_data = {
