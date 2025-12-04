@@ -4550,16 +4550,19 @@ def edit_topic_activities(topic_id):
     topic = topic_response.data[0] if topic_response.data else None
     
     if request.method == 'POST':
-        activities_json = request.form.get('activities_json', '').strip()
-        try:
-            # Validate JSON
-            json.loads(activities_json)
-            # Update
-            supabase.table('topics').update({'learning_activities': activities_json}).eq('id', topic_id).execute()
-            flash('Activities updated!', 'success')
-            return redirect(url_for('biology_course'))
-        except json.JSONDecodeError:
-            flash('Invalid JSON format', 'danger')
+        instructions = request.form.get('instructions', '').strip()
+        resource_links = request.form.get('resource_links', '').strip()
+        
+        # Create simple structure (not JSON parsing)
+        learning_activities = {
+            'instructions': instructions,
+            'link_text': resource_links  # Store as plain text
+        }
+        
+        # Update
+        supabase.table('topics').update({'learning_activities': learning_activities}).eq('id', topic_id).execute()
+        flash('Activities updated!', 'success')
+        return redirect(url_for('biology_course'))
     
     return render_template('edit_topic_activities.html', topic=topic)
 
